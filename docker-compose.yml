@@ -3,6 +3,7 @@ services:
   # MySQL Database
   # ============================================================
   db:
+    profiles: [database]
     image: mysql:8.0
     container_name: medbook-db
     restart: unless-stopped
@@ -29,9 +30,6 @@ services:
     build: .
     container_name: medbook-app
     restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
@@ -46,6 +44,7 @@ services:
   # phpMyAdmin (xem DB trực quan)
   # ============================================================
   phpmyadmin:
+    profiles: [database]
     image: phpmyadmin:latest
     container_name: medbook-pma
     restart: unless-stopped
