@@ -1,0 +1,5 @@
+# Run the welcome page without a database: --spring.profiles.active=hello
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
