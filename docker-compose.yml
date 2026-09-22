@@ -1,7 +1,5 @@
 services:
-  # ============================================================
-  # MySQL Database
-  # ============================================================
+ 
   db:
     profiles: [database]
     image: mysql:8.0
@@ -23,9 +21,7 @@ services:
     networks:
       - medbook-network
 
-  # ============================================================
-  # Spring Boot Application
-  # ============================================================
+
   app:
     build: .
     container_name: medbook-app
@@ -40,9 +36,7 @@ services:
     networks:
       - medbook-network
 
-  # ============================================================
-  # phpMyAdmin (xem DB trực quan)
-  # ============================================================
+
   phpmyadmin:
     profiles: [database]
     image: phpmyadmin:latest
