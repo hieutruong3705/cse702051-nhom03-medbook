@@ -1,0 +1,139 @@
+erDiagram
+    ROLES ||--o{ USER_ROLES : has
+    USERS ||--o{ USER_ROLES : has
+    USERS ||--o| PATIENTS : owns
+    USERS ||--o| DOCTORS : profile
+    USERS ||--o{ AUDIT_LOGS : creates
+
+    DOCTORS ||--o{ SCHEDULES : has
+    PATIENTS ||--o{ APPOINTMENTS : books
+    DOCTORS ||--o{ APPOINTMENTS : handles
+    SCHEDULES ||--o| APPOINTMENTS : reserves
+    SERVICES ||--o{ APPOINTMENTS : uses
+
+    PATIENTS ||--|| MEDICAL_RECORDS : owns
+    MEDICAL_RECORDS ||--o{ ENCOUNTERS : contains
+    DOCTORS ||--o{ ENCOUNTERS : performs
+    APPOINTMENTS ||--o| ENCOUNTERS : creates
+
+    ENCOUNTERS ||--o{ PRESCRIPTIONS : produces
+    PRESCRIPTIONS ||--o{ PRESCRIPTION_ITEMS : contains
+
+    PATIENTS ||--o{ INVOICES : billed
+    APPOINTMENTS ||--o| INVOICES : generates
+    INVOICES ||--o{ INVOICE_ITEMS : contains
+    SERVICES ||--o{ INVOICE_ITEMS : itemizes
+
+    ROLES {
+        bigint id PK
+        varchar code UK
+        varchar name
+    }
+    USERS {
+        bigint id PK
+        varchar username UK
+        varchar password_hash
+        varchar full_name
+        varchar status
+    }
+    USER_ROLES {
+        bigint user_id PK, FK
+        bigint role_id PK, FK
+    }
+    AUDIT_LOGS {
+        bigint id PK
+        bigint actor_user_id FK
+        varchar action_code
+        varchar entity_type
+        bigint entity_id
+        timestamp created_at
+    }
+    PATIENTS {
+        bigint id PK
+        bigint user_id FK
+        varchar patient_code UK
+        varchar full_name
+        date date_of_birth
+        varchar gender_code
+    }
+    DOCTORS {
+        bigint id PK
+        bigint user_id FK
+        varchar doctor_code UK
+        varchar specialty
+        varchar status
+    }
+    SERVICES {
+        bigint id PK
+        varchar code UK
+        varchar name
+        int duration_minutes
+        decimal price
+    }
+    SCHEDULES {
+        bigint id PK
+        bigint doctor_id FK
+        date schedule_date
+        time start_time
+        time end_time
+        varchar status
+    }
+    APPOINTMENTS {
+        bigint id PK
+        varchar appointment_code UK
+        bigint patient_id FK
+        bigint doctor_id FK
+        bigint schedule_id FK, UK
+        bigint service_id FK
+        date appointment_date
+        time start_time
+        time end_time
+        varchar status
+    }
+    MEDICAL_RECORDS {
+        bigint id PK
+        bigint patient_id FK, UK
+        varchar record_code UK
+        text chronic_conditions
+        text allergy_notes
+        varchar status
+    }
+    ENCOUNTERS {
+        bigint id PK
+        bigint medical_record_id FK
+        bigint appointment_id FK, UK
+        bigint doctor_id FK
+        datetime encounter_at
+        text diagnosis
+        varchar status
+    }
+    PRESCRIPTIONS {
+        bigint id PK
+        bigint encounter_id FK
+        varchar prescription_code UK
+        datetime issued_at
+        varchar status
+    }
+    PRESCRIPTION_ITEMS {
+        bigint id PK
+        bigint prescription_id FK
+        varchar medicine_name
+        decimal quantity
+    }
+    INVOICES {
+        bigint id PK
+        varchar invoice_code UK
+        bigint patient_id FK
+        bigint appointment_id FK, UK
+        decimal subtotal
+        decimal total_amount
+        varchar status
+    }
+    INVOICE_ITEMS {
+        bigint id PK
+        bigint invoice_id FK
+        bigint service_id FK
+        decimal quantity
+        decimal unit_price
+        decimal line_total
+    }
