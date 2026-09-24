@@ -4,6 +4,8 @@ Hướng dẫn cài đặt ban đầu — Buổi thực hành 01.
 
 Kế hoạch phát triển: [Phân công backend cho 2 dev và các nhánh feature](docs/PHAN_CONG_BACKEND_2_DEV.md).
 
+Quy định chung: [Quy ước mã nguồn, dữ liệu và lỗi API](docs/QUY_UOC_MA_NGUON.md).
+
 ## 1. Thông tin dự án
 
 | Nội dung | Thông tin |
