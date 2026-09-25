@@ -1,5 +1,6 @@
 package com.phenikaa.cse702051.medbook.model;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -9,7 +10,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -24,34 +25,41 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "doctors")
-public class Doctor {
+@Table(name = "invoices")
+public class Invoice {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
-    private User user;
+    @Column(name = "invoice_code", nullable = false, unique = true, length = 40)
+    private String invoiceCode;
 
-    @Column(name = "doctor_code", nullable = false, unique = true, length = 30)
-    private String doctorCode;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "patient_id", nullable = false)
+    private Patient patient;
 
-    @Column(nullable = false, length = 120)
-    private String specialty;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "appointment_id", unique = true)
+    private Appointment appointment;
 
-    @Column(name = "license_no", unique = true, length = 80)
-    private String licenseNo;
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal subtotal;
 
-    @Column(name = "years_experience", nullable = false)
-    private Integer yearsExperience;
+    @Column(name = "discount_amount", nullable = false, precision = 12, scale = 2)
+    private BigDecimal discountAmount;
 
-    @Lob
-    private String bio;
+    @Column(name = "total_amount", nullable = false, precision = 12, scale = 2)
+    private BigDecimal totalAmount;
 
     @Column(nullable = false, length = 20)
     private String status;
+
+    @Column(name = "issued_at")
+    private LocalDateTime issuedAt;
+
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
