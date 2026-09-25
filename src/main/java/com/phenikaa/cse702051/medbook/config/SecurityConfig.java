@@ -1,33 +1,66 @@
 package com.phenikaa.cse702051.medbook.config;
 
+import com.phenikaa.cse702051.medbook.service.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
-/**
- * Cấu hình Spring Security TẠM THỜI cho phép tất cả request.
- * Sẽ thay thế bằng cấu hình JWT + phân quyền đầy đủ sau khi có Entity.
- */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private final CustomUserDetailsService customUserDetailsService;
+
+    public SecurityConfig(
+            CustomUserDetailsService customUserDetailsService
+    ) {
+        this.customUserDetailsService = customUserDetailsService;
+    }
+
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(12);
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration configuration
+    ) throws Exception {
+        return configuration.getAuthenticationManager();
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(
+            HttpSecurity http
+    ) throws Exception {
+
         http
-                // Tắt CSRF (tạm, vì chưa có form login)
                 .csrf(csrf -> csrf.disable())
 
-                // Cho phép tất cả request
-                .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll())
+                .userDetailsService(customUserDetailsService)
 
-                // Tắt form login mặc định
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/",
+                                "/api/auth/**",
+                                "/error"
+                        ).permitAll()
+
+                        .requestMatchers("/api/admin/**")
+                        .hasRole("ADMIN")
+
+                        .anyRequest()
+                        .authenticated()
+                )
+
                 .formLogin(form -> form.disable())
 
-                // Tắt HTTP Basic
                 .httpBasic(basic -> basic.disable());
 
         return http.build();
