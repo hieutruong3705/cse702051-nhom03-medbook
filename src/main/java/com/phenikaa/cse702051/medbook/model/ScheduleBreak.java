@@ -1,7 +1,5 @@
 package com.phenikaa.cse702051.medbook.model;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 import jakarta.persistence.Column;
@@ -33,11 +31,8 @@ public class ScheduleBreak {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "doctor_id", nullable = false)
-    private Doctor doctor;
-
-    @Column(name = "break_date", nullable = false)
-    private LocalDate breakDate;
+    @JoinColumn(name = "doctor_schedule_id", nullable = false)
+    private DoctorSchedule doctorSchedule;
 
     @Column(name = "start_time", nullable = false)
     private LocalTime startTime;
@@ -47,13 +42,4 @@ public class ScheduleBreak {
 
     @Column(length = 255)
     private String reason;
-
-    @Column(nullable = false, length = 20)
-    private String status;
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
 }
