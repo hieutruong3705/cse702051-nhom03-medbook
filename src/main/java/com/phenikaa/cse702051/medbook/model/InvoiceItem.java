@@ -23,32 +23,30 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "prescription_items")
-public class PrescriptionItem {
+@Table(name = "invoice_items")
+public class InvoiceItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "prescription_id", nullable = false)
-    private Prescription prescription;
+    @JoinColumn(name = "invoice_id", nullable = false)
+    private Invoice invoice;
 
-    @Column(name = "medicine_name", nullable = false, length = 200)
-    private String medicineName;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "service_id")
+    private MedicalService service;
 
-    @Column(length = 100)
-    private String dosage;
-
-    @Column(length = 100)
-    private String frequency;
-
-    @Column(name = "duration_days")
-    private Integer durationDays;
+    @Column(nullable = false, length = 255)
+    private String description;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal quantity;
 
-    @Column(length = 500)
-    private String instructions;
+    @Column(name = "unit_price", nullable = false, precision = 12, scale = 2)
+    private BigDecimal unitPrice;
+
+    @Column(name = "line_total", nullable = false, precision = 12, scale = 2)
+    private BigDecimal lineTotal;
 }
