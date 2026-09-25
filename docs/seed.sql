@@ -1,10 +1,10 @@
--- ============================================================
+-- 
 -- SEED DATA | ĐỀ TÀI 03
 -- Tất cả dữ liệu người/bệnh án bên dưới là DỮ LIỆU GIẢ LẬP.
 -- Có thể chạy sau schema.sql.
 -- Password hash chỉ là chuỗi mẫu phục vụ DB demo; ứng dụng thật
 -- phải tạo hash bằng password_hash()/bcrypt/Argon2 ở tầng ứng dụng.
--- ============================================================
+-- 
 
 SET NAMES utf8mb4;
 START TRANSACTION;
