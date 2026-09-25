@@ -16,13 +16,13 @@ INSERT INTO roles (code, name, description) VALUES
 ('PATIENT', 'Bệnh nhân', 'Đặt lịch và xem bệnh án của chính mình');
 
 INSERT INTO users (username, password_hash, full_name, email, phone, status) VALUES
-('admin.demo', '$2y$10$demo_hash_admin_replace_me', 'Quản trị viên Demo', 'admin.demo@example.test', '0900000001', 'ACTIVE'),
-('doctor.lan', '$2y$10$demo_hash_doctor_replace_me', 'BS Nguyễn Minh Lan', 'doctor.lan@example.test', '0900000002', 'ACTIVE'),
-('doctor.huy', '$2y$10$demo_hash_doctor_replace_me', 'BS Trần Quốc Huy', 'doctor.huy@example.test', '0900000003', 'ACTIVE'),
-('reception.demo', '$2y$10$demo_hash_reception_replace_me', 'Lễ tân Demo', 'reception@example.test', '0900000004', 'ACTIVE'),
-('patient.an', '$2y$10$demo_hash_patient_replace_me', 'Nguyễn Minh An', 'patient.an@example.test', '0900000011', 'ACTIVE'),
-('patient.binh', '$2y$10$demo_hash_patient_replace_me', 'Trần Gia Bình', 'patient.binh@example.test', '0900000012', 'ACTIVE'),
-('patient.chi', '$2y$10$demo_hash_patient_replace_me', 'Lê Ngọc Chi', 'patient.chi@example.test', '0900000013', 'ACTIVE');
+('admin.demo', '$2b$12$PnFrkpYBSPLJS4NCk2ZZu.AlcTnJFYXgSX6jyNHkPyK0ET5GxcaCS', 'Quản trị viên Demo', 'admin.demo@example.test', '0900000001', 'ACTIVE'),
+('doctor.lan', '$2b$12$0rcodhLvHgsSoT/IllkmPek5nuSlF4GUWXFPXIUagRu7juxzErT66', 'BS Nguyễn Minh Lan', 'doctor.lan@example.test', '0900000002', 'ACTIVE'),
+('doctor.huy', '$2b$12$0rcodhLvHgsSoT/IllkmPek5nuSlF4GUWXFPXIUagRu7juxzErT66', 'BS Trần Quốc Huy', 'doctor.huy@example.test', '0900000003', 'ACTIVE'),
+('reception.demo', '$2b$12$0rcodhLvHgsSoT/IllkmPek5nuSlF4GUWXFPXIUagRu7juxzErT66', 'Lễ tân Demo', 'reception@example.test', '0900000004', 'ACTIVE'),
+('patient.an', '$2b$12$FvkFRFLklInWoroIZaKmc.FHL0fgl/SdNuXn3St4h31DcwXp4CVrO', 'Nguyễn Minh An', 'patient.an@example.test', '0900000011', 'ACTIVE'),
+('patient.binh', '$2b$12$FvkFRFLklInWoroIZaKmc.FHL0fgl/SdNuXn3St4h31DcwXp4CVrO', 'Trần Gia Bình', 'patient.binh@example.test', '0900000012', 'ACTIVE'),
+('patient.chi', '$2b$12$FvkFRFLklInWoroIZaKmc.FHL0fgl/SdNuXn3St4h31DcwXp4CVrO', 'Lê Ngọc Chi', 'patient.chi@example.test', '0900000013', 'ACTIVE');
 
 INSERT INTO user_roles (user_id, role_id)
 SELECT u.id, r.id FROM users u CROSS JOIN roles r
