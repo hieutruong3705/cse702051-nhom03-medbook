@@ -10,6 +10,10 @@ public interface EncounterRepository extends JpaRepository<Encounter, Long> {
 
     List<Encounter> findByMedicalRecordId(Long medicalRecordId);
 
+    List<Encounter> findByMedicalRecordIdIn(
+            List<Long> medicalRecordIds
+    );
+
     List<Encounter> findByDoctorId(Long doctorId);
 
     Optional<Encounter> findByAppointmentId(Long appointmentId);
