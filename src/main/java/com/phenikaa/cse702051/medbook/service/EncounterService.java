@@ -79,13 +79,8 @@ public class EncounterService {
         if (encounter.getAppointmentId() != null) {
 
             Appointment appointment =
-                    appointmentService.findById(
+                    appointmentService.getAppointmentById(
                             encounter.getAppointmentId()
-                    ).orElseThrow(() ->
-                            new IllegalArgumentException(
-                                    "Không tìm thấy appointment với ID: "
-                                            + encounter.getAppointmentId()
-                            )
                     );
 
             if (appointment.getDoctorId() == null
@@ -340,13 +335,8 @@ public class EncounterService {
                 )) {
 
             Appointment appointment =
-                    appointmentService.findById(
+                    appointmentService.getAppointmentById(
                             input.getAppointmentId()
-                    ).orElseThrow(() ->
-                            new IllegalArgumentException(
-                                    "Không tìm thấy appointment với ID: "
-                                            + input.getAppointmentId()
-                            )
                     );
 
             Long currentDoctorId =
