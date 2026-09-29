@@ -1,6 +1,6 @@
 {
   "info": {
-    "name": "MedBook - Buoi 04 (Kiem thu Bao mat & IDOR)",
+    "name": "MedBook - Buoi 04 (Xac thuc, Bao mat & IDOR)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -22,7 +22,83 @@
       }
     },
     {
-      "name": "02 - Khach chua dang nhap goi xem benh an (401 Unauthorized)",
+      "name": "02 - [XAC THUC] Dang ky tai khoan benh nhan moi (201 Created)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"patient.david\",\n  \"password\": \"P@ssword123\",\n  \"fullName\": \"David Nguyen\",\n  \"email\": \"david.nguyen@example.test\",\n  \"phone\": \"0987654321\",\n  \"dateOfBirth\": \"1998-08-20\",\n  \"genderCode\": \"MALE\",\n  \"address\": \"Ha Noi, Viet Nam\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/register"
+        },
+        "description": "YCCN-01: Dang ky benh nhan moi, bam mat khau bang BCrypt cost 12. Mong doi: 201 Created."
+      }
+    },
+    {
+      "name": "03 - [XAC THUC] Dang nhap hop le (200 OK)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usernameOrEmail\": \"patient.an\",\n  \"password\": \"P@ssword123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login"
+        },
+        "description": "YCCN-02: Dang nhap voi BCrypt matcher hop le. Mong doi: 200 OK kem Token va Roles."
+      }
+    },
+    {
+      "name": "04 - [XAC THUC] Dang nhap sai mat khau (401 Unauthorized)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usernameOrEmail\": \"patient.an\",\n  \"password\": \"SaiMatKhau123!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login"
+        },
+        "description": "Doi chieu mat khau BCrypt that bai. Mong doi: 401 Unauthorized."
+      }
+    },
+    {
+      "name": "05 - [XAC THUC] Dang xuat (204 No Content)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer sample-token-value"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/logout"
+        },
+        "description": "YCCN-03: Dang xuat, huy phien token. Mong doi: 204 No Content."
+      }
+    },
+    {
+      "name": "06 - Khach chua dang nhap goi xem benh an (401 Unauthorized)",
       "request": {
         "method": "GET",
         "header": [],
@@ -33,7 +109,7 @@
       }
     },
     {
-      "name": "03 - [ANH 19a] Goi hop le - Benh nhan An xem benh an cua minh (200 OK)",
+      "name": "07 - [ANH 19a] Goi hop le - Benh nhan An xem benh an cua minh (200 OK)",
       "request": {
         "method": "GET",
         "header": [
@@ -47,7 +123,7 @@
           },
           {
             "key": "Authorization",
-            "value": "DemoAuth patient_an"
+            "value": "Bearer patient_an_token"
           }
         ],
         "url": {
@@ -57,7 +133,7 @@
       }
     },
     {
-      "name": "04 - [ANH 19b] Goi cheo IDOR - Benh nhan Binh co xem benh an cua An (403 Forbidden)",
+      "name": "08 - [ANH 19b] Goi cheo IDOR - Benh nhan Binh co xem benh an cua An (403 Forbidden)",
       "request": {
         "method": "GET",
         "header": [
@@ -71,33 +147,13 @@
           },
           {
             "key": "Authorization",
-            "value": "DemoAuth patient_binh"
+            "value": "Bearer patient_binh_token"
           }
         ],
         "url": {
           "raw": "{{baseUrl}}/api/v1/medical-records/1"
         },
         "description": "Goi cheo IDOR: Benh nhan Binh (ID 2) co tinh xem ho so so 1 cua An. Ket qua: 403 Forbidden (CHUP ANH 19b)."
-      }
-    },
-    {
-      "name": "05 - Admin co xem benh an chuyen mon y khoa (403 Forbidden)",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "X-User-Role",
-            "value": "ADMIN"
-          },
-          {
-            "key": "Authorization",
-            "value": "DemoAuth admin"
-          }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/api/v1/medical-records/1"
-        },
-        "description": "Phan quyen chuc nang RBAC: Admin IT khong duoc xem benh an. Ket qua: 403 Forbidden."
       }
     }
   ]

@@ -1,27 +1,68 @@
 package com.phenikaa.cse702051.medbook.repository;
 
-import com.phenikaa.cse702051.medbook.model.UserRole;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
-public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
-    @Query(
-        value = """
-                SELECT r.code
-                FROM roles r
-                INNER JOIN user_roles ur
-                    ON ur.role_id = r.id
-                WHERE ur.user_id = :userId
-                """,
-        nativeQuery = true
-    )
-    List<String> findRoleCodesByUserId(@Param("userId") Long userId);
+import com.phenikaa.cse702051.medbook.model.UserRole;
+import com.phenikaa.cse702051.medbook.model.UserRoleId;
 
-    List<UserRole> findByUserId(Long userId);
+import jakarta.annotation.PostConstruct;
 
-    boolean existsByUserIdAndRoleId(Long userId, Long roleId);
+@Repository
+public class UserRoleRepository {
+
+    private final Map<String, UserRole> userRoles = new ConcurrentHashMap<>();
+
+    @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @PostConstruct
+    public void initSeedRoles() {
+        LocalDateTime now = LocalDateTime.now();
+        // user 1: ADMIN
+        addRole(1L, "ADMIN", now);
+        // user 2, 3: DOCTOR
+        addRole(2L, "DOCTOR", now);
+        addRole(3L, "DOCTOR", now);
+        // user 4: RECEPTIONIST
+        addRole(4L, "RECEPTIONIST", now);
+        // user 5, 6, 7: PATIENT
+        addRole(5L, "PATIENT", now);
+        addRole(6L, "PATIENT", now);
+        addRole(7L, "PATIENT", now);
+    }
+
+    private void addRole(Long userId, String roleCode, LocalDateTime now) {
+        roleRepository.findByCode(roleCode).ifPresent(role -> {
+            userRepository.findById(userId).ifPresent(user -> {
+                UserRoleId urId = new UserRoleId(userId, role.getId());
+                UserRole ur = UserRole.builder().id(urId).user(user).role(role).createdAt(now).build();
+                userRoles.put(userId + "_" + role.getId(), ur);
+            });
+        });
+    }
+
+    public UserRole save(UserRole userRole) {
+        String key = userRole.getUser().getId() + "_" + userRole.getRole().getId();
+        userRoles.put(key, userRole);
+        return userRole;
+    }
+
+    public List<UserRole> findByUserIdWithRole(Long userId) {
+        if (userRoles.isEmpty()) {
+            initSeedRoles();
+        }
+        return userRoles.values().stream()
+                .filter(ur -> ur.getUser() != null && ur.getUser().getId().equals(userId))
+                .collect(Collectors.toList());
+    }
 }

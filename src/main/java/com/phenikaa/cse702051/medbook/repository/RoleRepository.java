@@ -1,18 +1,50 @@
 package com.phenikaa.cse702051.medbook.repository;
 
-import com.phenikaa.cse702051.medbook.model.Role;
-import org.springframework.data.jpa.repository.JpaRepository;
-
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
-public interface RoleRepository extends JpaRepository<Role, Long> {
+import org.springframework.stereotype.Repository;
 
-    Optional<Role> findByCode(String code);
+import com.phenikaa.cse702051.medbook.model.Role;
 
-    Optional<Role> findByName(String name);
+@Repository
+public class RoleRepository {
 
-    List<Role> findByCodeContainingIgnoreCase(String code);
+    private final Map<Long, Role> rolesById = new ConcurrentHashMap<>();
+    private final Map<String, Long> idsByCode = new ConcurrentHashMap<>();
+    private final AtomicLong idGenerator = new AtomicLong(10);
 
-    boolean existsByCode(String code);
+    public RoleRepository() {
+        LocalDateTime now = LocalDateTime.now();
+        saveDirect(Role.builder().id(1L).code("ADMIN").name("Quản trị viên").description("Toàn quyền hệ thống").createdAt(now).build());
+        saveDirect(Role.builder().id(2L).code("DOCTOR").name("Bác sĩ").description("Khám bệnh và kê đơn").createdAt(now).build());
+        saveDirect(Role.builder().id(3L).code("PATIENT").name("Bệnh nhân").description("Người bệnh đăng ký khám").createdAt(now).build());
+        saveDirect(Role.builder().id(4L).code("RECEPTIONIST").name("Lễ tân").description("Điều phối tiếp đón").createdAt(now).build());
+    }
+
+    private void saveDirect(Role role) {
+        rolesById.put(role.getId(), role);
+        idsByCode.put(role.getCode().toUpperCase(), role.getId());
+    }
+
+    public Role save(Role role) {
+        if (role.getId() == null) {
+            role.setId(idGenerator.incrementAndGet());
+        }
+        saveDirect(role);
+        return role;
+    }
+
+    public Optional<Role> findById(Long id) {
+        return Optional.ofNullable(rolesById.get(id));
+    }
+
+    public Optional<Role> findByCode(String code) {
+        if (code == null) return Optional.empty();
+        Long id = idsByCode.get(code.toUpperCase());
+        return id != null ? Optional.ofNullable(rolesById.get(id)) : Optional.empty();
+    }
 }
