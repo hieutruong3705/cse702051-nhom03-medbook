@@ -1,29 +1,9 @@
 package com.phenikaa.cse702051.medbook.model;
 
+import jakarta.persistence.*;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-@Getter
-@Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
 @Table(name = "appointment_slots")
 public class AppointmentSlot {
@@ -32,9 +12,11 @@ public class AppointmentSlot {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "doctor_id", nullable = false)
-    private Doctor doctor;
+    @Column(name = "doctor_id", nullable = false)
+    private Long doctorId;
+
+    @Column(name = "schedule_id", nullable = false)
+    private Long scheduleId;
 
     @Column(name = "slot_date", nullable = false)
     private LocalDate slotDate;
@@ -45,15 +27,65 @@ public class AppointmentSlot {
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
 
-    @Column(nullable = false, length = 20)
+    @Column(name = "status", nullable = false, length = 20)
     private String status;
 
-    @Column(length = 255)
-    private String note;
+    public AppointmentSlot() {
+    }
 
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    public Long getId() {
+        return id;
+    }
 
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getDoctorId() {
+        return doctorId;
+    }
+
+    public void setDoctorId(Long doctorId) {
+        this.doctorId = doctorId;
+    }
+
+    public Long getScheduleId() {
+        return scheduleId;
+    }
+
+    public void setScheduleId(Long scheduleId) {
+        this.scheduleId = scheduleId;
+    }
+
+    public LocalDate getSlotDate() {
+        return slotDate;
+    }
+
+    public void setSlotDate(LocalDate slotDate) {
+        this.slotDate = slotDate;
+    }
+
+    public LocalTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public LocalTime getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(LocalTime endTime) {
+        this.endTime = endTime;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
 }

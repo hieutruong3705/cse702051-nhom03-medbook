@@ -1,28 +1,8 @@
 package com.phenikaa.cse702051.medbook.model;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-@Getter
-@Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
 @Table(name = "audit_logs")
 public class AuditLog {
@@ -31,29 +11,102 @@ public class AuditLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "actor_user_id")
-    private User actorUser;
+    @Column(name = "actor_user_id")
+    private Long actorUserId;
 
-    @Column(name = "action_code", nullable = false, length = 50)
+    @Column(name = "action_code", nullable = false)
     private String actionCode;
 
-    @Column(name = "entity_type", nullable = false, length = 80)
+    @Column(name = "entity_type", nullable = false)
     private String entityType;
 
     @Column(name = "entity_id")
     private Long entityId;
 
-    @Column(name = "ip_address", length = 45)
+    @Column(name = "ip_address")
     private String ipAddress;
 
-    @Column(name = "user_agent", length = 500)
+    @Column(name = "user_agent")
     private String userAgent;
 
-    @Lob
-    @Column(name = "metadata_json", columnDefinition = "json")
+    @Column(name = "metadata_json")
     private String metadataJson;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    public AuditLog() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getActorUserId() {
+        return actorUserId;
+    }
+
+    public void setActorUserId(Long actorUserId) {
+        this.actorUserId = actorUserId;
+    }
+
+    public String getActionCode() {
+        return actionCode;
+    }
+
+    public void setActionCode(String actionCode) {
+        this.actionCode = actionCode;
+    }
+
+    public String getEntityType() {
+        return entityType;
+    }
+
+    public void setEntityType(String entityType) {
+        this.entityType = entityType;
+    }
+
+    public Long getEntityId() {
+        return entityId;
+    }
+
+    public void setEntityId(Long entityId) {
+        this.entityId = entityId;
+    }
+
+    public String getIpAddress() {
+        return ipAddress;
+    }
+
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
+    }
+
+    public String getUserAgent() {
+        return userAgent;
+    }
+
+    public void setUserAgent(String userAgent) {
+        this.userAgent = userAgent;
+    }
+
+    public String getMetadataJson() {
+        return metadataJson;
+    }
+
+    public void setMetadataJson(String metadataJson) {
+        this.metadataJson = metadataJson;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
 }

@@ -1,30 +1,10 @@
 package com.phenikaa.cse702051.medbook.model;
 
+import jakarta.persistence.*;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.LocalDateTime;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-@Getter
-@Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
 @Table(name = "appointments")
 public class Appointment {
@@ -36,21 +16,17 @@ public class Appointment {
     @Column(name = "appointment_code", nullable = false, unique = true, length = 40)
     private String appointmentCode;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "patient_id", nullable = false)
-    private Patient patient;
+    @Column(name = "patient_id", nullable = false)
+    private Long patientId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "doctor_id", nullable = false)
-    private Doctor doctor;
+    @Column(name = "doctor_id", nullable = false)
+    private Long doctorId;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "schedule_id", nullable = false, unique = true)
-    private DoctorSchedule schedule;
+    @Column(name = "schedule_id", nullable = false, unique = true)
+    private Long scheduleId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "service_id", nullable = false)
-    private MedicalService service;
+    @Column(name = "service_id", nullable = false)
+    private Long serviceId;
 
     @Column(name = "appointment_date", nullable = false)
     private LocalDate appointmentDate;
@@ -61,10 +37,10 @@ public class Appointment {
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
 
-    @Column(length = 500)
+    @Column(name = "reason", length = 500)
     private String reason;
 
-    @Column(nullable = false, length = 20)
+    @Column(name = "status", nullable = false, length = 20)
     private String status;
 
     @Column(name = "booked_at", nullable = false)
@@ -81,4 +57,135 @@ public class Appointment {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    public Appointment() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getAppointmentCode() {
+        return appointmentCode;
+    }
+
+    public void setAppointmentCode(String appointmentCode) {
+        this.appointmentCode = appointmentCode;
+    }
+
+    public Long getPatientId() {
+        return patientId;
+    }
+
+    public void setPatientId(Long patientId) {
+        this.patientId = patientId;
+    }
+
+    public Long getDoctorId() {
+        return doctorId;
+    }
+
+    public void setDoctorId(Long doctorId) {
+        this.doctorId = doctorId;
+    }
+
+    public Long getScheduleId() {
+        return scheduleId;
+    }
+
+    public void setScheduleId(Long scheduleId) {
+        this.scheduleId = scheduleId;
+    }
+
+    public Long getServiceId() {
+        return serviceId;
+    }
+
+    public void setServiceId(Long serviceId) {
+        this.serviceId = serviceId;
+    }
+
+    public LocalDate getAppointmentDate() {
+        return appointmentDate;
+    }
+
+    public void setAppointmentDate(LocalDate appointmentDate) {
+        this.appointmentDate = appointmentDate;
+    }
+
+    public LocalTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public LocalTime getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(LocalTime endTime) {
+        this.endTime = endTime;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    public void setReason(String reason) {
+        this.reason = reason;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getBookedAt() {
+        return bookedAt;
+    }
+
+    public void setBookedAt(LocalDateTime bookedAt) {
+        this.bookedAt = bookedAt;
+    }
+
+    public LocalDateTime getCancelledAt() {
+        return cancelledAt;
+    }
+
+    public void setCancelledAt(LocalDateTime cancelledAt) {
+        this.cancelledAt = cancelledAt;
+    }
+
+    public String getCancellationReason() {
+        return cancellationReason;
+    }
+
+    public void setCancellationReason(String cancellationReason) {
+        this.cancellationReason = cancellationReason;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 }

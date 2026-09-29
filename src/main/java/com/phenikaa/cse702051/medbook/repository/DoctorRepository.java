@@ -1,58 +1,24 @@
 package com.phenikaa.cse702051.medbook.repository;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.util.Map;
+import com.phenikaa.cse702051.medbook.model.Doctor;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
 import java.util.Optional;
 
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Repository;
+public interface DoctorRepository extends JpaRepository<Doctor, Long> {
 
-import com.phenikaa.cse702051.medbook.model.Doctor;
-import com.phenikaa.cse702051.medbook.model.User;
+    Optional<Doctor> findByUserId(Long userId);
 
-@Repository
-public class DoctorRepository {
+    Optional<Doctor> findByDoctorCode(String doctorCode);
 
-    private final ObjectProvider<NamedParameterJdbcTemplate> jdbcTemplateProvider;
+    List<Doctor> findByFullNameContainingIgnoreCase(String fullName);
 
-    public DoctorRepository(ObjectProvider<NamedParameterJdbcTemplate> jdbcTemplateProvider) {
-        this.jdbcTemplateProvider = jdbcTemplateProvider;
-    }
+    List<Doctor> findBySpecialty(String specialty);
 
-    public Optional<Doctor> findByUserId(Long userId) {
-        return jdbc().query("""
-                SELECT *
-                FROM doctors
-                WHERE user_id = :userId
-                """, Map.of("userId", userId), this::mapDoctor).stream().findFirst();
-    }
+    List<Doctor> findBySpecialtyContainingIgnoreCase(String specialty);
 
-    private Doctor mapDoctor(ResultSet resultSet, int rowNumber) throws SQLException {
-        User user = new User();
-        user.setId(resultSet.getLong("user_id"));
+    boolean existsByUserId(Long userId);
 
-        return Doctor.builder()
-                .id(resultSet.getLong("id"))
-                .user(user)
-                .doctorCode(resultSet.getString("doctor_code"))
-                .specialty(resultSet.getString("specialty"))
-                .licenseNo(resultSet.getString("license_no"))
-                .yearsExperience(resultSet.getInt("years_experience"))
-                .bio(resultSet.getString("bio"))
-                .status(resultSet.getString("status"))
-                .createdAt(resultSet.getObject("created_at", LocalDateTime.class))
-                .updatedAt(resultSet.getObject("updated_at", LocalDateTime.class))
-                .build();
-    }
-
-    private NamedParameterJdbcTemplate jdbc() {
-        NamedParameterJdbcTemplate jdbcTemplate = jdbcTemplateProvider.getIfAvailable();
-        if (jdbcTemplate == null) {
-            throw new IllegalStateException("Database access is not configured");
-        }
-        return jdbcTemplate;
-    }
+    boolean existsByDoctorCode(String doctorCode);
 }
