@@ -1,95 +1,43 @@
 package com.phenikaa.cse702051.medbook.model;
 
-import jakarta.persistence.*;
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "user_roles")
-@IdClass(UserRole.UserRoleId.class)
 public class UserRole {
 
-    @Id
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @EmbeddedId
+    private UserRoleId id;
 
-    @Id
-    @Column(name = "role_id", nullable = false)
-    private Long roleId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @MapsId("userId")
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @MapsId("roleId")
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
-
-    public UserRole() {
-    }
-
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
-    public Long getRoleId() {
-        return roleId;
-    }
-
-    public void setRoleId(Long roleId) {
-        this.roleId = roleId;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public static class UserRoleId implements Serializable {
-
-        private Long userId;
-        private Long roleId;
-
-        public UserRoleId() {
-        }
-
-        public UserRoleId(Long userId, Long roleId) {
-            this.userId = userId;
-            this.roleId = roleId;
-        }
-
-        public Long getUserId() {
-            return userId;
-        }
-
-        public void setUserId(Long userId) {
-            this.userId = userId;
-        }
-
-        public Long getRoleId() {
-            return roleId;
-        }
-
-        public void setRoleId(Long roleId) {
-            this.roleId = roleId;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof UserRoleId)) return false;
-
-            UserRoleId that = (UserRoleId) o;
-
-            return java.util.Objects.equals(userId, that.userId)
-                    && java.util.Objects.equals(roleId, that.roleId);
-        }
-
-        @Override
-        public int hashCode() {
-            return java.util.Objects.hash(userId, roleId);
-        }
-    }
 }

@@ -1,8 +1,27 @@
 package com.phenikaa.cse702051.medbook.model;
 
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "attachments")
 public class Attachment {
@@ -11,91 +30,31 @@ public class Attachment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "encounter_id", nullable = false)
-    private Long encounterId;
+    @Column(name = "owner_type", nullable = false, length = 80)
+    private String ownerType;
 
-    @Column(name = "original_file_name", nullable = false, length = 255)
-    private String originalFileName;
+    @Column(name = "owner_id", nullable = false)
+    private Long ownerId;
 
-    @Column(name = "stored_file_name", nullable = false, unique = true, length = 255)
-    private String storedFileName;
+    @Column(name = "file_name", nullable = false, length = 255)
+    private String fileName;
 
-    @Column(name = "file_path", nullable = false, length = 500)
-    private String filePath;
+    @Column(name = "content_type", length = 120)
+    private String contentType;
 
-    @Column(name = "mime_type", nullable = false, length = 100)
-    private String mimeType;
+    @Column(name = "file_url", nullable = false, length = 500)
+    private String fileUrl;
 
-    @Column(name = "file_size", nullable = false)
-    private Long fileSize;
+    @Column(name = "file_size_bytes")
+    private Long fileSizeBytes;
 
-    @Column(name = "uploaded_at", nullable = false)
-    private LocalDateTime uploadedAt;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "uploaded_by_user_id")
+    private User uploadedBy;
 
-    public Attachment() {
-    }
+    @Column(nullable = false, length = 20)
+    private String status;
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Long getEncounterId() {
-        return encounterId;
-    }
-
-    public void setEncounterId(Long encounterId) {
-        this.encounterId = encounterId;
-    }
-
-    public String getOriginalFileName() {
-        return originalFileName;
-    }
-
-    public void setOriginalFileName(String originalFileName) {
-        this.originalFileName = originalFileName;
-    }
-
-    public String getStoredFileName() {
-        return storedFileName;
-    }
-
-    public void setStoredFileName(String storedFileName) {
-        this.storedFileName = storedFileName;
-    }
-
-    public String getFilePath() {
-        return filePath;
-    }
-
-    public void setFilePath(String filePath) {
-        this.filePath = filePath;
-    }
-
-    public String getMimeType() {
-        return mimeType;
-    }
-
-    public void setMimeType(String mimeType) {
-        this.mimeType = mimeType;
-    }
-
-    public Long getFileSize() {
-        return fileSize;
-    }
-
-    public void setFileSize(Long fileSize) {
-        this.fileSize = fileSize;
-    }
-
-    public LocalDateTime getUploadedAt() {
-        return uploadedAt;
-    }
-
-    public void setUploadedAt(LocalDateTime uploadedAt) {
-        this.uploadedAt = uploadedAt;
-    }
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 }

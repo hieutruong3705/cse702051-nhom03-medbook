@@ -1,0 +1,104 @@
+{
+  "info": {
+    "name": "MedBook - Buoi 04 (Kiem thu Bao mat & IDOR)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://cse702051-nhom03-medbook-5.onrender.com"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Kiem tra he thong (Health Check - 200 OK)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/system/status"
+        },
+        "description": "Kiem tra may chu Backend dang hoat dong binh thuong."
+      }
+    },
+    {
+      "name": "02 - Khach chua dang nhap goi xem benh an (401 Unauthorized)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/medical-records/1"
+        },
+        "description": "Chua xac thuc: Khong gui kem Header. Mong doi: 401 Unauthorized."
+      }
+    },
+    {
+      "name": "03 - [ANH 19a] Goi hop le - Benh nhan An xem benh an cua minh (200 OK)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Patient-Id",
+            "value": "1"
+          },
+          {
+            "key": "X-User-Role",
+            "value": "PATIENT"
+          },
+          {
+            "key": "Authorization",
+            "value": "DemoAuth patient_an"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/medical-records/1"
+        },
+        "description": "Goi hop le: Benh nhan An (ID 1) xem dung ho so so 1 cua minh. Ket qua: 200 OK (CHUP ANH 19a)."
+      }
+    },
+    {
+      "name": "04 - [ANH 19b] Goi cheo IDOR - Benh nhan Binh co xem benh an cua An (403 Forbidden)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-Patient-Id",
+            "value": "2"
+          },
+          {
+            "key": "X-User-Role",
+            "value": "PATIENT"
+          },
+          {
+            "key": "Authorization",
+            "value": "DemoAuth patient_binh"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/medical-records/1"
+        },
+        "description": "Goi cheo IDOR: Benh nhan Binh (ID 2) co tinh xem ho so so 1 cua An. Ket qua: 403 Forbidden (CHUP ANH 19b)."
+      }
+    },
+    {
+      "name": "05 - Admin co xem benh an chuyen mon y khoa (403 Forbidden)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-User-Role",
+            "value": "ADMIN"
+          },
+          {
+            "key": "Authorization",
+            "value": "DemoAuth admin"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/medical-records/1"
+        },
+        "description": "Phan quyen chuc nang RBAC: Admin IT khong duoc xem benh an. Ket qua: 403 Forbidden."
+      }
+    }
+  ]
+}
