@@ -59,6 +59,13 @@ public class Appointment {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    /**
+     * Helper: lấy doctorId từ quan hệ Doctor để tương thích với EncounterService
+     */
+    public Long getDoctorId() {
+        return doctor != null ? doctor.getId() : null;
+    }
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();

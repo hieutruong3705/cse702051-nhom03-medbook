@@ -31,10 +31,10 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException exception,
             HttpServletRequest request) {
         Map<String, String> details = new LinkedHashMap<>();
-        exception.getBindingResult().getFieldErrors().forEach(error ->
-                details.put(error.getField(), error.getDefaultMessage()));
-        exception.getBindingResult().getGlobalErrors().forEach(error ->
-                details.put(error.getObjectName(), error.getDefaultMessage()));
+        exception.getBindingResult().getFieldErrors()
+                .forEach(error -> details.put(error.getField(), error.getDefaultMessage()));
+        exception.getBindingResult().getGlobalErrors()
+                .forEach(error -> details.put(error.getObjectName(), error.getDefaultMessage()));
 
         ApiError body = ApiError.of(
                 ErrorCode.VALIDATION_FAILED,
@@ -49,8 +49,8 @@ public class GlobalExceptionHandler {
             ConstraintViolationException exception,
             HttpServletRequest request) {
         Map<String, String> details = new LinkedHashMap<>();
-        exception.getConstraintViolations().forEach(violation ->
-                details.put(violation.getPropertyPath().toString(), violation.getMessage()));
+        exception.getConstraintViolations()
+                .forEach(violation -> details.put(violation.getPropertyPath().toString(), violation.getMessage()));
 
         ApiError body = ApiError.of(
                 ErrorCode.VALIDATION_FAILED,
@@ -63,7 +63,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
             HttpMessageNotReadableException.class,
             MissingServletRequestParameterException.class,
-            MethodArgumentTypeMismatchException.class
+            MethodArgumentTypeMismatchException.class,
+            IllegalArgumentException.class
     })
     public ResponseEntity<ApiError> handleBadRequest(Exception exception, HttpServletRequest request) {
         return buildResponse(ErrorCode.BAD_REQUEST, exception.getMessage(), request.getRequestURI());
@@ -109,7 +110,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleUnexpected(Exception exception, HttpServletRequest request) {
-        return buildResponse(ErrorCode.INTERNAL_ERROR, ErrorCode.INTERNAL_ERROR.getDefaultMessage(), request.getRequestURI());
+        return buildResponse(ErrorCode.INTERNAL_ERROR, ErrorCode.INTERNAL_ERROR.getDefaultMessage(),
+                request.getRequestURI());
     }
 
     private ResponseEntity<ApiError> buildResponse(ErrorCode errorCode, String message, String path) {

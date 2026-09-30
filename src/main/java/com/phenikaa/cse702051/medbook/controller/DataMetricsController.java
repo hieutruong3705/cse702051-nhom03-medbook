@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/admin/data-metrics")
+@RequestMapping("/api/v1/admin/data-metrics")
 public class DataMetricsController {
 
     private final DataMetricsService dataMetricsService;

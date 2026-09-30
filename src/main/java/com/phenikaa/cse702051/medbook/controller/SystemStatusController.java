@@ -8,7 +8,7 @@ import com.phenikaa.cse702051.medbook.dto.SystemStatusDTO;
 import com.phenikaa.cse702051.medbook.service.SystemStatusService;
 
 @RestController
-@RequestMapping("/api/system")
+@RequestMapping("/api/v1/system")
 public class SystemStatusController {
 
     private final SystemStatusService systemStatusService;

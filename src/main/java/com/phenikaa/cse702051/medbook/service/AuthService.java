@@ -3,13 +3,13 @@ package com.phenikaa.cse702051.medbook.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.phenikaa.cse702051.medbook.config.JwtUtil;
 import com.phenikaa.cse702051.medbook.dto.LoginRequest;
 import com.phenikaa.cse702051.medbook.dto.LoginResponse;
 import com.phenikaa.cse702051.medbook.dto.RegisterRequest;
@@ -50,6 +50,9 @@ public class AuthService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     /**
      * YCCN-01: Đăng ký tài khoản Bệnh nhân mới kèm mã hóa mật khẩu BCrypt (cost factor 12)
      */
@@ -57,22 +60,17 @@ public class AuthService {
         String username = request.getUsername().trim();
         String email = request.getEmail().trim();
 
-        // 1. Kiểm tra trùng lặp username
         if (userRepository.existsByUsername(username)) {
             throw new ConflictException("Tên đăng nhập '" + username + "' đã được sử dụng!");
         }
 
-        // 2. Kiểm tra trùng lặp email
         if (userRepository.existsByEmail(email)) {
             throw new ConflictException("Email '" + email + "' đã được đăng ký tài khoản khác!");
         }
 
         LocalDateTime now = LocalDateTime.now();
-
-        // 3. Băm mật khẩu bằng BCryptPasswordEncoder(12)
         String encodedPassword = passwordEncoder.encode(request.getPassword());
 
-        // 4. Lưu User vào bảng users
         User user = User.builder()
                 .username(username)
                 .passwordHash(encodedPassword)
@@ -85,7 +83,6 @@ public class AuthService {
                 .build();
         user = userRepository.save(user);
 
-        // 5. Gán vai trò mặc định PATIENT
         Role patientRole = roleRepository.findByCode("PATIENT")
                 .orElseGet(() -> roleRepository.save(Role.builder()
                         .code("PATIENT")
@@ -102,10 +99,8 @@ public class AuthService {
                 .build();
         userRoleRepository.save(userRole);
 
-        // 6. Sinh mã bệnh nhân duy nhất (ví dụ: BN0005)
         String patientCode = String.format("BN%04d", user.getId());
 
-        // 7. Tạo hồ sơ bệnh nhân trong bảng patients
         Patient patient = Patient.builder()
                 .user(user)
                 .patientCode(patientCode)
@@ -138,27 +133,23 @@ public class AuthService {
     }
 
     /**
-     * YCCN-02: Đăng nhập hệ thống, đối chiếu mật khẩu BCrypt và cấp Token phiên làm việc
+     * YCCN-02: Đăng nhập hệ thống, đối chiếu mật khẩu BCrypt và cấp JWT Token thực
      */
     public LoginResponse login(LoginRequest request) {
         String input = request.getUsernameOrEmail().trim();
 
-        // 1. Tìm người dùng theo username hoặc email
         User user = userRepository.findByUsername(input)
                 .or(() -> userRepository.findByEmail(input))
                 .orElseThrow(() -> new UnauthorizedException("Tên đăng nhập/email hoặc mật khẩu không chính xác!"));
 
-        // 2. Kiểm tra trạng thái hoạt động
         if (!"ACTIVE".equalsIgnoreCase(user.getStatus())) {
-            throw new ForbiddenException("Tài khoản '" + user.getUsername() + "' đã bị khóa hoặc ngừng hoạt động! Vui lòng liên hệ Admin.");
+            throw new ForbiddenException("Tài khoản '" + user.getUsername() + "' đã bị khóa hoặc ngừng hoạt động!");
         }
 
-        // 3. Đối chiếu mật khẩu bằng BCrypt
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new UnauthorizedException("Tên đăng nhập/email hoặc mật khẩu không chính xác!");
         }
 
-        // 4. Lấy danh sách vai trò
         List<UserRole> userRoles = userRoleRepository.findByUserIdWithRole(user.getId());
         List<String> roleCodes = userRoles.stream()
                 .map(ur -> ur.getRole().getCode())
@@ -167,7 +158,6 @@ public class AuthService {
             roleCodes = List.of("PATIENT");
         }
 
-        // 5. Tìm patientId hoặc doctorId (nếu có)
         Long patientId = patientRepository.findByUserId(user.getId())
                 .map(Patient::getId)
                 .orElse(null);
@@ -176,10 +166,8 @@ public class AuthService {
                 .map(Doctor::getId)
                 .orElse(null);
 
-        // 6. Sinh Bearer Token
-        String token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9." +
-                UUID.randomUUID().toString().replace("-", "") + "." +
-                System.currentTimeMillis();
+        // Sinh JWT Token thực (có chữ ký HS256, hết hạn sau 24h)
+        String token = jwtUtil.generateToken(user.getId(), user.getUsername(), roleCodes);
 
         return LoginResponse.builder()
                 .token(token)

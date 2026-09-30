@@ -13,7 +13,7 @@ import com.phenikaa.cse702051.medbook.service.AuditLogService;
 import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
-@RequestMapping("/api/audit-logs")
+@RequestMapping("/api/v1/audit-logs")
 public class AuditLogController {
 
     private final AuditLogService auditLogService;

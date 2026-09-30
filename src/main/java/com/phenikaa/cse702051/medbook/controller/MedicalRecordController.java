@@ -12,7 +12,7 @@ import com.phenikaa.cse702051.medbook.dto.MedicalRecordDTO;
 import com.phenikaa.cse702051.medbook.service.MedicalRecordService;
 
 @RestController
-@RequestMapping({"/api/v1/medical-records", "/api/medical-records"})
+@RequestMapping({ "/api/v1/medical-records", "/api/medical-records" })
 public class MedicalRecordController {
 
     private final MedicalRecordService medicalRecordService;
@@ -24,27 +24,21 @@ public class MedicalRecordController {
     /**
      * Điểm cuối xem chi tiết hồ sơ bệnh án - Có phân quyền chống IDOR (Buổi 04).
      *
-     * @param id Mã định danh hồ sơ bệnh án
+     * @param id         Mã định danh hồ sơ bệnh án
      * @param authHeader Token Authorization từ header
-     * @param patientId Header tùy chọn mô phỏng Bệnh nhân (X-Patient-Id)
-     * @param role Header tùy chọn mô phỏng Vai trò (X-User-Role)
+     * @param patientId  Header tùy chọn mô phỏng Bệnh nhân (X-Patient-Id)
+     * @param role       Header tùy chọn mô phỏng Vai trò (X-User-Role)
      * @return Dữ liệu hồ sơ bệnh án MedicalRecordDTO nếu hợp lệ
      */
     @GetMapping("/{id}")
-    public ResponseEntity<MedicalRecordDTO> getById(
-            @PathVariable Long id,
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @RequestHeader(value = "X-Patient-Id", required = false) Long patientIdHeader,
-            @RequestParam(value = "patientId", required = false) Long patientIdParam,
-            @RequestHeader(value = "X-User-Role", required = false) String roleHeader,
-            @RequestParam(value = "role", required = false) String roleParam) {
-
-        Long effectivePatientId = patientIdHeader != null ? patientIdHeader : patientIdParam;
-        String effectiveRole = roleHeader != null ? roleHeader : roleParam;
-
-        MedicalRecordDTO dto = medicalRecordService.getRecordForUser(
-                id, authHeader, effectivePatientId, effectiveRole);
+    public ResponseEntity<MedicalRecordDTO> getById(@PathVariable Long id) {
+        MedicalRecordDTO dto = medicalRecordService.getRecordForUser(id);
 
         return ResponseEntity.ok(dto);
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping
+    public ResponseEntity<com.phenikaa.cse702051.medbook.model.MedicalRecord> createRecord(@org.springframework.web.bind.annotation.RequestBody com.phenikaa.cse702051.medbook.model.MedicalRecord record) {
+        return ResponseEntity.ok(medicalRecordService.createRecord(record));
     }
 }

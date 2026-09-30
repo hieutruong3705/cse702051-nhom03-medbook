@@ -15,7 +15,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/v1")
 public class AttachmentController {
 
     private final AttachmentService attachmentService;

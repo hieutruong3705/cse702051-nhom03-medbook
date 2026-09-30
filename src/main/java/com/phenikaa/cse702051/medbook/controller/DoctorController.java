@@ -20,7 +20,7 @@ import com.phenikaa.cse702051.medbook.service.DoctorService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/doctors")
+@RequestMapping("/api/v1/doctors")
 @RequiredArgsConstructor
 public class DoctorController {
 

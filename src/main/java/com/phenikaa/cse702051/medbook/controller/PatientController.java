@@ -13,7 +13,7 @@ import com.phenikaa.cse702051.medbook.service.PatientService;
 import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
-@RequestMapping("/api/patients")
+@RequestMapping("/api/v1/patients")
 public class PatientController {
 
     private final PatientService patientService;

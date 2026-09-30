@@ -4,6 +4,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/doctor-schedules")
+@RequestMapping("/api/v1/doctor-schedules")
 public class DoctorScheduleController {
 }
