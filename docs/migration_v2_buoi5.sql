@@ -1,9 +1,7 @@
-USE medbook_db;
-
 -- ============================================================
 -- BUOI 5 - V2 DATABASE MIGRATION
 -- Chuyen:
---   schedules       -> appointment_slots
+--   schedules -> appointment_slots
 --   appointments.schedule_id -> appointments.slot_id
 --
 -- Doi chieu theo Java V3:
@@ -15,6 +13,10 @@ USE medbook_db;
 --   doctor_id, slot_date, start_time, end_time,
 --   is_available, status, note, version,
 --   created_at, updated_at
+--
+-- LUU Y:
+-- Khong hard-code USE medbook_db.
+-- Database duoc chon boi lenh mysql khi chay file.
 -- ============================================================
 
 
@@ -63,8 +65,6 @@ CREATE TABLE IF NOT EXISTS appointment_slots (
 -- ============================================================
 -- 2. MIGRATE schedules -> appointment_slots
 -- ============================================================
--- Giữ nguyên ID của schedules để appointments.schedule_id
--- có thể chuyển trực tiếp sang appointments.slot_id.
 
 INSERT INTO appointment_slots
 (
@@ -103,6 +103,7 @@ SELECT
     0,
     s.created_at,
     s.updated_at
+
 FROM schedules s
 WHERE NOT EXISTS (
     SELECT 1
@@ -112,7 +113,7 @@ WHERE NOT EXISTS (
 
 
 -- ============================================================
--- 3. THEM slot_id vao appointments
+-- 3. THEM appointments.slot_id
 -- ============================================================
 
 ALTER TABLE appointments
@@ -120,7 +121,7 @@ ALTER TABLE appointments
 
 
 -- ============================================================
--- 4. CHUYEN appointments.schedule_id -> appointments.slot_id
+-- 4. CHUYEN schedules -> slot_id
 -- ============================================================
 
 UPDATE appointments a
@@ -130,9 +131,8 @@ SET a.slot_id = aps.id;
 
 
 -- ============================================================
--- 5. CAP NHAT TRANG THAI SLOT THEO APPOINTMENT
+-- 5. DONG BO TRANG THAI SLOT
 -- ============================================================
--- Appointment khong CANCELLED -> slot da duoc dat.
 
 UPDATE appointment_slots aps
 JOIN appointments a
@@ -142,8 +142,6 @@ SET
     aps.status = 'BOOKED'
 WHERE a.status <> 'CANCELLED';
 
-
--- Appointment CANCELLED -> slot co the mo lai.
 
 UPDATE appointment_slots aps
 JOIN appointments a
@@ -155,7 +153,7 @@ WHERE a.status = 'CANCELLED';
 
 
 -- ============================================================
--- 6. KIEM TRA appointments co slot_id NULL
+-- 6. KIEM TRA APPOINTMENT CO SLOT HAY KHONG
 -- ============================================================
 
 SELECT
@@ -165,9 +163,8 @@ WHERE slot_id IS NULL;
 
 
 -- ============================================================
--- 7. XOA FK schedule_id
+-- 7. XOA FK CU CUA schedule_id
 -- ============================================================
--- Tim dung ten FK thay vi gia dinh appointments_ibfk_3...
 
 SET @fk_schedule = (
     SELECT CONSTRAINT_NAME
@@ -195,9 +192,8 @@ DEALLOCATE PREPARE stmt;
 
 
 -- ============================================================
--- 8. XOA FK service_id
+-- 8. XOA FK CU CUA service_id
 -- ============================================================
--- service_id khong con trong Java Appointment V3.
 
 SET @fk_service = (
     SELECT CONSTRAINT_NAME
@@ -225,7 +221,7 @@ DEALLOCATE PREPARE stmt;
 
 
 -- ============================================================
--- 9. XOA UNIQUE INDEX CU CUA schedule_id
+-- 9. XOA INDEX CU
 -- ============================================================
 
 SET @sql = IF(
@@ -263,7 +259,7 @@ DEALLOCATE PREPARE stmt;
 
 
 -- ============================================================
--- 10. XOA CAC COT CU KHONG CON TRONG Java Appointment V3
+-- 10. XOA CAC COT CU KHONG CON DUNG
 -- ============================================================
 
 ALTER TABLE appointments
@@ -280,37 +276,26 @@ ALTER TABLE appointments
 
 
 -- ============================================================
--- 11. CHUAN HOA slot_id
+-- 11. DONG BO KIEU DU LIEU VA TRANG THAI
 -- ============================================================
 
 ALTER TABLE appointments
     MODIFY COLUMN slot_id BIGINT UNSIGNED NOT NULL;
-
-
--- ============================================================
--- 12. CHUAN HOA status THEO AppointmentStatus JAVA
--- ============================================================
--- PENDING
--- CONFIRMED
--- IN_PROGRESS
--- COMPLETED
--- CANCELLED
 
 ALTER TABLE appointments
     MODIFY COLUMN status VARCHAR(30) NOT NULL DEFAULT 'PENDING';
 
 
 -- ============================================================
--- 13. DOI reason -> notes
+-- 12. THEM notes THEO JAVA V3
 -- ============================================================
--- Java V3 dung notes TEXT.
 
 ALTER TABLE appointments
     ADD COLUMN notes TEXT NULL;
 
 
 -- ============================================================
--- 14. CHUAN HOA TIMESTAMP
+-- 13. DONG BO TIMESTAMP
 -- ============================================================
 
 ALTER TABLE appointments
@@ -323,7 +308,7 @@ ALTER TABLE appointments
 
 
 -- ============================================================
--- 15. FK + UNIQUE CHO slot_id
+-- 14. TAO UNIQUE SLOT + FK MOI
 -- ============================================================
 
 ALTER TABLE appointments
@@ -337,7 +322,7 @@ ALTER TABLE appointments
 
 
 -- ============================================================
--- 16. INDEX CHO CAC TRUY VAN DAT LICH
+-- 15. INDEX CHO APPOINTMENTS
 -- ============================================================
 
 CREATE INDEX idx_appointments_patient
@@ -348,14 +333,14 @@ CREATE INDEX idx_appointments_doctor
 
 
 -- ============================================================
--- 17. XOA BANG schedules CU
+-- 16. XOA BANG schedules CU
 -- ============================================================
 
 DROP TABLE schedules;
 
 
 -- ============================================================
--- 18. KIEM TRA SAU MIGRATION
+-- 17. KIEM TRA SAU MIGRATION
 -- ============================================================
 
 SELECT
