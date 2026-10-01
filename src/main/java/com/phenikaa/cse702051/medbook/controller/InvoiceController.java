@@ -22,7 +22,7 @@ public class InvoiceController {
     }
 
     /**
-     * Táº¡o hĂ³a Ä‘Æ¡n cho encounter.
+     * Tạo hóa đơn cho encounter.
      *
      * POST /api/encounters/{id}/invoice
      */
@@ -46,11 +46,26 @@ public class InvoiceController {
     }
 
     /**
-     * Láº¥y hĂ³a Ä‘Æ¡n cá»§a bá»‡nh nhĂ¢n Ä‘ang Ä‘Äƒng nháº­p.
+     * Xem hóa đơn của một lần khám (bệnh nhân chủ lần khám hoặc bác sĩ phụ trách).
+     * Chưa lập hóa đơn → 404.
+     *
+     * GET /api/encounters/{id}/invoice
+     */
+    @GetMapping("/encounters/{id}/invoice")
+    public ResponseEntity<Invoice> getInvoiceByEncounter(
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(
+                invoiceService.getByEncounter(id)
+        );
+    }
+
+    /**
+     * Lấy hóa đơn của bệnh nhân đang đăng nhập.
      *
      * GET /api/invoices/me
      *
-     * KhĂ´ng nháº­n patientId tá»« request.
+     * Không nhận patientId từ request.
      */
     @GetMapping("/invoices/me")
     public ResponseEntity<List<Invoice>> getMyInvoices() {
@@ -61,7 +76,7 @@ public class InvoiceController {
     }
 
     /**
-     * Xem chi tiáº¿t hĂ³a Ä‘Æ¡n.
+     * Xem chi tiết hóa đơn.
      *
      * GET /api/invoices/{id}
      */
@@ -75,7 +90,7 @@ public class InvoiceController {
     }
 
     /**
-     * Xem cĂ¡c dĂ²ng cá»§a hĂ³a Ä‘Æ¡n.
+     * Xem các dòng của hóa đơn.
      *
      * GET /api/invoices/{id}/items
      */
@@ -89,7 +104,7 @@ public class InvoiceController {
     }
 
     /**
-     * Admin xem toĂ n bá»™ hĂ³a Ä‘Æ¡n.
+     * Admin xem toàn bộ hóa đơn.
      *
      * GET /api/admin/invoices
      */
@@ -102,7 +117,7 @@ public class InvoiceController {
     }
 
     /**
-     * ÄĂ¡nh dáº¥u hĂ³a Ä‘Æ¡n Ä‘Ă£ thanh toĂ¡n.
+     * Đánh dấu hóa đơn đã thanh toán.
      *
      * PUT /api/invoices/{id}/pay
      */
@@ -116,7 +131,7 @@ public class InvoiceController {
     }
 
     /**
-     * Há»§y hĂ³a Ä‘Æ¡n.
+     * Hủy hóa đơn.
      *
      * PUT /api/invoices/{id}/void
      */

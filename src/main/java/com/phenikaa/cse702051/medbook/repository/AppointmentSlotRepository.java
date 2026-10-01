@@ -11,4 +11,10 @@ import com.phenikaa.cse702051.medbook.model.AppointmentSlot;
 @Repository
 public interface AppointmentSlotRepository extends JpaRepository<AppointmentSlot, Long> {
     List<AppointmentSlot> findByDoctorIdAndSlotDateAndIsAvailableTrue(Long doctorId, LocalDate slotDate);
+
+    /** Mọi slot của bác sĩ trong một ngày (kể cả đã đặt/đã gỡ), theo giờ bắt đầu. */
+    List<AppointmentSlot> findByDoctorIdAndSlotDateOrderByStartTimeAsc(Long doctorId, LocalDate slotDate);
+
+    /** Slot của bác sĩ trong khoảng ngày — dùng để tổng hợp số slot cho cả trang danh sách ca (tránh N+1). */
+    List<AppointmentSlot> findByDoctorIdAndSlotDateBetween(Long doctorId, LocalDate from, LocalDate to);
 }

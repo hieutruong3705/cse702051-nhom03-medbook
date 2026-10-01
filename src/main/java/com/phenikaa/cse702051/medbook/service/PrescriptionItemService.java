@@ -1,5 +1,8 @@
 package com.phenikaa.cse702051.medbook.service;
 
+import com.phenikaa.cse702051.medbook.exception.ForbiddenException;
+import com.phenikaa.cse702051.medbook.exception.ResourceNotFoundException;
+import com.phenikaa.cse702051.medbook.exception.UnauthorizedException;
 import com.phenikaa.cse702051.medbook.model.Prescription;
 import com.phenikaa.cse702051.medbook.model.PrescriptionItem;
 import com.phenikaa.cse702051.medbook.repository.PrescriptionItemRepository;
@@ -25,8 +28,8 @@ public class PrescriptionItemService {
     }
 
     /**
-     * Táº¡o prescription item.
-     * Chá»‰ doctor phá»¥ trĂ¡ch encounter cá»§a prescription má»›i Ä‘Æ°á»£c thĂªm thuá»‘c.
+     * Tạo prescription item.
+     * Chỉ doctor phụ trách encounter của prescription mới được thêm thuốc.
      */
     @Transactional
     public PrescriptionItem create(
@@ -35,43 +38,35 @@ public class PrescriptionItemService {
     ) {
         if (prescriptionId == null || prescriptionId <= 0) {
             throw new IllegalArgumentException(
-                    "Prescription ID khĂ´ng há»£p lá»‡"
+                    "Prescription ID không hợp lệ"
             );
         }
 
         if (item == null) {
             throw new IllegalArgumentException(
-                    "Prescription item khĂ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng"
+                    "Prescription item không được để trống"
             );
         }
 
         /*
-         * getById() cá»§a PrescriptionService Ä‘Ă£ kiá»ƒm tra quyá»n Ä‘á»c.
-         * Tuy nhiĂªn create lĂ  thao tĂ¡c ghi nĂªn pháº£i xĂ¡c nháº­n
-         * doctor sá»Ÿ há»¯u encounter thĂ´ng qua PrescriptionService.update/create
-         * á»Ÿ táº§ng authorization cá»§a prescription.
+         * Thêm thuốc là thao tác GHI: chỉ bác sĩ phụ trách lần khám, và lần khám phải còn OPEN
+         * (bệnh nhân/bác sĩ khác → 403, đã hoàn thành → 409).
          */
         Prescription prescription =
-                prescriptionService.getById(prescriptionId);
+                prescriptionService.getForEdit(prescriptionId);
 
         /*
-         * Patient cĂ³ thá»ƒ Ä‘á»c prescription nhÆ°ng khĂ´ng Ä‘Æ°á»£c táº¡o item.
-         * PrescriptionService khĂ´ng expose trá»±c tiáº¿p doctor-check,
-         * vĂ¬ váº­y kiá»ƒm tra role trÆ°á»›c khi thao tĂ¡c ghi.
+         * Dòng thuốc luôn là bản ghi MỚI: không cho client truyền id (ghi đè dòng của đơn khác)
+         * hay prescriptionId khác.
          */
-        assertDoctorRole();
-
-        /*
-         * Láº¥y láº¡i prescription sau khi Ä‘Ă£ xĂ¡c nháº­n quyá»n.
-         * KhĂ´ng cho client tá»± truyá»n prescriptionId khĂ¡c.
-         */
+        item.setId(null);
         item.setPrescriptionId(prescription.getId());
 
         if (item.getMedicineName() == null
                 || item.getMedicineName().trim().isEmpty()) {
 
             throw new IllegalArgumentException(
-                    "TĂªn thuá»‘c khĂ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng"
+                    "Tên thuốc không được để trống"
             );
         }
 
@@ -79,7 +74,7 @@ public class PrescriptionItemService {
                 || item.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
 
             throw new IllegalArgumentException(
-                    "Sá»‘ lÆ°á»£ng thuá»‘c pháº£i lá»›n hÆ¡n 0"
+                    "Số lượng thuốc phải lớn hơn 0"
             );
         }
 
@@ -87,7 +82,7 @@ public class PrescriptionItemService {
                 && item.getDurationDays() <= 0) {
 
             throw new IllegalArgumentException(
-                    "Sá»‘ ngĂ y sá»­ dá»¥ng pháº£i lá»›n hÆ¡n 0"
+                    "Số ngày sử dụng phải lớn hơn 0"
             );
         }
 
@@ -103,26 +98,26 @@ public class PrescriptionItemService {
     }
 
     /**
-     * Láº¥y prescription item theo ID.
+     * Lấy prescription item theo ID.
      *
-     * PrescriptionService.getById() sáº½ kiá»ƒm tra:
-     * - Patient: chá»‰ xem dá»¯ liá»‡u cá»§a mĂ¬nh.
-     * - Doctor: chá»‰ xem encounter mĂ¬nh phá»¥ trĂ¡ch.
+     * PrescriptionService.getById() sẽ kiểm tra:
+     * - Patient: chỉ xem dữ liệu của mình.
+     * - Doctor: chỉ xem encounter mình phụ trách.
      */
     @Transactional(readOnly = true)
     public PrescriptionItem getById(Long id) {
 
         if (id == null || id <= 0) {
             throw new IllegalArgumentException(
-                    "Prescription item ID khĂ´ng há»£p lá»‡"
+                    "Prescription item ID không hợp lệ"
             );
         }
 
         PrescriptionItem item =
                 prescriptionItemRepository.findById(id)
                         .orElseThrow(() ->
-                                new IllegalArgumentException(
-                                        "KhĂ´ng tĂ¬m tháº¥y prescription item vá»›i ID: "
+                                new ResourceNotFoundException(
+                                        "Không tìm thấy prescription item với ID: "
                                                 + id
                                 )
                         );
@@ -135,10 +130,31 @@ public class PrescriptionItemService {
     }
 
     /**
-     * Láº¥y danh sĂ¡ch item cá»§a prescription.
+     * Dòng thuốc mà người gọi được phép thay đổi: bác sĩ phụ trách và lần khám còn OPEN.
+     */
+    private PrescriptionItem getForEdit(Long id) {
+
+        PrescriptionItem item =
+                prescriptionItemRepository.findById(id)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Không tìm thấy prescription item với ID: "
+                                                + id
+                                )
+                        );
+
+        prescriptionService.getForEdit(
+                item.getPrescriptionId()
+        );
+
+        return item;
+    }
+
+    /**
+     * Lấy danh sách item của prescription.
      *
-     * Patient chá»‰ Ä‘Æ°á»£c xem prescription thuá»™c encounter cá»§a mĂ¬nh.
-     * Doctor chá»‰ Ä‘Æ°á»£c xem prescription thuá»™c encounter mĂ¬nh phá»¥ trĂ¡ch.
+     * Patient chỉ được xem prescription thuộc encounter của mình.
+     * Doctor chỉ được xem prescription thuộc encounter mình phụ trách.
      */
     @Transactional(readOnly = true)
     public List<PrescriptionItem> getByPrescriptionId(
@@ -146,7 +162,7 @@ public class PrescriptionItemService {
     ) {
         if (prescriptionId == null || prescriptionId <= 0) {
             throw new IllegalArgumentException(
-                    "Prescription ID khĂ´ng há»£p lá»‡"
+                    "Prescription ID không hợp lệ"
             );
         }
 
@@ -158,12 +174,15 @@ public class PrescriptionItemService {
     }
 
     /**
-     * TĂ¬m kiáº¿m thuá»‘c theo tĂªn.
+     * Tìm kiếm thuốc theo tên.
      *
-     * ÄĂ¢y lĂ  chá»©c nÄƒng tĂ¬m kiáº¿m dá»¯ liá»‡u prescription item,
-     * khĂ´ng dĂ¹ng Ä‘á»ƒ truy cáº­p trá»±c tiáº¿p dá»¯ liá»‡u ngoĂ i quyá»n.
+     * Đây là chức năng tìm kiếm dữ liệu prescription item,
+     * không dùng để truy cập trực tiếp dữ liệu ngoài quyền.
+     *
+     * Cố ý KHÔNG bọc giao dịch: {@link #canRead(Long)} bắt ngoại lệ từ việc kiểm quyền, và nếu
+     * ngoại lệ đó đi qua ranh giới giao dịch chung thì giao dịch bị đánh dấu rollback-only (→ 500).
+     * Mỗi lần kiểm quyền chạy giao dịch riêng nên ngoại lệ chỉ ảnh hưởng chính nó.
      */
-    @Transactional(readOnly = true)
     public List<PrescriptionItem> searchByMedicineName(
             String medicineName
     ) {
@@ -171,21 +190,35 @@ public class PrescriptionItemService {
                 || medicineName.trim().isEmpty()) {
 
             throw new IllegalArgumentException(
-                    "TĂªn thuá»‘c tĂ¬m kiáº¿m khĂ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng"
+                    "Tên thuốc tìm kiếm không được để trống"
             );
         }
 
         assertAuthenticated();
 
+        // Chỉ trả những dòng thuộc đơn thuốc mà người gọi được phép đọc (không lộ dữ liệu giữa các bệnh nhân).
         return prescriptionItemRepository
                 .findByMedicineNameContainingIgnoreCase(
                         medicineName.trim()
-                );
+                )
+                .stream()
+                .filter(found -> canRead(found.getPrescriptionId()))
+                .toList();
+    }
+
+    private boolean canRead(Long prescriptionId) {
+
+        try {
+            prescriptionService.getById(prescriptionId);
+            return true;
+        } catch (ForbiddenException | ResourceNotFoundException e) {
+            return false;
+        }
     }
 
     /**
-     * Cáº­p nháº­t prescription item.
-     * Chá»‰ doctor má»›i Ä‘Æ°á»£c sá»­a item.
+     * Cập nhật prescription item.
+     * Chỉ doctor mới được sửa item.
      */
     @Transactional
     public PrescriptionItem update(
@@ -194,27 +227,18 @@ public class PrescriptionItemService {
     ) {
         if (request == null) {
             throw new IllegalArgumentException(
-                    "Dá»¯ liá»‡u prescription item khĂ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng"
+                    "Dữ liệu prescription item không được để trống"
             );
         }
 
-        PrescriptionItem item = getById(id);
-
-        assertDoctorRole();
-
-        /*
-         * Äáº£m báº£o prescription váº«n tá»“n táº¡i vĂ  quyá»n truy cáº­p
-         * Ä‘á»‘i vá»›i prescription Ä‘Ă£ Ä‘Æ°á»£c kiá»ƒm tra.
-         */
-        prescriptionService.getById(
-                item.getPrescriptionId()
-        );
+        // Sửa là thao tác GHI: bác sĩ phụ trách và lần khám còn OPEN (nếu không → 403/409)
+        PrescriptionItem item = getForEdit(id);
 
         if (request.getMedicineName() != null) {
 
             if (request.getMedicineName().trim().isEmpty()) {
                 throw new IllegalArgumentException(
-                        "TĂªn thuá»‘c khĂ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng"
+                        "Tên thuốc không được để trống"
                 );
             }
 
@@ -235,7 +259,7 @@ public class PrescriptionItemService {
 
             if (request.getDurationDays() <= 0) {
                 throw new IllegalArgumentException(
-                        "Sá»‘ ngĂ y sá»­ dá»¥ng pháº£i lá»›n hÆ¡n 0"
+                        "Số ngày sử dụng phải lớn hơn 0"
                 );
             }
 
@@ -250,7 +274,7 @@ public class PrescriptionItemService {
                     .compareTo(BigDecimal.ZERO) <= 0) {
 
                 throw new IllegalArgumentException(
-                        "Sá»‘ lÆ°á»£ng thuá»‘c pháº£i lá»›n hÆ¡n 0"
+                        "Số lượng thuốc phải lớn hơn 0"
                 );
             }
 
@@ -269,33 +293,19 @@ public class PrescriptionItemService {
     }
 
     /**
-     * XĂ³a prescription item.
-     * Chá»‰ doctor má»›i Ä‘Æ°á»£c xĂ³a.
+     * Xóa prescription item.
+     * Chỉ doctor mới được xóa.
      */
     @Transactional
     public void delete(Long id) {
 
-        PrescriptionItem item = getById(id);
-
-        assertDoctorRole();
+        PrescriptionItem item = getForEdit(id);
 
         prescriptionItemRepository.delete(item);
     }
 
     /**
-     * Kiá»ƒm tra tĂ i khoáº£n hiá»‡n táº¡i cĂ³ role DOCTOR.
-     */
-    private void assertDoctorRole() {
-
-        if (!isDoctor()) {
-            throw new IllegalArgumentException(
-                    "Chá»‰ bĂ¡c sÄ© má»›i Ä‘Æ°á»£c thao tĂ¡c prescription item"
-            );
-        }
-    }
-
-    /**
-     * Kiá»ƒm tra Ä‘Ă£ Ä‘Äƒng nháº­p.
+     * Kiểm tra đã đăng nhập.
      */
     private void assertAuthenticated() {
 
@@ -308,30 +318,9 @@ public class PrescriptionItemService {
         if (authentication == null
                 || !authentication.isAuthenticated()) {
 
-            throw new IllegalArgumentException(
-                    "NgÆ°á»i dĂ¹ng chÆ°a Ä‘Äƒng nháº­p"
+            throw new UnauthorizedException(
+                    "Người dùng chưa đăng nhập"
             );
         }
-    }
-
-    /**
-     * Kiá»ƒm tra role DOCTOR.
-     */
-    private boolean isDoctor() {
-
-        var authentication =
-                org.springframework.security.core.context
-                        .SecurityContextHolder
-                        .getContext()
-                        .getAuthentication();
-
-        return authentication != null
-                && authentication.isAuthenticated()
-                && authentication.getAuthorities()
-                .stream()
-                .anyMatch(authority ->
-                        authority.getAuthority()
-                                .equals("ROLE_DOCTOR")
-                );
     }
 }

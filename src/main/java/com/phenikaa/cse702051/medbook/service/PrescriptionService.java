@@ -1,5 +1,7 @@
 package com.phenikaa.cse702051.medbook.service;
 
+import com.phenikaa.cse702051.medbook.exception.ConflictException;
+import com.phenikaa.cse702051.medbook.exception.ResourceNotFoundException;
 import com.phenikaa.cse702051.medbook.model.Encounter;
 import com.phenikaa.cse702051.medbook.model.Prescription;
 import com.phenikaa.cse702051.medbook.repository.PrescriptionRepository;
@@ -55,6 +57,13 @@ public class PrescriptionService {
                 encounterService.getAccessibleById(encounterId);
 
         authorizationService.assertDoctorOwnsEncounter(encounter);
+
+        assertEncounterOpen(encounter);
+
+        /*
+         * Đơn thuốc luôn là bản ghi MỚI: không cho client truyền id để ghi đè đơn của lần khám khác.
+         */
+        prescription.setId(null);
 
         /*
          * Không cho client tự thay đổi encounter.
@@ -116,7 +125,7 @@ public class PrescriptionService {
         Prescription prescription =
                 prescriptionRepository.findById(id)
                         .orElseThrow(() ->
-                                new IllegalArgumentException(
+                                new ResourceNotFoundException(
                                         "Không tìm thấy prescription với ID: "
                                                 + id
                                 )
@@ -184,7 +193,7 @@ public class PrescriptionService {
         Prescription existing =
                 prescriptionRepository.findById(id)
                         .orElseThrow(() ->
-                                new IllegalArgumentException(
+                                new ResourceNotFoundException(
                                         "Không tìm thấy prescription với ID: "
                                                 + id
                                 )
@@ -201,6 +210,8 @@ public class PrescriptionService {
         authorizationService.assertDoctorOwnsEncounter(
                 encounter
         );
+
+        assertEncounterOpen(encounter);
 
         /*
          * Không cho sửa encounterId hoặc prescriptionCode.
@@ -257,6 +268,45 @@ public class PrescriptionService {
                         encounterId,
                         status
                 );
+    }
+
+    // ============================================================
+    // GHI VÀO ĐƠN THUỐC (dùng cho PrescriptionItemService)
+    // ============================================================
+
+    /**
+     * Đơn thuốc mà người gọi được phép THAY ĐỔI (hoặc thêm/sửa/xóa dòng thuốc của nó): phải là bác sĩ phụ trách
+     * lần khám (bệnh nhân/bác sĩ khác/Admin → 403, không có đơn → 404) và lần khám còn OPEN (đã hoàn thành → 409).
+     */
+    @Transactional(readOnly = true)
+    public Prescription getForEdit(Long prescriptionId) {
+
+        Prescription prescription =
+                getById(prescriptionId);
+
+        Encounter encounter =
+                encounterService.getAccessibleById(
+                        prescription.getEncounterId()
+                );
+
+        authorizationService.assertDoctorOwnsEncounter(
+                encounter
+        );
+
+        assertEncounterOpen(encounter);
+
+        return prescription;
+    }
+
+    private void assertEncounterOpen(Encounter encounter) {
+
+        if (!EncounterService.OPEN.equalsIgnoreCase(
+                encounter.getStatus()
+        )) {
+            throw new ConflictException(
+                    "Lần khám đã hoàn thành nên không thể kê hoặc sửa đơn thuốc"
+            );
+        }
     }
 
     // ============================================================

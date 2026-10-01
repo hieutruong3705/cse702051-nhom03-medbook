@@ -1,12 +1,17 @@
 package com.phenikaa.cse702051.medbook.service;
 
+import com.phenikaa.cse702051.medbook.exception.ConflictException;
+import com.phenikaa.cse702051.medbook.exception.ForbiddenException;
+import com.phenikaa.cse702051.medbook.exception.ResourceNotFoundException;
 import com.phenikaa.cse702051.medbook.model.Encounter;
 import com.phenikaa.cse702051.medbook.model.Invoice;
 import com.phenikaa.cse702051.medbook.model.InvoiceItem;
 import com.phenikaa.cse702051.medbook.model.MedicalRecord;
+import com.phenikaa.cse702051.medbook.model.MedicalService;
 import com.phenikaa.cse702051.medbook.repository.EncounterRepository;
 import com.phenikaa.cse702051.medbook.repository.InvoiceItemRepository;
 import com.phenikaa.cse702051.medbook.repository.InvoiceRepository;
+import com.phenikaa.cse702051.medbook.repository.MedicalServiceRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -26,6 +31,7 @@ public class InvoiceService {
     private final EncounterService encounterService;
     private final MedicalRecordService medicalRecordService;
     private final Dev4AuthorizationService authorizationService;
+    private final MedicalServiceRepository medicalServiceRepository;
 
     public InvoiceService(
             InvoiceRepository invoiceRepository,
@@ -33,7 +39,8 @@ public class InvoiceService {
             EncounterRepository encounterRepository,
             EncounterService encounterService,
             MedicalRecordService medicalRecordService,
-            Dev4AuthorizationService authorizationService
+            Dev4AuthorizationService authorizationService,
+            MedicalServiceRepository medicalServiceRepository
     ) {
         this.invoiceRepository = invoiceRepository;
         this.invoiceItemRepository = invoiceItemRepository;
@@ -41,6 +48,7 @@ public class InvoiceService {
         this.encounterService = encounterService;
         this.medicalRecordService = medicalRecordService;
         this.authorizationService = authorizationService;
+        this.medicalServiceRepository = medicalServiceRepository;
     }
 
     // ============================================================
@@ -118,8 +126,8 @@ public class InvoiceService {
                         appointmentId
                 )) {
 
-            throw new IllegalArgumentException(
-                    "Appointment này đã có hóa đơn"
+            throw new ConflictException(
+                    "Lần khám này đã có hóa đơn"
             );
         }
 
@@ -136,6 +144,35 @@ public class InvoiceService {
                 throw new IllegalArgumentException(
                         "Invoice item không được null"
                 );
+            }
+
+            // Dòng hóa đơn luôn là bản ghi MỚI: không cho client truyền id để ghi đè dòng của hóa đơn khác.
+            item.setId(null);
+
+            // Dòng gắn với dịch vụ: đơn giá và tên lấy từ danh mục phía server, bỏ qua giá client gửi lên.
+            if (item.getServiceId() != null) {
+                MedicalService service =
+                        medicalServiceRepository.findById(item.getServiceId())
+                                .orElseThrow(() ->
+                                        new ResourceNotFoundException(
+                                                "Không tìm thấy dịch vụ với ID: "
+                                                        + item.getServiceId()
+                                        )
+                                );
+
+                if (!"ACTIVE".equalsIgnoreCase(service.getStatus())) {
+                    throw new IllegalArgumentException(
+                            "Dịch vụ \"" + service.getName()
+                                    + "\" đã ngừng sử dụng"
+                    );
+                }
+
+                item.setUnitPrice(service.getPrice());
+
+                if (item.getDescription() == null
+                        || item.getDescription().isBlank()) {
+                    item.setDescription(service.getName());
+                }
             }
 
             if (item.getDescription() == null
@@ -286,7 +323,7 @@ public class InvoiceService {
                 invoiceRepository.findById(
                         invoiceId
                 ).orElseThrow(() ->
-                        new IllegalArgumentException(
+                        new ResourceNotFoundException(
                                 "Không tìm thấy hóa đơn với ID: "
                                         + invoiceId
                         )
@@ -295,6 +332,39 @@ public class InvoiceService {
         assertInvoiceAccess(invoice);
 
         return invoice;
+    }
+
+    // ============================================================
+    // GET INVOICE BY ENCOUNTER
+    // ============================================================
+
+    /**
+     * Hóa đơn của một lần khám (qua lịch hẹn). Chỉ bệnh nhân chủ lần khám hoặc bác sĩ phụ trách xem được
+     * (kiểm tra bằng {@code EncounterService.getAccessibleById}); chưa lập hóa đơn → 404.
+     */
+    @Transactional(readOnly = true)
+    public Invoice getByEncounter(
+            Long encounterId
+    ) {
+
+        Encounter encounter =
+                encounterService.getAccessibleById(
+                        encounterId
+                );
+
+        Long appointmentId =
+                encounter.getAppointmentId();
+
+        return (appointmentId == null
+                ? java.util.Optional.<Invoice>empty()
+                : invoiceRepository.findByAppointmentId(
+                        appointmentId
+                ))
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Lần khám này chưa có hóa đơn"
+                        )
+                );
     }
 
     // ============================================================
@@ -321,7 +391,7 @@ public class InvoiceService {
     public List<Invoice> getMyInvoices() {
 
         if (!isPatient()) {
-            throw new IllegalArgumentException(
+            throw new ForbiddenException(
                     "Chỉ bệnh nhân mới được sử dụng chức năng này"
             );
         }
@@ -467,7 +537,7 @@ public class InvoiceService {
                     invoice.getPatientId()
             )) {
 
-                throw new IllegalArgumentException(
+                throw new ForbiddenException(
                         "Bạn không có quyền truy cập hóa đơn này"
                 );
             }
@@ -508,7 +578,7 @@ public class InvoiceService {
             return;
         }
 
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Bạn không có quyền truy cập hóa đơn này"
         );
     }

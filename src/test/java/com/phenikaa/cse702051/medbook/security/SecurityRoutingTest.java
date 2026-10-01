@@ -71,7 +71,11 @@ class SecurityRoutingTest extends AbstractApiTest {
                 // --- Bác sĩ ---
                 Arguments.of(PATIENT, "GET", "/api/v1/doctor-schedules", 403),
                 Arguments.of(ADMIN, "GET", "/api/v1/doctor-schedules", 403),
-                Arguments.of(DOCTOR, "GET", "/api/v1/doctor-schedules", 404), // qua route, controller chưa có endpoint
+                Arguments.of(NONE, "GET", "/api/v1/doctor-schedules", 401),
+                Arguments.of(DOCTOR, "GET", "/api/v1/doctor-schedules", 200),
+                Arguments.of(DOCTOR, "GET", "/api/v1/doctor-schedules/slots", 200),
+                Arguments.of(PATIENT, "POST", "/api/v1/doctor-schedules", 403),
+                Arguments.of(ADMIN, "DELETE", "/api/v1/doctor-schedules/1", 403),
                 Arguments.of(PATIENT, "GET", "/api/v1/schedule-breaks", 403),
                 Arguments.of(NONE, "GET", "/api/v1/medicines", 401),
                 Arguments.of(PATIENT, "GET", "/api/v1/medicines", 403),
@@ -102,7 +106,10 @@ class SecurityRoutingTest extends AbstractApiTest {
                 Arguments.of(NONE, "GET", "/api/v1/encounters/1", 401),
                 Arguments.of(PATIENT, "GET", "/api/v1/encounters/999999", 404), // qua route; service báo không tìm thấy
                 Arguments.of(ADMIN, "GET", "/api/v1/encounters/999999", 404),
-                Arguments.of(PATIENT, "GET", "/api/v1/prescriptions/1", 400), // qua route; service báo không tìm thấy
+                Arguments.of(PATIENT, "GET", "/api/v1/prescriptions/999999", 404), // qua route; service báo không tìm thấy
+                Arguments.of(NONE, "GET", "/api/v1/encounters/1/invoice", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/encounters/999999/invoice", 404),
+                Arguments.of(ADMIN, "GET", "/api/v1/encounters/999999/invoice", 404),
 
                 // --- Lần khám/tệp: chỉ bác sĩ bắt đầu, sửa, tải lên, xóa, tra cứu; chỉ bệnh nhân xem lịch sử của mình ---
                 Arguments.of(PATIENT, "POST", "/api/v1/encounters", 403),
@@ -126,6 +133,10 @@ class SecurityRoutingTest extends AbstractApiTest {
 
                 // --- Công khai ---
                 Arguments.of(NONE, "GET", "/api/v1/doctors", 200),
+                Arguments.of(NONE, "GET", "/api/v1/doctors/1/slots", 200), // giờ trống của bác sĩ: công khai
+                Arguments.of(NONE, "GET", "/api/v1/doctors/999999/slots", 404),
+                Arguments.of(NONE, "GET", "/api/v1/appointment-slots/available?doctorId=1", 401), // đường dẫn cũ cần đăng nhập
+                Arguments.of(PATIENT, "GET", "/api/v1/appointment-slots/available?doctorId=1", 200),
                 Arguments.of(NONE, "GET", "/api/v1/specialties", 404), // công khai, controller chưa có endpoint
                 Arguments.of(NONE, "GET", "/api/v1/medical-services", 200), // danh mục dịch vụ ACTIVE công khai
                 Arguments.of(NONE, "GET", "/api/v1/system/status", 200),

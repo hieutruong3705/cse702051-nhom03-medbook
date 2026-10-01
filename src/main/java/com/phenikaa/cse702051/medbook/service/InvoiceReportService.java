@@ -23,10 +23,10 @@ public class InvoiceReportService {
     }
 
     /**
-     * Thá»‘ng kĂª doanh thu tá»« táº¥t cáº£ hĂ³a Ä‘Æ¡n.
+     * Thống kê doanh thu từ tất cả hóa đơn.
      *
-     * PAID vĂ  UNPAID Ä‘Æ°á»£c tĂ­nh vĂ o tá»•ng giĂ¡ trá»‹ hĂ³a Ä‘Æ¡n.
-     * VOID chá»‰ Ä‘Æ°á»£c thá»‘ng kĂª sá»‘ lÆ°á»£ng, khĂ´ng tĂ­nh vĂ o doanh thu.
+     * PAID và UNPAID được tính vào tổng giá trị hóa đơn.
+     * VOID chỉ được thống kê số lượng, không tính vào doanh thu.
      */
     @Transactional(readOnly = true)
     public Map<String, Object> getRevenueReport() {
@@ -42,7 +42,7 @@ public class InvoiceReportService {
     }
 
     /**
-     * Thá»‘ng kĂª doanh thu trong khoáº£ng thá»i gian.
+     * Thống kê doanh thu trong khoảng thời gian.
      */
     @Transactional(readOnly = true)
     public Map<String, Object> getRevenueReport(
@@ -55,8 +55,8 @@ public class InvoiceReportService {
                 && from.isAfter(to)) {
 
             throw new IllegalArgumentException(
-                    "Thá»i gian báº¯t Ä‘áº§u khĂ´ng Ä‘Æ°á»£c lá»›n hÆ¡n " +
-                    "thá»i gian káº¿t thĂºc"
+                    "Thời gian bắt đầu không được lớn hơn " +
+                    "thời gian kết thúc"
             );
         }
 
@@ -71,7 +71,7 @@ public class InvoiceReportService {
     }
 
     /**
-     * XĂ¢y dá»±ng bĂ¡o cĂ¡o doanh thu.
+     * Xây dựng báo cáo doanh thu.
      */
     private Map<String, Object> buildReport(
             List<Invoice> invoices,
@@ -103,7 +103,7 @@ public class InvoiceReportService {
                     invoice.getIssuedAt();
 
             /*
-             * Lá»c tá»« thá»i gian báº¯t Ä‘áº§u.
+             * Lọc từ thời gian bắt đầu.
              */
             if (from != null) {
 
@@ -115,7 +115,7 @@ public class InvoiceReportService {
             }
 
             /*
-             * Lá»c Ä‘áº¿n thá»i gian káº¿t thĂºc.
+             * Lọc đến thời gian kết thúc.
              */
             if (to != null) {
 
@@ -139,10 +139,10 @@ public class InvoiceReportService {
                     invoice.getStatus();
 
             /*
-             * HĂ³a Ä‘Æ¡n PAID:
-             * - TÄƒng sá»‘ lÆ°á»£ng paid.
-             * - TĂ­nh vĂ o paidAmount.
-             * - TĂ­nh vĂ o totalAmount.
+             * Hóa đơn PAID:
+             * - Tăng số lượng paid.
+             * - Tính vào paidAmount.
+             * - Tính vào totalAmount.
              */
             if ("PAID".equalsIgnoreCase(status)) {
 
@@ -155,10 +155,10 @@ public class InvoiceReportService {
                         totalAmount.add(amount);
 
             /*
-             * HĂ³a Ä‘Æ¡n UNPAID:
-             * - TÄƒng sá»‘ lÆ°á»£ng unpaid.
-             * - TĂ­nh vĂ o unpaidAmount.
-             * - TĂ­nh vĂ o totalAmount.
+             * Hóa đơn UNPAID:
+             * - Tăng số lượng unpaid.
+             * - Tính vào unpaidAmount.
+             * - Tính vào totalAmount.
              */
             } else if (
                     "UNPAID".equalsIgnoreCase(status)
@@ -173,9 +173,9 @@ public class InvoiceReportService {
                         totalAmount.add(amount);
 
             /*
-             * HĂ³a Ä‘Æ¡n VOID:
-             * - Chá»‰ Ä‘áº¿m sá»‘ lÆ°á»£ng.
-             * - KhĂ´ng tĂ­nh vĂ o doanh thu.
+             * Hóa đơn VOID:
+             * - Chỉ đếm số lượng.
+             * - Không tính vào doanh thu.
              */
             } else if (
                     "VOID".equalsIgnoreCase(status)

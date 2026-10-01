@@ -1,7 +1,9 @@
 package com.phenikaa.cse702051.medbook.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -14,7 +16,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.phenikaa.cse702051.medbook.dto.AppointmentSlotDTO;
 import com.phenikaa.cse702051.medbook.model.Doctor;
+import com.phenikaa.cse702051.medbook.service.AppointmentSlotService;
 import com.phenikaa.cse702051.medbook.service.DoctorService;
 
 import lombok.RequiredArgsConstructor;
@@ -25,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 public class DoctorController {
 
     private final DoctorService doctorService;
+    private final AppointmentSlotService slotService;
 
     // YCCN 08, 25: Xem danh sách bác sĩ công khai
     @GetMapping
@@ -40,6 +45,14 @@ public class DoctorController {
     @GetMapping("/{id}")
     public ResponseEntity<Doctor> getDoctorById(@PathVariable Long id) {
         return ResponseEntity.ok(doctorService.getDoctorById(id));
+    }
+
+    // YCCN 09, 10: Slot còn trống của bác sĩ trong một ngày (công khai, theo hợp đồng API mục 7.3)
+    @GetMapping("/{id}/slots")
+    public ResponseEntity<List<AppointmentSlotDTO>> getAvailableSlots(
+            @PathVariable Long id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(slotService.getAvailableSlots(id, date));
     }
 
     // YCCN 20: Tạo hồ sơ bác sĩ (Admin)

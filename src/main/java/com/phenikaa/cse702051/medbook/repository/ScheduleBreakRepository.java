@@ -1,5 +1,6 @@
 package com.phenikaa.cse702051.medbook.repository;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,4 +11,6 @@ import com.phenikaa.cse702051.medbook.model.ScheduleBreak;
 @Repository
 public interface ScheduleBreakRepository extends JpaRepository<ScheduleBreak, Long> {
     List<ScheduleBreak> findByDoctorScheduleId(Long doctorScheduleId);
+
+    List<ScheduleBreak> findByDoctorScheduleIdIn(Collection<Long> doctorScheduleIds);
 }

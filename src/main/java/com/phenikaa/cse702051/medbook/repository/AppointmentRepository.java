@@ -43,6 +43,10 @@ public interface AppointmentRepository
 
     long countBySlotIdAndStatusNot(Long slotId, AppointmentStatus status);
 
+    /** Slot đã từng gắn với lịch hẹn nào (kể cả đã hủy) — loại slot này không được xóa cứng (khóa ngoại). */
+    @Query("select count(a) > 0 from Appointment a where a.slot.id = :slotId")
+    boolean existsAnyBySlotId(@Param("slotId") Long slotId);
+
     /** Số lịch còn giữ chỗ trên một slot — bất biến của hệ thống: luôn ≤ 1. */
     default long countActiveBySlotId(Long slotId) {
         return countBySlotIdAndStatusNot(slotId, AppointmentStatus.CANCELLED);
