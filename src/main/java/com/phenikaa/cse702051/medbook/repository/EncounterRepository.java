@@ -1,4 +1,10 @@
 package com.phenikaa.cse702051.medbook.repository;
 
-public interface EncounterRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.phenikaa.cse702051.medbook.model.Encounter;
+
+@Repository
+public interface EncounterRepository extends JpaRepository<Encounter, Long> {
 }
