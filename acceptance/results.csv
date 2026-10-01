@@ -1,0 +1,32 @@
+﻿case,status,passed,assertions
+Setup - Login patient1,200,True,1
+Setup - Login patient2,200,True,1
+Setup - Login doctor1,200,True,1
+Setup - Login doctor2,200,True,1
+V4-01 Tim slot trong,200,True,2
+V4-02 Dat lich khi chua dang nhap,401,True,1
+V4-03 Thieu slotId,400,True,1
+V4-04 Slot khong ton tai,404,True,1
+V4-05 Dat slot trong,201,True,2
+V4-06 Dat trung slot,409,True,1
+V4-07 Benh nhan khac xem lich,403,True,1
+V4-08 Doi sang slot khong ton tai,404,True,1
+V4-09 Doi that bai giu lich cu,200,True,2
+V4-10 Doi lich hop le,200,True,2
+V4-11 Huy lich,200,True,2
+V4-12 Dat lai slot da huy,201,True,1
+V4-13 Bac si khac bat dau kham,403,True,1
+V4-14 Bac si phu trach bat dau kham,201,True,2
+V4-15 Benh nhan khong duoc tao lan kham,403,True,1
+V4-16 Tao don thuoc,200,True,1
+V4-17 So luong thuoc bang 0,400,True,1
+V4-18 Them thuoc hop le,200,True,1
+V4-19 Giam gia vuot tong tien,400,True,1
+V4-20 Lap hoa don hop le,200,True,2
+V4-21 Benh nhan khac xem lan kham,403,True,1
+V4-22 Hoan thanh kham,200,True,2
+V4-23 Benh nhan xem lan kham cua minh,200,True,1
+V4-24 Benh nhan xem hoa don cua minh,200,True,2
+Auth - Refresh,200,True,1
+Auth - Logout,204,True,1
+Auth - Refresh sau logout,401,True,1

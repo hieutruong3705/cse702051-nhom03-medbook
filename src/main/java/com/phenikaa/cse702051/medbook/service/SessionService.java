@@ -29,10 +29,12 @@ public class SessionService {
 
     private static final ZoneId ZONE = ZoneId.systemDefault();
 
+    private final com.phenikaa.cse702051.medbook.repository.AuthSessionRepository sessions;
     private final UserRepository userRepository;
     private final RevokedTokenRepository revokedTokenRepository;
 
-    public SessionService(UserRepository userRepository, RevokedTokenRepository revokedTokenRepository) {
+    public SessionService(UserRepository userRepository, RevokedTokenRepository revokedTokenRepository, com.phenikaa.cse702051.medbook.repository.AuthSessionRepository sessions) {
+        this.sessions = sessions;
         this.userRepository = userRepository;
         this.revokedTokenRepository = revokedTokenRepository;
     }
@@ -40,6 +42,12 @@ public class SessionService {
     /** Trả danh tính nếu phiên còn hiệu lực, ngược lại rỗng. */
     @Transactional(readOnly = true)
     public Optional<AuthenticatedUser> validate(JwtClaims claims) {
+        if (claims.sessionId() == null) return Optional.empty();
+        var session = sessions.findById(claims.sessionId());
+        if (session.isEmpty() || session.get().getRevokedAt() != null
+                || !session.get().getExpiresAt().isAfter(java.time.Instant.now())
+                || !session.get().getUser().getId().equals(claims.user().userId())
+                || session.get().getTokenVersion() != claims.version()) return Optional.empty();
         if (revokedTokenRepository.existsById(claims.jti())) {
             return Optional.empty();
         }
@@ -58,6 +66,11 @@ public class SessionService {
     /** Thu hồi token (đăng xuất). Gọi lặp lại là an toàn. */
     @Transactional
     public void revoke(JwtClaims claims) {
+        if (claims.sessionId() == null) throw new com.phenikaa.cse702051.medbook.exception.UnauthorizedException("Invalid session");
+        var session = sessions.findLocked(claims.sessionId()).orElseThrow(() -> new com.phenikaa.cse702051.medbook.exception.UnauthorizedException("Invalid session"));
+        if (!session.getUser().getId().equals(claims.user().userId())) throw new com.phenikaa.cse702051.medbook.exception.UnauthorizedException("Invalid session");
+        session.setRevokedAt(java.time.Instant.now());
+        sessions.save(session);
         if (revokedTokenRepository.existsById(claims.jti())) {
             return;
         }

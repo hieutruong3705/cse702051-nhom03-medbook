@@ -1,0 +1,195 @@
+{
+  "database": "medbook_v4_acceptance_20261001",
+  "executed_at": 1790840750653,
+  "requests": 31,
+  "assertions": 40,
+  "failed": 0,
+  "cases": [
+    {
+      "case": "Setup - Login patient1",
+      "status": 200,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "Setup - Login patient2",
+      "status": 200,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "Setup - Login doctor1",
+      "status": 200,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "Setup - Login doctor2",
+      "status": 200,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "V4-01 Tim slot trong",
+      "status": 200,
+      "passed": true,
+      "assertions": 2
+    },
+    {
+      "case": "V4-02 Dat lich khi chua dang nhap",
+      "status": 401,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "V4-03 Thieu slotId",
+      "status": 400,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "V4-04 Slot khong ton tai",
+      "status": 404,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "V4-05 Dat slot trong",
+      "status": 201,
+      "passed": true,
+      "assertions": 2
+    },
+    {
+      "case": "V4-06 Dat trung slot",
+      "status": 409,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "V4-07 Benh nhan khac xem lich",
+      "status": 403,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "V4-08 Doi sang slot khong ton tai",
+      "status": 404,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "V4-09 Doi that bai giu lich cu",
+      "status": 200,
+      "passed": true,
+      "assertions": 2
+    },
+    {
+      "case": "V4-10 Doi lich hop le",
+      "status": 200,
+      "passed": true,
+      "assertions": 2
+    },
+    {
+      "case": "V4-11 Huy lich",
+      "status": 200,
+      "passed": true,
+      "assertions": 2
+    },
+    {
+      "case": "V4-12 Dat lai slot da huy",
+      "status": 201,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "V4-13 Bac si khac bat dau kham",
+      "status": 403,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "V4-14 Bac si phu trach bat dau kham",
+      "status": 201,
+      "passed": true,
+      "assertions": 2
+    },
+    {
+      "case": "V4-15 Benh nhan khong duoc tao lan kham",
+      "status": 403,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "V4-16 Tao don thuoc",
+      "status": 200,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "V4-17 So luong thuoc bang 0",
+      "status": 400,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "V4-18 Them thuoc hop le",
+      "status": 200,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "V4-19 Giam gia vuot tong tien",
+      "status": 400,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "V4-20 Lap hoa don hop le",
+      "status": 200,
+      "passed": true,
+      "assertions": 2
+    },
+    {
+      "case": "V4-21 Benh nhan khac xem lan kham",
+      "status": 403,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "V4-22 Hoan thanh kham",
+      "status": 200,
+      "passed": true,
+      "assertions": 2
+    },
+    {
+      "case": "V4-23 Benh nhan xem lan kham cua minh",
+      "status": 200,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "V4-24 Benh nhan xem hoa don cua minh",
+      "status": 200,
+      "passed": true,
+      "assertions": 2
+    },
+    {
+      "case": "Auth - Refresh",
+      "status": 200,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "Auth - Logout",
+      "status": 204,
+      "passed": true,
+      "assertions": 1
+    },
+    {
+      "case": "Auth - Refresh sau logout",
+      "status": 401,
+      "passed": true,
+      "assertions": 1
+    }
+  ]
+}

@@ -14,6 +14,8 @@ import lombok.NoArgsConstructor;
 public class LoginResponse {
     private String token;
     private String tokenType;
+    private String refreshToken;
+    private String refreshExpiresAt;
     /** Thời điểm token hết hạn, ISO-8601 UTC (ví dụ 2026-10-01T03:00:00Z). */
     private String expiresAt;
     private Long userId;

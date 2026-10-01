@@ -32,7 +32,7 @@ import java.util.UUID;
 public class JwtUtil {
 
     /** Kết quả phân tích một token đã đúng chữ ký và chưa hết hạn. */
-    public record JwtClaims(AuthenticatedUser user, String jti, int version, Instant expiresAt) {
+    public record JwtClaims(AuthenticatedUser user, String jti, int version, Instant expiresAt, String sessionId) {
     }
 
     /** Token vừa phát hành kèm thông tin phục vụ phản hồi đăng nhập. */
@@ -45,14 +45,20 @@ public class JwtUtil {
     public JwtUtil(
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.expiration-ms:3600000}") long expirationMs) {
+        if (expirationMs <= 0) throw new IllegalArgumentException("Access token lifetime must be positive");
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationMs = expirationMs;
     }
 
     /** Phát hành token cho phiên bản token {@code version} của người dùng. */
     public IssuedToken issueToken(Long userId, String username, List<String> roles, int version) {
+        return issueToken(userId, username, roles, version, null, Instant.now().plusMillis(expirationMs));
+    }
+
+    public IssuedToken issueToken(Long userId, String username, List<String> roles, int version, String sessionId, Instant sessionExpiry) {
         Date now = new Date();
-        Date expiry = new Date(now.getTime() + expirationMs);
+        Instant expiryInstant = now.toInstant().plusMillis(expirationMs);
+        Date expiry = Date.from(expiryInstant.isBefore(sessionExpiry) ? expiryInstant : sessionExpiry);
         String jti = UUID.randomUUID().toString();
 
         String token = Jwts.builder()
@@ -61,6 +67,7 @@ public class JwtUtil {
                 .claim("userId", userId)
                 .claim("roles", roles)
                 .claim("ver", version)
+                .claim("sid", sessionId)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(key)
@@ -68,7 +75,7 @@ public class JwtUtil {
         return new IssuedToken(token, jti, expiry.toInstant());
     }
 
-    /** Tạo token với phiên bản 0 (giữ tương thích mã cũ và test). */
+    /** Token không có phiên chỉ dùng kiểm tra chữ ký; API bảo vệ sẽ từ chối token này. */
     public String generateToken(Long userId, String username, List<String> roles) {
         return issueToken(userId, username, roles, 0).token();
     }
@@ -92,7 +99,7 @@ public class JwtUtil {
                     new AuthenticatedUser(userId.longValue(), username, roles),
                     claims.getId(),
                     version == null ? 0 : version.intValue(),
-                    claims.getExpiration().toInstant()));
+                    claims.getExpiration().toInstant(), claims.get("sid", String.class)));
         } catch (JwtException | IllegalArgumentException | ClassCastException e) {
             return Optional.empty();
         }

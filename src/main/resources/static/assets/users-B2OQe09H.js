@@ -1,1 +1,0 @@
-import{r as e}from"./auth-Dawyr4E0.js";var t={me:()=>e.get(`/users/me`).then(e=>e.data),updateMe:t=>e.put(`/users/me`,t).then(e=>e.data)};export{t};

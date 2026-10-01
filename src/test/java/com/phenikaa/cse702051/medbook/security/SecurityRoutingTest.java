@@ -127,7 +127,7 @@ class SecurityRoutingTest extends AbstractApiTest {
                 // --- Công khai ---
                 Arguments.of(NONE, "GET", "/api/v1/doctors", 200),
                 Arguments.of(NONE, "GET", "/api/v1/specialties", 404), // công khai, controller chưa có endpoint
-                Arguments.of(NONE, "GET", "/api/v1/medical-services", 404),
+                Arguments.of(NONE, "GET", "/api/v1/medical-services", 200), // danh mục dịch vụ ACTIVE công khai
                 Arguments.of(NONE, "GET", "/api/v1/system/status", 200),
                 Arguments.of(NONE, "POST", "/api/v1/auth/login", 400), // công khai, body rỗng bị validate
                 Arguments.of(NONE, "POST", "/api/v1/auth/register", 400),

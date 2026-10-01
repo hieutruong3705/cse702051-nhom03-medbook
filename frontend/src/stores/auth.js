@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, ref, onScopeDispose } from 'vue'
 import { defineStore, getActivePinia } from 'pinia'
 import { configureHttp, http } from '@/api/http'
 
@@ -75,8 +75,13 @@ function computeExpiry(payload) {
 
 function readStorage() {
   try {
+    const tab = sessionStorage.getItem(STORAGE_KEY)
+    if (tab) return JSON.parse(tab)
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : null
+    const state = raw ? JSON.parse(raw) : null
+    // Do not copy a shared refresh credential into several independent tabs.
+    if (state?.refreshToken && !globalThis.navigator?.locks?.request) return null
+    return state
   } catch {
     return null
   }
@@ -84,8 +89,17 @@ function readStorage() {
 
 function writeStorage(state) {
   try {
-    if (state) localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-    else localStorage.removeItem(STORAGE_KEY)
+    if (state) {
+      // Without Web Locks, each tab owns its refresh session to avoid replay across tabs.
+      const tabOnly = state.refreshToken && !globalThis.navigator?.locks?.request
+      const target = tabOnly ? sessionStorage : localStorage
+      const other = tabOnly ? localStorage : sessionStorage
+      target.setItem(STORAGE_KEY, JSON.stringify(state))
+      other.removeItem(STORAGE_KEY)
+    } else {
+      localStorage.removeItem(STORAGE_KEY)
+      sessionStorage.removeItem(STORAGE_KEY)
+    }
     LEGACY_KEYS.forEach((key) => localStorage.removeItem(key))
   } catch {
     // Trình duyệt chặn lưu trữ: phiên chỉ tồn tại trong bộ nhớ.
@@ -99,6 +113,10 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref(stored?.token || null)
   const user = ref(stored?.user || null)
   const expiresAt = ref(stored?.expiresAt || null)
+  const refreshToken = ref(stored?.refreshToken || null)
+  const refreshExpiresAt = ref(stored?.refreshExpiresAt || null)
+  let refreshPromise = null
+  let generation = 0
 
   let expiryTimer = null
   let sessionEndedHandler = null
@@ -115,7 +133,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function persist() {
-    writeStorage(token.value ? { token: token.value, user: user.value, expiresAt: expiresAt.value } : null)
+    writeStorage(token.value ? { token: token.value, user: user.value, expiresAt: expiresAt.value, refreshToken: refreshToken.value, refreshExpiresAt: refreshExpiresAt.value } : null)
   }
 
   function clearTimer() {
@@ -130,10 +148,14 @@ export const useAuthStore = defineStore('auth', () => {
     if (!token.value || !expiresAt.value) return
     const remaining = expiresAt.value - Date.now()
     if (remaining <= 0) {
-      expireSession('expired')
+      if (canRefresh()) void refreshSession().catch(() => {})
+      else expireSession('expired')
       return
     }
-    expiryTimer = setTimeout(() => expireSession('expired'), Math.min(remaining, MAX_TIMER_MS))
+    expiryTimer = setTimeout(() => {
+      if (canRefresh()) void refreshSession().catch(() => {})
+      else expireSession('expired')
+    }, Math.min(canRefresh() ? Math.max(1000, remaining - 30_000) : remaining, MAX_TIMER_MS))
   }
 
   function runResetCallbacks() {
@@ -158,10 +180,14 @@ export const useAuthStore = defineStore('auth', () => {
 
   /** Xóa toàn bộ phiên và dữ liệu liên quan (không gọi API). */
   function reset() {
+    generation++
+    refreshPromise = null
     clearTimer()
     token.value = null
     user.value = null
     expiresAt.value = null
+    refreshToken.value = null
+    refreshExpiresAt.value = null
     persist()
     runResetCallbacks()
   }
@@ -177,6 +203,7 @@ export const useAuthStore = defineStore('auth', () => {
   function validateSession() {
     if (!token.value || !user.value) return false
     if (expiresAt.value && expiresAt.value <= Date.now()) {
+      if (canRefresh()) { void refreshSession().catch(() => {}); return true }
       expireSession('expired')
       return false
     }
@@ -185,6 +212,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   function login(payload) {
     if (!payload?.token) throw new Error('Phản hồi đăng nhập không có token')
+    generation++
+    clearTimer()
+    refreshPromise = null
     // Đổi tài khoản: xóa mọi dữ liệu của phiên trước trước khi nạp phiên mới.
     runResetCallbacks()
     token.value = payload.token
@@ -198,6 +228,8 @@ export const useAuthStore = defineStore('auth', () => {
       doctorId: payload.doctorId ?? null
     }
     expiresAt.value = computeExpiry(payload)
+    refreshToken.value = payload.refreshToken || null
+    refreshExpiresAt.value = toEpochMs(payload.refreshExpiresAt)
     persist()
     scheduleExpiry()
   }
@@ -209,23 +241,88 @@ export const useAuthStore = defineStore('auth', () => {
     persist()
   }
 
-  /**
-   * Đăng xuất: xóa phiên ngay (UI không phải chờ mạng), sau đó báo server thu hồi token.
-   * Lỗi khi báo server bị bỏ qua vì phiên phía client đã kết thúc.
-   */
-  async function logout() {
-    const snapshot = token.value
-    reset()
-    if (!snapshot) return
-    try {
-      await http.post('/auth/logout', null, {
-        headers: { Authorization: `Bearer ${snapshot}` },
-        timeout: 5000,
-        skipGlobalErrors: true
-      })
-    } catch {
-      // đã đăng xuất phía client; token sẽ tự hết hạn phía server
+  function canRefresh() {
+    return Boolean(refreshToken.value && refreshExpiresAt.value > Date.now())
+  }
+
+  function sameSession(a, b) {
+    const first = decodeJwtPayload(a)?.sid
+    return Boolean(first && first === decodeJwtPayload(b)?.sid)
+  }
+
+  async function refreshSession(failedToken = null) {
+    if (failedToken && failedToken !== token.value) {
+      return sameSession(failedToken, token.value) ? token.value : null
     }
+    if (refreshPromise) return refreshPromise
+    if (!canRefresh()) {
+      expireSession('unauthorized')
+      return null
+    }
+    const version = generation
+    const before = token.value
+    const execute = async () => {
+      if (generation !== version) return null
+      if (globalThis.navigator?.locks?.request) {
+        const latest = readStorage()
+        if (!latest?.token) { expireSession('logged-out-elsewhere'); return null }
+        if (latest.token !== before) {
+          if (!sameSession(before, latest.token)) return null
+          token.value = latest.token
+          expiresAt.value = latest.expiresAt
+          refreshToken.value = latest.refreshToken
+          refreshExpiresAt.value = latest.refreshExpiresAt
+          scheduleExpiry()
+          return token.value
+        }
+      }
+      try {
+        const response = await http.post('/auth/refresh', { refreshToken: refreshToken.value }, { skipGlobalErrors: true })
+        if (generation !== version) return null
+        const next = response.data
+        if (!next?.token || !next.refreshToken || !toEpochMs(next.expiresAt) || !toEpochMs(next.refreshExpiresAt)) {
+          throw new Error('Phản hồi làm mới phiên không hợp lệ')
+        }
+        token.value = next.token
+        refreshToken.value = next.refreshToken
+        expiresAt.value = toEpochMs(next.expiresAt)
+        refreshExpiresAt.value = toEpochMs(next.refreshExpiresAt)
+        persist()
+        scheduleExpiry()
+        return token.value
+      } catch (error) {
+        // No retry of a rotation whose result may have been lost in transit.
+        if (generation === version) expireSession(error.status === 401 ? 'unauthorized' : 'refresh-failed')
+        throw error
+      }
+    }
+    const task = globalThis.navigator?.locks?.request
+      ? navigator.locks.request('medbook.auth.refresh', execute)
+      : execute()
+    refreshPromise = task
+    try { return await task } finally { if (refreshPromise === task) refreshPromise = null }
+  }
+
+  /** Confirm server revocation before clearing a refresh-enabled session. */
+  async function logout() {
+    if (!token.value) return
+    if (!refreshToken.value) {
+      // Compatibility for legacy sessions without refresh credentials.
+      const snapshot = token.value
+      reset()
+      try { await http.post('/auth/logout', null, { headers: { Authorization: `Bearer ${snapshot}` }, skipGlobalErrors: true, timeout: 5000 }) } catch {}
+      return
+    }
+    if (refreshPromise) await refreshPromise
+    if (expiresAt.value <= Date.now()) await refreshSession()
+    if (!token.value) return
+    const snapshot = token.value
+    try {
+      await http.post('/auth/logout', null, { headers: { Authorization: `Bearer ${snapshot}` }, skipGlobalErrors: true, timeout: 5000 })
+    } catch (error) {
+      if (error.status !== 401) throw error
+    }
+    if (token.value === snapshot) reset()
   }
 
   function setSessionEndedHandler(handler) {
@@ -239,10 +336,12 @@ export const useAuthStore = defineStore('auth', () => {
       return
     }
     if (next.token !== token.value) {
-      runResetCallbacks()
+      if (!sameSession(token.value, next.token)) { generation++; runResetCallbacks() }
       token.value = next.token
       user.value = next.user
       expiresAt.value = next.expiresAt
+      refreshToken.value = next.refreshToken || null
+      refreshExpiresAt.value = next.refreshExpiresAt || null
       scheduleExpiry()
     }
   }
@@ -258,7 +357,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   configureHttp({
     getToken: () => token.value,
-    onUnauthorized: () => expireSession('unauthorized')
+    refreshToken: refreshSession,
+    onUnauthorized: (_error, config) => {
+      const sent = config?.headers?.Authorization?.replace(/^Bearer /, '')
+      if (!sent || sent === token.value) expireSession('unauthorized')
+    }
   })
 
   // Token nạp từ localStorage có thể đã hết hạn; token còn hạn thì hẹn giờ tự đăng xuất.
@@ -267,8 +370,13 @@ export const useAuthStore = defineStore('auth', () => {
     else scheduleExpiry()
   }
 
+  onScopeDispose(clearTimer)
+
   return {
     token,
+    refreshToken,
+    refreshExpiresAt,
+    refreshSession,
     user,
     expiresAt,
     roles,

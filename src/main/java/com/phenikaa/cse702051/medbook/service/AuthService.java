@@ -62,7 +62,7 @@ public class AuthService {
     private final DoctorRepository doctorRepository;
     private final PatientService patientService;
     private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
+    private final LoginSessionService loginSessions;
     private final AuditLogService auditLogService;
     private final CurrentUserService currentUserService;
     private final int maxFailedLogins;
@@ -78,7 +78,7 @@ public class AuthService {
             DoctorRepository doctorRepository,
             PatientService patientService,
             PasswordEncoder passwordEncoder,
-            JwtUtil jwtUtil,
+            LoginSessionService loginSessions,
             AuditLogService auditLogService,
             CurrentUserService currentUserService,
             @Value("${medbook.security.max-failed-logins:5}") int maxFailedLogins,
@@ -90,7 +90,7 @@ public class AuthService {
         this.doctorRepository = doctorRepository;
         this.patientService = patientService;
         this.passwordEncoder = passwordEncoder;
-        this.jwtUtil = jwtUtil;
+        this.loginSessions = loginSessions;
         this.auditLogService = auditLogService;
         this.currentUserService = currentUserService;
         this.maxFailedLogins = maxFailedLogins;
@@ -214,9 +214,9 @@ public class AuthService {
         Long patientId = patientRepository.findByUserId(user.getId()).map(Patient::getId).orElse(null);
         Long doctorId = doctorRepository.findByUserId(user.getId()).map(Doctor::getId).orElse(null);
 
-        IssuedToken issued = jwtUtil.issueToken(user.getId(), user.getUsername(), roleCodes, user.getTokenVersion());
+        var issued = loginSessions.createTokens(user.getId());
 
-        auditLogService.record(AuditEvent.of(AuditActions.LOGIN_SUCCESS, AuditActions.ENTITY_USERS, user.getId())
+        auditLogService.recordInCurrentTransaction(AuditEvent.of(AuditActions.LOGIN_SUCCESS, AuditActions.ENTITY_USERS, user.getId())
                 .byActor(user.getId())
                 .with("username", user.getUsername())
                 .with("roles", roleCodes));
@@ -224,7 +224,9 @@ public class AuthService {
         return LoginResponse.builder()
                 .token(issued.token())
                 .tokenType("Bearer")
-                .expiresAt(issued.expiresAt().toString())
+                .expiresAt(issued.expiresAt())
+                .refreshToken(issued.refreshToken())
+                .refreshExpiresAt(issued.refreshExpiresAt())
                 .userId(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
@@ -244,7 +246,7 @@ public class AuthService {
     @Transactional
     public void changePassword(ChangePasswordRequest request) {
         CurrentUser current = currentUserService.requireCurrentUser();
-        User user = userRepository.findById(current.userId())
+        User user = userRepository.findByIdForUpdate(current.userId())
                 .orElseThrow(() -> new UnauthorizedException("Phiên đăng nhập không còn hợp lệ!"));
 
         if (!passwordEncoder.matches(request.oldPassword(), user.getPasswordHash())) {
@@ -259,7 +261,7 @@ public class AuthService {
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
 
-        auditLogService.record(AuditEvent.of(AuditActions.PASSWORD_CHANGED, AuditActions.ENTITY_USERS, user.getId())
+        auditLogService.recordInCurrentTransaction(AuditEvent.of(AuditActions.PASSWORD_CHANGED, AuditActions.ENTITY_USERS, user.getId())
                 .byActor(user.getId()));
     }
 
@@ -277,7 +279,7 @@ public class AuthService {
             userRepository.save(user);
 
             auditLoginFailure(user, input, "WRONG_PASSWORD");
-            auditLogService.record(AuditEvent.of(AuditActions.ACCOUNT_LOCKED, AuditActions.ENTITY_USERS, user.getId())
+            auditLogService.recordInCurrentTransaction(AuditEvent.of(AuditActions.ACCOUNT_LOCKED, AuditActions.ENTITY_USERS, user.getId())
                     .with("username", user.getUsername())
                     .with("lockedUntil", until.toString())
                     .with("lockMinutes", lockMinutes));
@@ -291,7 +293,7 @@ public class AuthService {
     }
 
     private void auditLoginFailure(User user, String input, String reason) {
-        auditLogService.record(AuditEvent.of(AuditActions.LOGIN_FAILED, AuditActions.ENTITY_USERS,
+        auditLogService.recordInCurrentTransaction(AuditEvent.of(AuditActions.LOGIN_FAILED, AuditActions.ENTITY_USERS,
                 user == null ? null : user.getId())
                 .with("username", input)
                 .with("reason", reason));

@@ -95,7 +95,7 @@ public class AccountSecurityService {
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
 
-        auditLogService.record(AuditEvent.of(AuditActions.ACCOUNT_STATUS_CHANGED, AuditActions.ENTITY_USERS, userId)
+        auditLogService.recordInCurrentTransaction(AuditEvent.of(AuditActions.ACCOUNT_STATUS_CHANGED, AuditActions.ENTITY_USERS, userId)
                 .with("from", before)
                 .with("to", target)
                 .with("reason", reason));
@@ -164,7 +164,7 @@ public class AccountSecurityService {
         user.setUpdatedAt(now);
         userRepository.save(user);
 
-        auditLogService.record(AuditEvent.of(AuditActions.ROLE_CHANGED, AuditActions.ENTITY_USERS, userId)
+        auditLogService.recordInCurrentTransaction(AuditEvent.of(AuditActions.ROLE_CHANGED, AuditActions.ENTITY_USERS, userId)
                 .with("before", List.copyOf(before))
                 .with("after", List.copyOf(requested)));
         return user;

@@ -59,7 +59,7 @@ public class ApiTestData {
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
+    private final com.phenikaa.cse702051.medbook.service.LoginSessionService loginSessions;
 
     public ApiTestData(
             PatientRepository patientRepository,
@@ -72,7 +72,7 @@ public class ApiTestData {
             RoleRepository roleRepository,
             UserRoleRepository userRoleRepository,
             PasswordEncoder passwordEncoder,
-            JwtUtil jwtUtil) {
+            com.phenikaa.cse702051.medbook.service.LoginSessionService loginSessions) {
         this.patientRepository = patientRepository;
         this.doctorRepository = doctorRepository;
         this.appointmentRepository = appointmentRepository;
@@ -83,7 +83,7 @@ public class ApiTestData {
         this.roleRepository = roleRepository;
         this.userRoleRepository = userRoleRepository;
         this.passwordEncoder = passwordEncoder;
-        this.jwtUtil = jwtUtil;
+        this.loginSessions = loginSessions;
     }
 
     /**
@@ -134,7 +134,7 @@ public class ApiTestData {
                         .licenseNumber("ISO-" + key)
                         .isActive(true)
                         .build()));
-        String token = jwtUtil.issueToken(user.getId(), user.getUsername(), List.of("DOCTOR"), user.getTokenVersion())
+        String token = loginSessions.create(user.getId())
                 .token();
         return new IsolatedDoctor(user.getId(), doctor.getId(), "Bearer " + token);
     }
@@ -164,7 +164,7 @@ public class ApiTestData {
                     .updatedAt(now)
                     .build());
         });
-        String token = jwtUtil.issueToken(user.getId(), user.getUsername(), List.of("PATIENT"), user.getTokenVersion())
+        String token = loginSessions.create(user.getId())
                 .token();
         return new IsolatedPatient(user.getId(), patient.getId(), "Bearer " + token);
     }

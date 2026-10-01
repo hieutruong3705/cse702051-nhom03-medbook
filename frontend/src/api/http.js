@@ -42,6 +42,7 @@ export function isApiError(error, code) {
 
 const handlers = {
   getToken: () => null,
+  refreshToken: null,
   onUnauthorized: () => {},
   onForbidden: () => {}
 }
@@ -140,7 +141,7 @@ let unauthorizedNotified = false
 
 // Các endpoint công khai của phần đăng nhập: 401/403 ở đây là kết quả nghiệp vụ
 // (sai mật khẩu, tài khoản bị khóa) chứ không phải hết phiên, nên không xử lý toàn cục.
-const PUBLIC_AUTH_URL = /\/auth\/(login|register|forgot-password|reset-password)\/?$/
+const PUBLIC_AUTH_URL = /\/auth\/(login|register|forgot-password|reset-password|refresh)\/?$/
 
 http.interceptors.response.use(
   (response) => response,
@@ -149,6 +150,18 @@ http.interceptors.response.use(
     const skip = error?.config?.skipGlobalErrors === true || PUBLIC_AUTH_URL.test(error?.config?.url || '')
 
     if (!skip && apiError.status === 401) {
+      if (!error.config?._refreshRetried && handlers.refreshToken) {
+        error.config._refreshRetried = true
+        try {
+          const freshToken = await handlers.refreshToken(error.config.headers?.Authorization?.replace(/^Bearer /, ''))
+          if (freshToken) {
+            error.config.headers.Authorization = `Bearer ${freshToken}`
+            return http.request(error.config)
+          }
+        } catch (refreshError) {
+          return Promise.reject(refreshError)
+        }
+      }
       // Nhiều request song song cùng nhận 401 chỉ kích hoạt đăng xuất một lần.
       if (!unauthorizedNotified) {
         unauthorizedNotified = true

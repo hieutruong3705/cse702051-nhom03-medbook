@@ -60,6 +60,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 
 const props = defineProps({
   /** `public`: có thêm liên kết "Bảng điều khiển"; `dashboard`: dùng trong header của khu làm việc. */
@@ -72,14 +73,19 @@ const emit = defineEmits(['navigate'])
 
 const router = useRouter()
 const auth = useAuthStore()
+const toast = useToast()
 
 const ROLE_LABELS = { ADMIN: 'Quản trị viên', DOCTOR: 'Bác sĩ', PATIENT: 'Bệnh nhân' }
 const roleLabel = computed(() => ROLE_LABELS[auth.primaryRole] || 'Tài khoản')
 
-// Xóa phiên phía client NGAY (không chờ mạng); việc báo server thu hồi token chạy nền.
-const logout = () => {
-  auth.logout()
-  emit('navigate')
-  router.replace({ path: '/login', query: { reason: 'logout' } })
+// Chờ xác nhận thu hồi phiên; lỗi mạng cho phép người dùng thử lại.
+const logout = async () => {
+  try {
+    await auth.logout()
+    emit('navigate')
+    router.replace({ path: '/login', query: { reason: 'logout' } })
+  } catch {
+    toast.error('Chưa xác nhận được đăng xuất với máy chủ. Vui lòng thử lại.')
+  }
 }
 </script>

@@ -29,7 +29,7 @@ import jakarta.servlet.http.HttpServletRequest;
  * Điểm ghi audit duy nhất của hệ thống (YCCN-23, YCPCN-07): người thực hiện, đối tượng,
  * IP, User-Agent, thời gian, hành động.
  *
- * <p>Mọi phương thức ghi chạy trong giao dịch riêng ({@code REQUIRES_NEW}) nên log vẫn được
+ * <p>Các phương thức ghi truy cập chạy trong giao dịch riêng ({@code REQUIRES_NEW}) nên log vẫn được
  * lưu khi giao dịch chính bị rollback (ví dụ truy cập bị từ chối). Lỗi khi ghi log được ném
  * ra ngoài: với dữ liệu y tế, nếu không ghi được audit thì request đọc cũng thất bại
  * (fail-closed).
@@ -64,6 +64,12 @@ public class AuditLogService {
     /** Ghi một sự kiện audit tổng quát. */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public AuditLog record(AuditEvent event) {
+        return persist(event);
+    }
+
+    /** Ghi cùng giao dịch thay đổi tài khoản, tránh khóa FK actor giữa hai giao dịch. */
+    @Transactional
+    public AuditLog recordInCurrentTransaction(AuditEvent event) {
         return persist(event);
     }
 

@@ -37,14 +37,17 @@ public class AuthController {
 
     private final AuthService authService;
     private final SessionService sessionService;
+    private final com.phenikaa.cse702051.medbook.service.LoginSessionService loginSessions;
     private final PasswordResetService passwordResetService;
 
     public AuthController(
             AuthService authService,
             SessionService sessionService,
+            com.phenikaa.cse702051.medbook.service.LoginSessionService loginSessions,
             PasswordResetService passwordResetService) {
         this.authService = authService;
         this.sessionService = sessionService;
+        this.loginSessions = loginSessions;
         this.passwordResetService = passwordResetService;
     }
 
@@ -63,7 +66,14 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore()).body(response);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<com.phenikaa.cse702051.medbook.dto.RefreshResponse> refresh(
+            @Valid @RequestBody com.phenikaa.cse702051.medbook.dto.RefreshRequest request) {
+        return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore())
+                .body(loginSessions.refresh(request.refreshToken()));
     }
 
     /**

@@ -16,9 +16,11 @@ window.scrollTo = () => {}
 // các test; layout/composable dùng store `auth` không cần tự dựng Pinia.
 beforeEach(() => {
   localStorage.clear()
+  sessionStorage.clear()
   setActivePinia(createPinia())
 })
 
 afterEach(() => {
   localStorage.clear()
+  sessionStorage.clear()
 })

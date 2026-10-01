@@ -40,6 +40,9 @@ public abstract class AbstractApiTest {
     protected JwtUtil jwtUtil;
 
     @Autowired
+    protected com.phenikaa.cse702051.medbook.service.LoginSessionService loginSessions;
+
+    @Autowired
     protected ApiTestData data;
 
     @Autowired
@@ -66,23 +69,23 @@ public abstract class AbstractApiTest {
     }
 
     protected String adminToken() {
-        return bearer(jwtUtil.generateToken(ADMIN_USER_ID, "admin1", List.of("ADMIN")));
+        return bearer(loginSessions.create(ADMIN_USER_ID).token());
     }
 
     protected String doctorToken() {
-        return bearer(jwtUtil.generateToken(DOCTOR1_USER_ID, "doctor1", List.of("DOCTOR")));
+        return bearer(loginSessions.create(DOCTOR1_USER_ID).token());
     }
 
     protected String doctor2Token() {
-        return bearer(jwtUtil.generateToken(DOCTOR2_USER_ID, "doctor2", List.of("DOCTOR")));
+        return bearer(loginSessions.create(DOCTOR2_USER_ID).token());
     }
 
     protected String patientToken() {
-        return bearer(jwtUtil.generateToken(PATIENT1_USER_ID, "patient1", List.of("PATIENT")));
+        return bearer(loginSessions.create(PATIENT1_USER_ID).token());
     }
 
     protected String patient2Token() {
-        return bearer(jwtUtil.generateToken(PATIENT2_USER_ID, "patient2", List.of("PATIENT")));
+        return bearer(loginSessions.create(PATIENT2_USER_ID).token());
     }
 
     protected static String bearer(String token) {

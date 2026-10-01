@@ -80,6 +80,7 @@ public class SecurityConfig {
                     auth.requestMatchers(HttpMethod.POST,
                             API + "/auth/register",
                             API + "/auth/login",
+                            API + "/auth/refresh",
                             API + "/auth/forgot-password",
                             API + "/auth/reset-password").permitAll();
 

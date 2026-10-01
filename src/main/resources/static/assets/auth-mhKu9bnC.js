@@ -1,1 +1,0 @@
-import{r as e}from"./auth-Dawyr4E0.js";var t={register:t=>e.post(`/auth/register`,t).then(e=>e.data),login:t=>e.post(`/auth/login`,t).then(e=>e.data),logout:()=>e.post(`/auth/logout`),changePassword:t=>e.post(`/auth/change-password`,t),forgotPassword:t=>e.post(`/auth/forgot-password`,t),resetPassword:t=>e.post(`/auth/reset-password`,t)};export{t};

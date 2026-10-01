@@ -8,6 +8,7 @@
 import DashboardLayout from './DashboardLayout.vue'
 
 const items = [
+  { to: '/patient/booking', label: 'Đặt lịch khám', icon: 'fa-solid fa-calendar-plus' },
   { to: '/patient/dashboard', label: 'Tổng quan', icon: 'fa-solid fa-chart-line' },
   { to: '/patient/appointments', label: 'Lịch hẹn', icon: 'fa-regular fa-calendar-check' },
   { to: '/patient/records', label: 'Bệnh án', icon: 'fa-regular fa-folder-open' },

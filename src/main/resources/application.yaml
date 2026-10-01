@@ -36,7 +36,7 @@ logging:
 # JWT Configuration
 jwt:
   secret: ${JWT_SECRET:MedBookSecretKey2024VeryLongSecureKeyForHS256AlgorithmAtLeast256Bits!!}
-  expiration-ms: ${JWT_EXPIRATION:86400000}
+  expiration-ms: ${JWT_EXPIRATION:900000}
 
 # File upload limit (10MB)
 spring.servlet.multipart:

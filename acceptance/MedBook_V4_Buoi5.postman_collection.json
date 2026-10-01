@@ -1,0 +1,1154 @@
+{
+  "info": {
+    "_postman_id": "155e4c99-e2c5-4783-8007-c4a097b0383a",
+    "name": "MedBook V4 Buoi 5 - MySQL local",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Chay tu tren xuong tren database thu rieng. Khong coi ket qua local la minh chung truc tuyen. Login tao token runtime; khong export token sau khi chay."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "demoPassword",
+      "value": "MedBook@2026",
+      "type": "string"
+    },
+    {
+      "key": "slotDate",
+      "value": "2026-10-02",
+      "type": "string"
+    },
+    {
+      "key": "patientToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "otherPatientToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "doctorToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "otherDoctorToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "patientRefresh",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "slotA",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "slotB",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "appointmentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "encounterId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "prescriptionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invoiceId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Setup - Login patient1",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"usernameOrEmail\": \"patient1\", \"password\": \"{{demoPassword}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) { const data = pm.response.json(); pm.collectionVariables.set('patientToken', data.token);pm.collectionVariables.set('patientRefresh', data.refreshToken); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Setup - Login patient2",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"usernameOrEmail\": \"patient2\", \"password\": \"{{demoPassword}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) { const data = pm.response.json(); pm.collectionVariables.set('otherPatientToken', data.token); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Setup - Login doctor1",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"usernameOrEmail\": \"doctor1\", \"password\": \"{{demoPassword}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) { const data = pm.response.json(); pm.collectionVariables.set('doctorToken', data.token); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Setup - Login doctor2",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"usernameOrEmail\": \"doctor2\", \"password\": \"{{demoPassword}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) { const data = pm.response.json(); pm.collectionVariables.set('otherDoctorToken', data.token); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-01 Tim slot trong",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{patientToken}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/appointment-slots/available?doctorId=1&date={{slotDate}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Co it nhat 2 slot trong', () => pm.expect(pm.response.json().length).to.be.at.least(2));",
+              "if (pm.response.code === 200) { const data = pm.response.json(); pm.collectionVariables.set('slotA',data[0].id);pm.collectionVariables.set('slotB',data[1].id); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-02 Dat lich khi chua dang nhap",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/appointments",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"slotId\": {{slotA}}, \"serviceId\": 1}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-03 Thieu slotId",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{patientToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/appointments",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"slotId\": null, \"serviceId\": 1}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-04 Slot khong ton tai",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{patientToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/appointments",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"slotId\": 99999999, \"serviceId\": 1}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-05 Dat slot trong",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{patientToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/appointments",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"slotId\": {{slotA}}, \"serviceId\": 1, \"notes\": \"V4 Buoi 5\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "pm.test('Lich BOOKED',()=>pm.expect(pm.response.json().status).to.eql('BOOKED'));",
+              "if (pm.response.code === 201) { const data = pm.response.json(); pm.collectionVariables.set('appointmentId',data.id); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-06 Dat trung slot",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{otherPatientToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/appointments",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"slotId\": {{slotA}}, \"serviceId\": 1}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409', () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-07 Benh nhan khac xem lich",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{otherPatientToken}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/appointments/{{appointmentId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-08 Doi sang slot khong ton tai",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{patientToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/appointments/{{appointmentId}}/reschedule",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"newSlotId\": 99999999}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-09 Doi that bai giu lich cu",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{patientToken}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/appointments/{{appointmentId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Slot cu duoc giu',()=>pm.expect(pm.response.json().slotId).to.eql(Number(pm.collectionVariables.get('slotA'))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-10 Doi lich hop le",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{patientToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/appointments/{{appointmentId}}/reschedule",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"newSlotId\": {{slotB}}, \"reason\": \"V4 test\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Chuyen sang slot moi',()=>pm.expect(pm.response.json().slotId).to.eql(Number(pm.collectionVariables.get('slotB'))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-11 Huy lich",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{patientToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/appointments/{{appointmentId}}/cancel",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"reason\": \"V4 test\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('CANCELLED',()=>pm.expect(pm.response.json().status).to.eql('CANCELLED'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-12 Dat lai slot da huy",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{patientToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/appointments",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"slotId\": {{slotB}}, \"serviceId\": 1}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "if (pm.response.code === 201) { const data = pm.response.json(); pm.collectionVariables.set('appointmentId',data.id); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-13 Bac si khac bat dau kham",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{otherDoctorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/encounters",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"appointmentId\": {{appointmentId}}, \"chiefComplaint\": \"Du lieu gia lap\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-14 Bac si phu trach bat dau kham",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{doctorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/encounters",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"appointmentId\": {{appointmentId}}, \"chiefComplaint\": \"Du lieu gia lap\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "pm.test('Lan kham OPEN',()=>pm.expect(pm.response.json().status).to.eql('OPEN'));",
+              "if (pm.response.code === 201) { const data = pm.response.json(); pm.collectionVariables.set('encounterId',data.id); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-15 Benh nhan khong duoc tao lan kham",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{patientToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/encounters",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"appointmentId\": {{appointmentId}}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-16 Tao don thuoc",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{doctorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/encounters/{{encounterId}}/prescriptions",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"notes\": \"Don thuoc gia lap V4\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) { const data = pm.response.json(); pm.collectionVariables.set('prescriptionId',data.id); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-17 So luong thuoc bang 0",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{doctorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/prescriptions/{{prescriptionId}}/items",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"medicineName\": \"Paracetamol 500mg\", \"quantity\": 0, \"durationDays\": 5}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-18 Them thuoc hop le",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{doctorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/prescriptions/{{prescriptionId}}/items",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"medicineName\": \"Paracetamol 500mg\", \"dosage\": \"500mg\", \"frequency\": \"Ngay 3 lan\", \"durationDays\": 5, \"quantity\": 15, \"instructions\": \"Du lieu test\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-19 Giam gia vuot tong tien",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{doctorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/encounters/{{encounterId}}/invoice?discountAmount=160000",
+        "body": {
+          "mode": "raw",
+          "raw": "[{\"description\": \"Phi kham gia lap\", \"serviceId\": 1, \"quantity\": 1, \"unitPrice\": 150000}]",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-20 Lap hoa don hop le",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{doctorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/encounters/{{encounterId}}/invoice?discountAmount=10000",
+        "body": {
+          "mode": "raw",
+          "raw": "[{\"description\": \"Phi kham gia lap\", \"serviceId\": 1, \"quantity\": 1, \"unitPrice\": 150000}]",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Tong tien 140000',()=>pm.expect(Number(pm.response.json().totalAmount)).to.eql(140000));",
+              "if (pm.response.code === 200) { const data = pm.response.json(); pm.collectionVariables.set('invoiceId',data.id); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-21 Benh nhan khac xem lan kham",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{otherPatientToken}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/encounters/{{encounterId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-22 Hoan thanh kham",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{doctorToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/encounters/{{encounterId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"diagnosis\": \"Chan doan gia lap\", \"status\": \"COMPLETED\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('COMPLETED',()=>pm.expect(pm.response.json().status).to.eql('COMPLETED'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-23 Benh nhan xem lan kham cua minh",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{patientToken}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/encounters/{{encounterId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4-24 Benh nhan xem hoa don cua minh",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{patientToken}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/invoices/{{invoiceId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Tong tien 140000',()=>pm.expect(Number(pm.response.json().totalAmount)).to.eql(140000));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth - Refresh",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/auth/refresh",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"refreshToken\": \"{{patientRefresh}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) { const data = pm.response.json(); pm.collectionVariables.set('patientToken',data.token);pm.collectionVariables.set('patientRefresh',data.refreshToken); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth - Logout",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{patientToken}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/auth/logout"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth - Refresh sau logout",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/auth/refresh",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"refreshToken\": \"{{patientRefresh}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

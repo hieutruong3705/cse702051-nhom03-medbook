@@ -44,7 +44,7 @@ describe('http client', () => {
     token = null
     onUnauthorized = vi.fn()
     onForbidden = vi.fn()
-    configureHttp({ getToken: () => token, onUnauthorized, onForbidden })
+    configureHttp({ getToken: () => token, refreshToken: null, onUnauthorized, onForbidden })
   })
 
   afterEach(() => {

@@ -72,7 +72,7 @@ class AccountSecurityServiceTest extends AbstractApiTest {
 
     private String tokenOf(User user, String role) {
         User fresh = users.findById(user.getId()).orElseThrow();
-        return bearer(jwtUtil.issueToken(fresh.getId(), fresh.getUsername(), List.of(role), fresh.getTokenVersion()).token());
+        return bearer(loginSessions.create(fresh.getId()).token());
     }
 
     private void assertToken(String token, int expected) throws Exception {

@@ -82,7 +82,7 @@ public class PasswordResetService {
             throw new BadRequestException(INVALID_TOKEN);
         }
 
-        User user = userRepository.findById(token.getUserId())
+        User user = userRepository.findByIdForUpdate(token.getUserId())
                 .orElseThrow(() -> new BadRequestException(INVALID_TOKEN));
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
@@ -92,7 +92,7 @@ public class PasswordResetService {
         user.setUpdatedAt(now);
         userRepository.save(user);
 
-        auditLogService.record(AuditEvent.of(AuditActions.PASSWORD_RESET, AuditActions.ENTITY_USERS, user.getId())
+        auditLogService.recordInCurrentTransaction(AuditEvent.of(AuditActions.PASSWORD_RESET, AuditActions.ENTITY_USERS, user.getId())
                 .byActor(user.getId()));
     }
 
