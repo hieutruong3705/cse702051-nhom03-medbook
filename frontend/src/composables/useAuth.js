@@ -1,38 +1,32 @@
-import { reactive, computed } from 'vue'
+import { computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 
-const state = reactive({
-  isAuthenticated: !!localStorage.getItem('token'),
-  user: JSON.parse(localStorage.getItem('user') || '{}')
-})
-
+/**
+ * Lớp tương thích mỏng bọc store `auth` (Pinia) cho các view/layout cũ dùng `useAuth()`.
+ * Mã mới nên dùng thẳng `useAuthStore()` từ '@/stores/auth'.
+ *
+ * - `login(payload)` nhận phản hồi `POST /auth/login`; vẫn chấp nhận chữ ký cũ `login(token, user)`.
+ * - `user.id` là bí danh của `userId` để các view cũ không vỡ; dùng `patientId`/`doctorId` khi
+ *   cần ID hồ sơ bệnh nhân/bác sĩ.
+ */
 export function useAuth() {
-  const dashboardRoute = computed(() => {
-    if (!state.isAuthenticated || !state.user.roles) return '/'
-    const roles = state.user.roles
-    if (roles.includes('ADMIN') || roles.includes('ROLE_ADMIN')) return '/admin/dashboard'
-    if (roles.includes('DOCTOR') || roles.includes('ROLE_DOCTOR')) return '/doctor/dashboard'
-    return '/patient/dashboard'
-  })
+  const auth = useAuthStore()
 
-  const login = (token, user) => {
-    localStorage.setItem('token', token)
-    localStorage.setItem('user', JSON.stringify(user))
-    state.isAuthenticated = true
-    state.user = user
-  }
-
-  const logout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    state.isAuthenticated = false
-    state.user = {}
+  const login = (first, second) => {
+    if (typeof first === 'string') {
+      auth.login({ ...(second || {}), token: first })
+    } else {
+      auth.login(first)
+    }
   }
 
   return {
-    isAuthenticated: computed(() => state.isAuthenticated),
-    user: computed(() => state.user),
-    dashboardRoute,
+    isAuthenticated: computed(() => auth.isAuthenticated),
+    user: computed(() => (auth.user ? { ...auth.user, id: auth.user.userId } : {})),
+    roles: computed(() => auth.roles),
+    dashboardRoute: computed(() => auth.dashboardPath),
+    hasRole: auth.hasRole,
     login,
-    logout
+    logout: () => auth.logout()
   }
 }
