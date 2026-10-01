@@ -18,10 +18,15 @@
       <div>
         <DataTable :columns="columns" :rows="encounters" :loading="encounterLoading" :error="encounterError" empty-text="Chưa có lịch sử khám">
           <template #cell-date="{ row }">
-            {{ formatDate(row.encounterDate || row.createdAt || row.updatedAt) }}
+            {{ formatDate(row.encounterAt || row.encounterDate || row.createdAt || row.updatedAt) }}
           </template>
           <template #cell-status="{ row }">
             <StatusBadge :value="row.status" :label="encounterStatus[row.status] || row.status" />
+          </template>
+          <template #cell-actions="{ row }">
+            <RouterLink :to="`/patient/records/${row.id}`" class="font-semibold text-primary-700 hover:text-primary-900" :data-test="`encounter-link-${row.id}`">
+              Xem chi tiết
+            </RouterLink>
           </template>
         </DataTable>
       </div>
@@ -44,7 +49,8 @@ const columns = [
   { key: 'doctorName', label: 'Bác sĩ', formatter: (value, row) => value || row.doctor?.fullName || '-' },
   { key: 'chiefComplaint', label: 'Lý do khám', formatter: (value) => value || '-' },
   { key: 'diagnosis', label: 'Chẩn đoán', formatter: (value) => value || '-' },
-  { key: 'status', label: 'Trạng thái' }
+  { key: 'status', label: 'Trạng thái' },
+  { key: 'actions', label: 'Chi tiết' }
 ]
 
 const record = ref({})

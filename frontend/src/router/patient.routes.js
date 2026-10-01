@@ -31,6 +31,12 @@ export default [
     meta: { title: 'Bệnh án của tôi' }
   },
   {
+    path: 'records/:encounterId',
+    name: 'patient-encounter-detail',
+    component: () => import('@/views/patient/PatientEncounterDetail.vue'),
+    meta: { title: 'Chi tiết lần khám' }
+  },
+  {
     path: 'invoices',
     name: 'patient-invoices',
     component: () => import('@/views/patient/PatientInvoicesView.vue'),

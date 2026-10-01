@@ -24,9 +24,20 @@
           <StatusBadge :value="row.status" :label="appointmentStatus[row.status] || row.status" />
         </template>
         <template #cell-actions="{ row }">
-          <BaseButton type="button" size="sm" :disabled="row.status !== 'BOOKED' || startingId === row.id" @click="startEncounter(row)">
+          <BaseButton v-if="row.status === 'BOOKED'" type="button" size="sm" :disabled="startingId === row.id" @click="startEncounter(row)">
             Bắt đầu khám
           </BaseButton>
+          <BaseButton
+            v-else-if="row.status === 'IN_PROGRESS' || row.status === 'COMPLETED'"
+            type="button"
+            size="sm"
+            variant="secondary"
+            :disabled="startingId === row.id"
+            @click="openEncounter(row)"
+          >
+            {{ row.status === 'IN_PROGRESS' ? 'Tiếp tục khám' : 'Xem lần khám' }}
+          </BaseButton>
+          <span v-else class="text-xs text-slate-400">—</span>
         </template>
       </DataTable>
 
@@ -110,6 +121,24 @@ async function startEncounter(row) {
   startingId.value = row.id
   try {
     const encounter = await encountersApi.create({ appointmentId: row.id })
+    router.push(`/doctor/encounters/${encounter.id}`)
+  } catch (err) {
+    toastError(apiErrorMessage(err))
+  } finally {
+    startingId.value = null
+  }
+}
+
+/** Mở lại lần khám đã bắt đầu/hoàn thành của một lịch hẹn (tra theo appointmentId, chỉ bác sĩ phụ trách thấy). */
+async function openEncounter(row) {
+  startingId.value = row.id
+  try {
+    const response = await encountersApi.list({ appointmentId: row.id })
+    const encounter = (response.content ?? response.items ?? response)[0]
+    if (!encounter) {
+      toastError('Không tìm thấy lần khám của lịch hẹn này.')
+      return
+    }
     router.push(`/doctor/encounters/${encounter.id}`)
   } catch (err) {
     toastError(apiErrorMessage(err))

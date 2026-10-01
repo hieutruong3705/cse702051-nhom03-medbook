@@ -19,6 +19,12 @@ export default [
     meta: { title: 'Lịch khám' }
   },
   {
+    path: 'encounters/:id',
+    name: 'doctor-encounter',
+    component: () => import('@/views/doctor/encounter/DoctorEncounterView.vue'),
+    meta: { title: 'Khám bệnh' }
+  },
+  {
     path: 'patients',
     name: 'doctor-patients',
     component: () => import('@/views/doctor/DoctorPatientsView.vue'),
