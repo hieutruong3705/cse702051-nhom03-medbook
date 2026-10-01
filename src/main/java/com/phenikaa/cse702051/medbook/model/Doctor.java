@@ -9,8 +9,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,31 +32,48 @@ public class Doctor {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
-    private User user;
+    // Liên kết với tài khoản User do Dev 1 quản lý
+    @Column(name = "user_id", nullable = false, unique = true)
+    private Long userId;
 
-    @Column(name = "doctor_code", nullable = false, unique = true, length = 30)
-    private String doctorCode;
+    // Liên kết với chuyên khoa Specialty do Dev 2 quản lý
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "specialty_id")
+    private Specialty specialty;
 
-    @Column(nullable = false, length = 120)
-    private String specialty;
+    @Column(name = "full_name", nullable = false, length = 100)
+    private String fullName;
 
-    @Column(name = "license_no", unique = true, length = 80)
-    private String licenseNo;
+    @Column(length = 20)
+    private String phone;
 
-    @Column(name = "years_experience", nullable = false)
-    private Integer yearsExperience;
+    @Column(name = "license_number", length = 50)
+    private String licenseNumber;
 
-    @Lob
+    @Column(columnDefinition = "TEXT")
     private String bio;
 
-    @Column(nullable = false, length = 20)
-    private String status;
+    @Column(name = "is_active", nullable = false)
+    @Builder.Default
+    private Boolean isActive = true;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+        if (this.isActive == null) {
+            this.isActive = true;
+        }
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }
