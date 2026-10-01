@@ -1,0 +1,1 @@
+import{d as e,t}from"./auth-Dawyr4E0.js";function n(){let n=t();return{isAuthenticated:e(()=>n.isAuthenticated),user:e(()=>n.user?{...n.user,id:n.user.userId}:{}),roles:e(()=>n.roles),dashboardRoute:e(()=>n.dashboardPath),hasRole:n.hasRole,login:(e,t)=>{typeof e==`string`?n.login({...t||{},token:e}):n.login(e)},logout:()=>n.logout()}}export{n as t};
