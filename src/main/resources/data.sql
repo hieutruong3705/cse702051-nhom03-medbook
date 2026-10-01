@@ -14,11 +14,11 @@ INSERT INTO specialties (id, code, name, description, status, created_at, update
 
 -- Users
 INSERT INTO users (id, username, password_hash, full_name, email, phone, status, created_at, updated_at) VALUES
-(1, 'admin1', '$2a$12$LJ3m4ys2JOwMVqDV3bGPOeNICAGbMVEJHBQlQGOxtBt/L4.KL7IEO', 'Admin', 'admin1@medbook.local', '0901234567', 'ACTIVE', NOW(), NOW()),
-(2, 'doctor1', '$2a$12$LJ3m4ys2JOwMVqDV3bGPOeNICAGbMVEJHBQlQGOxtBt/L4.KL7IEO', 'Bac si Lan', 'doctor1@medbook.local', '0912345678', 'ACTIVE', NOW(), NOW()),
-(3, 'doctor2', '$2a$12$LJ3m4ys2JOwMVqDV3bGPOeNICAGbMVEJHBQlQGOxtBt/L4.KL7IEO', 'Bac si Huy', 'doctor2@medbook.local', '0923456789', 'ACTIVE', NOW(), NOW()),
-(4, 'patient1', '$2a$12$LJ3m4ys2JOwMVqDV3bGPOeNICAGbMVEJHBQlQGOxtBt/L4.KL7IEO', 'Nguyen Minh An', 'patient1@medbook.local', '0934567890', 'ACTIVE', NOW(), NOW()),
-(5, 'patient2', '$2a$12$LJ3m4ys2JOwMVqDV3bGPOeNICAGbMVEJHBQlQGOxtBt/L4.KL7IEO', 'Tran Gia Binh', 'patient2@medbook.local', '0945678901', 'ACTIVE', NOW(), NOW());
+(1, 'admin1', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Admin', 'admin1@medbook.local', '0901234567', 'ACTIVE', NOW(), NOW()),
+(2, 'doctor1', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Bac si Lan', 'doctor1@medbook.local', '0912345678', 'ACTIVE', NOW(), NOW()),
+(3, 'doctor2', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Bac si Huy', 'doctor2@medbook.local', '0923456789', 'ACTIVE', NOW(), NOW()),
+(4, 'patient1', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Nguyen Minh An', 'patient1@medbook.local', '0934567890', 'ACTIVE', NOW(), NOW()),
+(5, 'patient2', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Tran Gia Binh', 'patient2@medbook.local', '0945678901', 'ACTIVE', NOW(), NOW());
 
 -- User Roles
 INSERT INTO user_roles (user_id, role_id, created_at) VALUES
@@ -68,3 +68,15 @@ INSERT INTO appointment_slots (id, doctor_id, slot_date, start_time, end_time, i
 (11, 2, CURDATE(), '09:00:00', '09:30:00', TRUE, 'AVAILABLE', 0, NOW(), NOW()),
 (12, 2, CURDATE(), '14:00:00', '14:30:00', TRUE, 'AVAILABLE', 0, NOW(), NOW()),
 (13, 2, CURDATE(), '14:30:00', '15:00:00', TRUE, 'AVAILABLE', 0, NOW(), NOW());
+
+-- Bộ đếm IDENTITY của H2 không tự tăng khi chèn ID cố định ở trên, nên INSERT tiếp theo
+-- (đăng ký, đặt lịch, ...) sẽ đụng khóa chính. Đặt lại bộ đếm sau phần seed.
+-- Chỉ chạy trên H2 (profile docker/MySQL không nạp data.sql; MySQL tự tăng AUTO_INCREMENT).
+ALTER TABLE roles ALTER COLUMN id RESTART WITH 1000;
+ALTER TABLE users ALTER COLUMN id RESTART WITH 1000;
+ALTER TABLE specialties ALTER COLUMN id RESTART WITH 1000;
+ALTER TABLE doctors ALTER COLUMN id RESTART WITH 1000;
+ALTER TABLE patients ALTER COLUMN id RESTART WITH 1000;
+ALTER TABLE services ALTER COLUMN id RESTART WITH 1000;
+ALTER TABLE medicines ALTER COLUMN id RESTART WITH 1000;
+ALTER TABLE appointment_slots ALTER COLUMN id RESTART WITH 1000;

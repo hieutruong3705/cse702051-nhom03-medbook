@@ -1,454 +1,283 @@
 package com.phenikaa.cse702051.medbook.service;
 
-import com.phenikaa.cse702051.medbook.model.Encounter;
-import com.phenikaa.cse702051.medbook.model.MedicalRecord;
-import com.phenikaa.cse702051.medbook.model.Appointment;
-import com.phenikaa.cse702051.medbook.repository.EncounterRepository;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.phenikaa.cse702051.medbook.dto.PageResponse;
+import com.phenikaa.cse702051.medbook.dto.UpdateMedicalRecordCommand;
+import com.phenikaa.cse702051.medbook.dto.encounter.CreateEncounterRequest;
+import com.phenikaa.cse702051.medbook.dto.encounter.EncounterDTO;
+import com.phenikaa.cse702051.medbook.dto.encounter.EncounterSummaryDTO;
+import com.phenikaa.cse702051.medbook.dto.encounter.UpdateEncounterRequest;
+import com.phenikaa.cse702051.medbook.exception.BadRequestException;
+import com.phenikaa.cse702051.medbook.exception.ConflictException;
+import com.phenikaa.cse702051.medbook.exception.FieldValidationException;
+import com.phenikaa.cse702051.medbook.exception.ResourceNotFoundException;
+import com.phenikaa.cse702051.medbook.model.Appointment;
+import com.phenikaa.cse702051.medbook.model.Encounter;
+import com.phenikaa.cse702051.medbook.model.MedicalRecord;
+import com.phenikaa.cse702051.medbook.repository.EncounterRepository;
+import com.phenikaa.cse702051.medbook.security.CurrentUser;
+import com.phenikaa.cse702051.medbook.security.CurrentUserService;
 
+/**
+ * Lần khám (YCCN-17, 18, 19). Luồng chuẩn:
+ *
+ * <ol>
+ * <li>{@link #create}: bác sĩ phụ trách lịch hẹn BOOKED bắt đầu khám. Trong MỘT giao dịch: lịch chuyển
+ * {@code BOOKED → IN_PROGRESS} và lần khám {@code OPEN} được lưu; lỗi ở bước nào cũng rollback cả hai.</li>
+ * <li>{@link #update}: chỉ bác sĩ phụ trách, chỉ khi còn OPEN. {@code status = COMPLETED} chuyển lịch sang
+ * COMPLETED cùng giao dịch và khóa nội dung. Tóm tắt bệnh án đi qua
+ * {@code MedicalRecordService.updateClinicalSummary}, không ghi thẳng bảng {@code medical_records}.</li>
+ * <li>Đọc: bệnh nhân chủ hoặc bác sĩ phụ trách; mọi lần đọc ghi audit {@code ENCOUNTER_VIEW}. Nội dung lâm sàng
+ * không bao giờ được ghi vào audit (chỉ tên trường đã đổi).</li>
+ * </ol>
+ *
+ * <p>{@code doctorId} và {@code medicalRecordId} không bao giờ nhận từ client. Nhóm phương thức
+ * {@link #getById(Long)} / {@link #getAccessibleById(Long)} trả entity cho service khác (đơn thuốc, hóa đơn, tệp).
+ */
 @Service
 public class EncounterService {
+
+    public static final String OPEN = "OPEN";
+    public static final String COMPLETED = "COMPLETED";
+
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final EncounterRepository encounterRepository;
     private final MedicalRecordService medicalRecordService;
     private final AppointmentService appointmentService;
-    private final Dev4AuthorizationService authorizationService;
+    private final EncounterAccessPolicy policy;
+    private final DoctorScopePolicy doctorScopePolicy;
+    private final EncounterMapper mapper;
+    private final CurrentUserService currentUserService;
+    private final AuditLogService auditLogService;
 
     public EncounterService(
             EncounterRepository encounterRepository,
             MedicalRecordService medicalRecordService,
             AppointmentService appointmentService,
-            Dev4AuthorizationService authorizationService
-    ) {
+            EncounterAccessPolicy policy,
+            DoctorScopePolicy doctorScopePolicy,
+            EncounterMapper mapper,
+            CurrentUserService currentUserService,
+            AuditLogService auditLogService) {
         this.encounterRepository = encounterRepository;
         this.medicalRecordService = medicalRecordService;
         this.appointmentService = appointmentService;
-        this.authorizationService = authorizationService;
+        this.policy = policy;
+        this.doctorScopePolicy = doctorScopePolicy;
+        this.mapper = mapper;
+        this.currentUserService = currentUserService;
+        this.auditLogService = auditLogService;
     }
 
-    // ============================================================
-    // CREATE
-    // ============================================================
+    // ================= Tạo / cập nhật (bác sĩ phụ trách) =================
 
+    /** Bắt đầu khám: lịch BOOKED → IN_PROGRESS và lưu lần khám OPEN trong cùng một giao dịch. */
     @Transactional
-    public Encounter create(Encounter encounter) {
+    public EncounterDTO create(CreateEncounterRequest request) {
+        currentUserService.requireRole("DOCTOR");
+        Long doctorId = policy.currentDoctorId();
 
-        if (encounter == null) {
-            throw new IllegalArgumentException("Encounter không được null");
+        Appointment appointment = appointmentService.findById(request.appointmentId());
+        if (!doctorId.equals(appointment.getDoctorId())) {
+            throw policy.deny(AuditActions.ENTITY_APPOINTMENTS, appointment.getId(),
+                    "Tạo lần khám cho lịch của bác sĩ khác");
+        }
+        if (encounterRepository.existsByAppointmentId(appointment.getId())) {
+            throw new ConflictException("Lịch hẹn này đã có lần khám!");
         }
 
-        if (encounter.getMedicalRecordId() == null) {
-            throw new IllegalArgumentException(
-                    "medicalRecordId không được để trống"
-            );
-        }
-
-        if (encounter.getDoctorId() == null) {
-            throw new IllegalArgumentException(
-                    "doctorId không được để trống"
-            );
-        }
-
-        MedicalRecord medicalRecord =
-                medicalRecordService.findById(
-                        encounter.getMedicalRecordId()
-                );
-
-        if (!isDoctor()) {
-            throw new IllegalArgumentException(
-                    "Chỉ bác sĩ mới được tạo encounter"
-            );
-        }
-
-        Long currentDoctorId =
-                authorizationService.getCurrentDoctorId();
-
-        if (!currentDoctorId.equals(encounter.getDoctorId())) {
-            throw new IllegalArgumentException(
-                    "Bạn không có quyền tạo encounter cho bác sĩ khác"
-            );
-        }
-
-        if (encounter.getAppointmentId() != null) {
-
-            Appointment appointment =
-                    appointmentService.getAppointmentById(
-                            encounter.getAppointmentId()
-                    );
-
-            if (appointment.getDoctorId() == null
-                    || !currentDoctorId.equals(
-                            appointment.getDoctorId()
-                    )) {
-                throw new IllegalArgumentException(
-                        "Appointment không thuộc bác sĩ hiện tại"
-                );
-            }
-
-            if (encounterRepository.existsByAppointmentId(
-                    encounter.getAppointmentId()
-            )) {
-                throw new IllegalArgumentException(
-                        "Appointment này đã có encounter"
-                );
-            }
-        }
-
-        if (encounter.getEncounterAt() == null) {
-            encounter.setEncounterAt(LocalDateTime.now());
-        }
-
-        if (encounter.getStatus() == null
-                || encounter.getStatus().isBlank()) {
-            encounter.setStatus("OPEN");
-        }
+        // BOOKED → IN_PROGRESS (sai trạng thái ⇒ 409). Cùng giao dịch với việc lưu lần khám bên dưới.
+        appointmentService.startExamination(appointment.getId());
+        MedicalRecord record = medicalRecordService.getOrCreateByPatientId(appointment.getPatientId());
 
         LocalDateTime now = LocalDateTime.now();
-
-        if (encounter.getCreatedAt() == null) {
-            encounter.setCreatedAt(now);
+        Encounter encounter = new Encounter();
+        encounter.setMedicalRecordId(record.getId());
+        encounter.setAppointmentId(appointment.getId());
+        encounter.setDoctorId(doctorId);
+        encounter.setEncounterAt(now);
+        encounter.setChiefComplaint(blankToNull(request.chiefComplaint()));
+        encounter.setStatus(OPEN);
+        encounter.setCreatedAt(now);
+        encounter.setUpdatedAt(now);
+        try {
+            encounter = encounterRepository.saveAndFlush(encounter);
+        } catch (DataIntegrityViolationException e) {
+            // UNIQUE(appointment_id): hai yêu cầu bắt đầu khám cùng lúc, chỉ một thành công
+            throw new ConflictException("Lịch hẹn này đã có lần khám!");
         }
 
-        encounter.setUpdatedAt(now);
-
-        return encounterRepository.save(encounter);
+        auditLogService.record(AuditEvent.of(AuditActions.ENCOUNTER_CREATE, AuditActions.ENTITY_ENCOUNTERS,
+                encounter.getId()).with("appointmentId", appointment.getId()));
+        return mapper.toDTO(encounter, true);
     }
 
-    // ============================================================
-    // GET BY ID - RAW
-    // ============================================================
+    /** Cập nhật nội dung khám; {@code status = COMPLETED} hoàn thành khám (không sửa được nữa). */
+    @Transactional
+    public EncounterDTO update(Long id, UpdateEncounterRequest request) {
+        currentUserService.requireRole("DOCTOR");
+        Encounter encounter = getById(id);
+        policy.assertDoctorOwns(encounter);
+        if (!OPEN.equals(encounter.getStatus())) {
+            throw new ConflictException("Lần khám đã hoàn thành, không thể chỉnh sửa!");
+        }
 
+        List<String> changed = new ArrayList<>();
+        if (request.chiefComplaint() != null) {
+            encounter.setChiefComplaint(blankToNull(request.chiefComplaint()));
+            changed.add("chiefComplaint");
+        }
+        if (request.diagnosis() != null) {
+            encounter.setDiagnosis(blankToNull(request.diagnosis()));
+            changed.add("diagnosis");
+        }
+        if (request.clinicalNotes() != null) {
+            encounter.setClinicalNotes(blankToNull(request.clinicalNotes()));
+            changed.add("clinicalNotes");
+        }
+        if (request.treatmentPlan() != null) {
+            encounter.setTreatmentPlan(blankToNull(request.treatmentPlan()));
+            changed.add("treatmentPlan");
+        }
+        if (request.followUpNote() != null) {
+            encounter.setFollowUpNote(blankToNull(request.followUpNote()));
+            changed.add("followUpNote");
+        }
+        if (request.clinicalSummary() != null) {
+            var summary = request.clinicalSummary();
+            medicalRecordService.updateClinicalSummary(encounter.getMedicalRecordId(),
+                    new UpdateMedicalRecordCommand(summary.bloodType(), summary.chronicConditions(),
+                            summary.allergyNotes(), summary.medicalHistory(), summary.currentMedications()));
+            changed.add("clinicalSummary");
+        }
+
+        boolean completing = request.status() != null && COMPLETED.equalsIgnoreCase(request.status());
+        if (completing) {
+            if (encounter.getDiagnosis() == null) {
+                throw new FieldValidationException("diagnosis", "Cần nhập chẩn đoán trước khi hoàn thành khám");
+            }
+            if (encounter.getAppointmentId() != null) {
+                appointmentService.completeExamination(encounter.getAppointmentId());
+            }
+            encounter.setStatus(COMPLETED);
+            changed.add("status");
+        }
+
+        encounter.setUpdatedAt(LocalDateTime.now());
+        encounter = encounterRepository.saveAndFlush(encounter);
+
+        auditLogService.record(AuditEvent.of(
+                completing ? AuditActions.ENCOUNTER_COMPLETE : AuditActions.ENCOUNTER_UPDATE,
+                AuditActions.ENTITY_ENCOUNTERS, encounter.getId()).with("changedFields", changed));
+        return mapper.toDTO(encounter, OPEN.equals(encounter.getStatus()));
+    }
+
+    // ================= Đọc (luôn kiểm quyền và ghi audit) =================
+
+    /** Chi tiết lần khám: bệnh nhân chủ hoặc bác sĩ phụ trách; ghi audit {@code ENCOUNTER_VIEW}. */
+    @Transactional
+    public EncounterDTO get(Long id) {
+        Encounter encounter = getById(id);
+        policy.assertCanRead(encounter);
+        auditLogService.record(AuditEvent.of(AuditActions.ENCOUNTER_VIEW, AuditActions.ENTITY_ENCOUNTERS, id));
+
+        CurrentUser user = currentUserService.requireCurrentUser();
+        boolean editable = OPEN.equals(encounter.getStatus()) && user.hasRole("DOCTOR");
+        return mapper.toDTO(encounter, editable);
+    }
+
+    /** YCCN-19: lịch sử khám của bệnh nhân đang đăng nhập, mới nhất trước. */
+    @Transactional
+    public PageResponse<EncounterSummaryDTO> getMyEncounters(int page, int size) {
+        Long patientId = policy.currentPatientId();
+        MedicalRecord record = medicalRecordService.getOrCreateByPatientId(patientId);
+
+        Page<Encounter> result = encounterRepository.findByMedicalRecordId(record.getId(), pageable(page, size));
+        auditLogService.record(AuditEvent.of(AuditActions.ENCOUNTER_VIEW, AuditActions.ENTITY_ENCOUNTERS, null)
+                .with("scope", "OWN_HISTORY").with("medicalRecordId", record.getId()));
+        return toPage(result);
+    }
+
+    /**
+     * Tra cứu của bác sĩ theo lịch hẹn hoặc bệnh án (phải truyền ít nhất một). Chỉ trả các lần khám do chính
+     * bác sĩ này thực hiện và chỉ trong phạm vi bác sĩ phụ trách.
+     */
+    @Transactional
+    public PageResponse<EncounterSummaryDTO> search(Long appointmentId, Long medicalRecordId, int page, int size) {
+        if (appointmentId == null && medicalRecordId == null) {
+            throw new BadRequestException("Cần truyền appointmentId hoặc medicalRecordId!");
+        }
+        Long doctorId = policy.currentDoctorId();
+        Pageable pageable = pageable(page, size);
+
+        Page<Encounter> result;
+        if (appointmentId != null) {
+            Appointment appointment = appointmentService.findById(appointmentId);
+            if (!doctorId.equals(appointment.getDoctorId())) {
+                throw policy.deny(AuditActions.ENTITY_APPOINTMENTS, appointmentId,
+                        "Tra cứu lần khám của lịch thuộc bác sĩ khác");
+            }
+            List<Encounter> found = encounterRepository.findByAppointmentId(appointmentId).stream().toList();
+            result = new org.springframework.data.domain.PageImpl<>(found, pageable, found.size());
+        } else {
+            MedicalRecord record = medicalRecordService.findById(medicalRecordId);
+            if (!doctorScopePolicy.isResponsible(doctorId, record.getPatientId())) {
+                throw policy.deny(AuditActions.ENTITY_MEDICAL_RECORDS, medicalRecordId,
+                        "Tra cứu lần khám của bệnh nhân ngoài phạm vi phụ trách");
+            }
+            result = encounterRepository.findByMedicalRecordIdAndDoctorId(medicalRecordId, doctorId, pageable);
+        }
+
+        auditLogService.record(AuditEvent.of(AuditActions.ENCOUNTER_VIEW, AuditActions.ENTITY_ENCOUNTERS, null)
+                .with("scope", "DOCTOR_LOOKUP")
+                .with("appointmentId", appointmentId)
+                .with("medicalRecordId", medicalRecordId));
+        return toPage(result);
+    }
+
+    // ================= Nội bộ cho module khác (đơn thuốc, hóa đơn, tệp) =================
+
+    /** Lần khám theo ID, KHÔNG kiểm quyền người gọi (người gọi phải tự kiểm bằng {@link EncounterAccessPolicy}). */
     @Transactional(readOnly = true)
     public Encounter getById(Long id) {
         return encounterRepository.findById(id)
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Không tìm thấy encounter với ID: " + id
-                        )
-                );
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lần khám với ID: " + id));
     }
 
-    // ============================================================
-    // GET BY ID - ACCESS CONTROL
-    // ============================================================
-
+    /** Lần khám theo ID, đã kiểm quyền đọc (bệnh nhân chủ hoặc bác sĩ phụ trách); Admin và người khác → 403. */
     @Transactional(readOnly = true)
     public Encounter getAccessibleById(Long id) {
-
         Encounter encounter = getById(id);
-
-        if (isPatient()) {
-            authorizationService.assertPatientOwnsEncounter(
-                    encounter
-            );
-            return encounter;
-        }
-
-        if (isDoctor()) {
-            authorizationService.assertDoctorOwnsEncounter(
-                    encounter
-            );
-            return encounter;
-        }
-
-        throw new IllegalArgumentException(
-                "Bạn không có quyền truy cập encounter này"
-        );
+        policy.assertCanRead(encounter);
+        return encounter;
     }
 
-    // ============================================================
-    // GET BY MEDICAL RECORD
-    // ============================================================
+    // ================= Chi tiết =================
 
-    @Transactional(readOnly = true)
-    public List<Encounter> getByMedicalRecordId(
-            Long medicalRecordId
-    ) {
-
-        if (isPatient()) {
-
-            authorizationService.assertPatientOwnsMedicalRecord(
-                    medicalRecordId
-            );
-
-            return encounterRepository.findByMedicalRecordId(
-                    medicalRecordId
-            );
-        }
-
-        if (isDoctor()) {
-
-            Long currentDoctorId =
-                    authorizationService.getCurrentDoctorId();
-
-            return encounterRepository
-                    .findByMedicalRecordId(medicalRecordId)
-                    .stream()
-                    .filter(encounter ->
-                            currentDoctorId.equals(
-                                    encounter.getDoctorId()
-                            )
-                    )
-                    .collect(Collectors.toList());
-        }
-
-        throw new IllegalArgumentException(
-                "Bạn không có quyền truy cập medical record này"
-        );
+    private PageResponse<EncounterSummaryDTO> toPage(Page<Encounter> result) {
+        return new PageResponse<>(mapper.toSummaries(result.getContent()), result.getNumber(), result.getSize(),
+                result.getTotalElements(), result.getTotalPages());
     }
 
-    // ============================================================
-    // GET MY ENCOUNTERS
-    // ============================================================
-
-    @Transactional(readOnly = true)
-    public List<Encounter> getMyEncounters() {
-
-        if (!isPatient()) {
-            throw new IllegalArgumentException(
-                    "Chỉ bệnh nhân mới được sử dụng chức năng này"
-            );
-        }
-
-        Long patientId =
-                authorizationService.getCurrentPatientId();
-
-        return getEncountersByPatientId(patientId);
+    private static Pageable pageable(int page, int size) {
+        int safeSize = size <= 0 ? 20 : Math.min(size, MAX_PAGE_SIZE);
+        return PageRequest.of(Math.max(page, 0), safeSize,
+                Sort.by(Sort.Direction.DESC, "encounterAt").and(Sort.by(Sort.Direction.DESC, "id")));
     }
 
-    // ============================================================
-    // GET DOCTOR ENCOUNTERS
-    // ============================================================
-
-    @Transactional(readOnly = true)
-    public List<Encounter> getMyDoctorEncounters() {
-
-        if (!isDoctor()) {
-            throw new IllegalArgumentException(
-                    "Chỉ bác sĩ mới được sử dụng chức năng này"
-            );
-        }
-
-        Long doctorId =
-                authorizationService.getCurrentDoctorId();
-
-        return encounterRepository.findByDoctorId(
-                doctorId
-        );
-    }
-
-    // ============================================================
-    // GET BY DOCTOR ID
-    // ============================================================
-
-    @Transactional(readOnly = true)
-    public List<Encounter> getByDoctorId(
-            Long doctorId
-    ) {
-
-        if (!isDoctor()) {
-            throw new IllegalArgumentException(
-                    "Chỉ bác sĩ mới được sử dụng chức năng này"
-            );
-        }
-
-        Long currentDoctorId =
-                authorizationService.getCurrentDoctorId();
-
-        if (!currentDoctorId.equals(doctorId)) {
-            throw new IllegalArgumentException(
-                    "Bạn không có quyền xem encounter của bác sĩ khác"
-            );
-        }
-
-        return encounterRepository.findByDoctorId(
-                doctorId
-        );
-    }
-
-    // ============================================================
-    // GET BY PATIENT ID
-    // ============================================================
-
-    @Transactional(readOnly = true)
-    public List<Encounter> getEncountersByPatientId(
-            Long patientId
-    ) {
-
-        if (!isPatient()) {
-            throw new IllegalArgumentException(
-                    "Chỉ bệnh nhân mới được sử dụng chức năng này"
-            );
-        }
-
-        Long currentPatientId =
-                authorizationService.getCurrentPatientId();
-
-        if (!currentPatientId.equals(patientId)) {
-            throw new IllegalArgumentException(
-                    "Bạn không có quyền xem encounter của bệnh nhân khác"
-            );
-        }
-
-        MedicalRecord medicalRecord =
-                medicalRecordService.findByPatientId(
-                        patientId
-                );
-
-        return encounterRepository.findByMedicalRecordId(
-                medicalRecord.getId()
-        );
-    }
-
-    // ============================================================
-    // UPDATE
-    // ============================================================
-
-    @Transactional
-    public Encounter update(
-            Long id,
-            Encounter input
-    ) {
-
-        if (input == null) {
-            throw new IllegalArgumentException(
-                    "Dữ liệu update không được null"
-            );
-        }
-
-        Encounter existing = getById(id);
-
-        authorizationService.assertDoctorOwnsEncounter(
-                existing
-        );
-
-        if (input.getAppointmentId() != null
-                && !input.getAppointmentId().equals(
-                        existing.getAppointmentId()
-                )) {
-
-            Appointment appointment =
-                    appointmentService.getAppointmentById(
-                            input.getAppointmentId()
-                    );
-
-            Long currentDoctorId =
-                    authorizationService.getCurrentDoctorId();
-
-            if (appointment.getDoctorId() == null
-                    || !currentDoctorId.equals(
-                            appointment.getDoctorId()
-                    )) {
-                throw new IllegalArgumentException(
-                        "Appointment không thuộc bác sĩ hiện tại"
-                );
-            }
-
-            if (encounterRepository.existsByAppointmentId(
-                    input.getAppointmentId()
-            )) {
-                throw new IllegalArgumentException(
-                        "Appointment này đã có encounter"
-                );
-            }
-
-            existing.setAppointmentId(
-                    input.getAppointmentId()
-            );
-        }
-
-        if (input.getEncounterAt() != null) {
-            existing.setEncounterAt(
-                    input.getEncounterAt()
-            );
-        }
-
-        if (input.getChiefComplaint() != null) {
-            existing.setChiefComplaint(
-                    input.getChiefComplaint()
-            );
-        }
-
-        if (input.getDiagnosis() != null) {
-            existing.setDiagnosis(
-                    input.getDiagnosis()
-            );
-        }
-
-        if (input.getClinicalNotes() != null) {
-            existing.setClinicalNotes(
-                    input.getClinicalNotes()
-            );
-        }
-
-        if (input.getTreatmentPlan() != null) {
-            existing.setTreatmentPlan(
-                    input.getTreatmentPlan()
-            );
-        }
-
-        if (input.getFollowUpNote() != null) {
-            existing.setFollowUpNote(
-                    input.getFollowUpNote()
-            );
-        }
-
-        if (input.getStatus() != null
-                && !input.getStatus().isBlank()) {
-            existing.setStatus(
-                    input.getStatus()
-            );
-        }
-
-        existing.setUpdatedAt(
-                LocalDateTime.now()
-        );
-
-        return encounterRepository.save(existing);
-    }
-
-    // ============================================================
-    // SECURITY HELPERS
-    // ============================================================
-
-    private boolean isPatient() {
-
-        Authentication authentication =
-                SecurityContextHolder
-                        .getContext()
-                        .getAuthentication();
-
-        return authentication != null
-                && authentication.getAuthorities()
-                .stream()
-                .anyMatch(authority ->
-                        "ROLE_PATIENT".equals(
-                                authority.getAuthority()
-                        )
-                );
-    }
-
-    private boolean isDoctor() {
-
-        Authentication authentication =
-                SecurityContextHolder
-                        .getContext()
-                        .getAuthentication();
-
-        return authentication != null
-                && authentication.getAuthorities()
-                .stream()
-                .anyMatch(authority ->
-                        "ROLE_DOCTOR".equals(
-                                authority.getAuthority()
-                        )
-                );
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

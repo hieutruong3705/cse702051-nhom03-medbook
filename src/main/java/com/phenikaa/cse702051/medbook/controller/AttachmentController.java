@@ -1,19 +1,34 @@
 package com.phenikaa.cse702051.medbook.controller;
 
-import com.phenikaa.cse702051.medbook.model.Attachment;
-import com.phenikaa.cse702051.medbook.service.AttachmentService;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.nio.file.Path;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.phenikaa.cse702051.medbook.dto.attachment.AttachmentDTO;
+import com.phenikaa.cse702051.medbook.service.AttachmentService;
+import com.phenikaa.cse702051.medbook.service.AttachmentService.StoredFile;
+
+/**
+ * Tệp đính kèm của lần khám (BE-04). Quyền theo vai trò ở {@code SecurityConfig}; quyền theo bản ghi, kiểm tra
+ * loại/kích thước và audit ở {@link AttachmentService}.
+ */
 @RestController
 @RequestMapping("/api/v1")
 public class AttachmentController {
@@ -24,95 +39,41 @@ public class AttachmentController {
         this.attachmentService = attachmentService;
     }
 
-    /**
-     * Upload attachment cho encounter.
-     *
-     * POST /api/encounters/{id}/attachments
-     */
-    @PostMapping(
-            value = "/encounters/{id}/attachments",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
-    )
-    public ResponseEntity<Attachment> uploadAttachment(
-            @PathVariable Long id,
-            @RequestParam("file") MultipartFile file
-    ) throws Exception {
-
-        Attachment attachment =
-                attachmentService.uploadAttachment(id, file);
-
-        return ResponseEntity.ok(attachment);
+    /** Bác sĩ phụ trách tải tệp lên lần khám còn OPEN (multipart, trường {@code file}). */
+    @PostMapping(value = "/encounters/{id}/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<AttachmentDTO> upload(@PathVariable Long id, @RequestParam("file") MultipartFile file)
+            throws IOException {
+        return ResponseEntity.status(HttpStatus.CREATED).body(attachmentService.upload(id, file));
     }
 
-    /**
-     * Lấy danh sách attachment của encounter.
-     *
-     * GET /api/encounters/{id}/attachments
-     */
     @GetMapping("/encounters/{id}/attachments")
-    public ResponseEntity<List<Attachment>> getAttachments(
-            @PathVariable Long id
-    ) {
-        return ResponseEntity.ok(
-                attachmentService.getAttachmentsByEncounter(id)
-        );
+    public ResponseEntity<List<AttachmentDTO>> list(@PathVariable Long id) {
+        return ResponseEntity.ok(attachmentService.listByEncounter(id));
     }
 
     /**
-     * Download attachment.
-     *
-     * GET /api/attachments/{id}/download
+     * Tải tệp. Luôn là {@code attachment} (không hiển thị nội tuyến), {@code nosniff} để trình duyệt không đoán
+     * lại loại nội dung, không cache.
      */
     @GetMapping("/attachments/{id}/download")
-    public ResponseEntity<Resource> downloadAttachment(
-            @PathVariable Long id
-    ) throws Exception {
-
-        Attachment attachment =
-                attachmentService.getAttachmentById(id);
-
-        Path filePath =
-                attachmentService.getFilePath(id);
-
-        Resource resource =
-                new FileSystemResource(filePath);
-
-        String contentType = attachment.getMimeType();
-
-        MediaType mediaType;
-
-        try {
-            mediaType = MediaType.parseMediaType(contentType);
-        } catch (Exception e) {
-            mediaType = MediaType.APPLICATION_OCTET_STREAM;
-        }
-
-        ContentDisposition contentDisposition =
-                ContentDisposition.attachment()
-                        .filename(attachment.getOriginalFileName())
-                        .build();
-
+    public ResponseEntity<Resource> download(@PathVariable Long id) {
+        StoredFile stored = attachmentService.download(id);
+        ContentDisposition disposition = ContentDisposition.attachment()
+                .filename(stored.attachment().getOriginalFileName(), StandardCharsets.UTF_8)
+                .build();
         return ResponseEntity.ok()
-                .contentType(mediaType)
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        contentDisposition.toString()
-                )
-                .body(resource);
+                .contentType(MediaType.parseMediaType(stored.attachment().getMimeType()))
+                .contentLength(stored.attachment().getFileSize())
+                .cacheControl(CacheControl.noStore())
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .header("X-Content-Type-Options", "nosniff")
+                .header("Content-Security-Policy", "default-src 'none'; sandbox")
+                .body(new FileSystemResource(stored.path()));
     }
 
-    /**
-     * Xóa attachment.
-     *
-     * DELETE /api/attachments/{id}
-     */
     @DeleteMapping("/attachments/{id}")
-    public ResponseEntity<Void> deleteAttachment(
-            @PathVariable Long id
-    ) throws Exception {
-
-        attachmentService.deleteAttachment(id);
-
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        attachmentService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }

@@ -1,5 +1,7 @@
 package com.phenikaa.cse702051.medbook.dto;
 
+import java.time.LocalDateTime;
+
 public record MedicalRecordDTO(
         Long id,
         String recordCode,
@@ -10,6 +12,7 @@ public record MedicalRecordDTO(
         String allergyNotes,
         String medicalHistory,
         String currentMedications,
-        String status
+        String status,
+        LocalDateTime updatedAt
 ) {
 }

@@ -1,20 +1,27 @@
 package com.phenikaa.cse702051.medbook.service;
 
-import java.time.LocalDate;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Locale;
+import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.phenikaa.cse702051.medbook.config.JwtUtil;
+import com.phenikaa.cse702051.medbook.config.JwtUtil.IssuedToken;
+import com.phenikaa.cse702051.medbook.dto.ChangePasswordRequest;
 import com.phenikaa.cse702051.medbook.dto.LoginRequest;
 import com.phenikaa.cse702051.medbook.dto.LoginResponse;
 import com.phenikaa.cse702051.medbook.dto.RegisterRequest;
 import com.phenikaa.cse702051.medbook.dto.RegisterResponse;
+import com.phenikaa.cse702051.medbook.exception.AccountLockedException;
+import com.phenikaa.cse702051.medbook.exception.ApiException;
 import com.phenikaa.cse702051.medbook.exception.ConflictException;
+import com.phenikaa.cse702051.medbook.exception.FieldValidationException;
 import com.phenikaa.cse702051.medbook.exception.ForbiddenException;
 import com.phenikaa.cse702051.medbook.exception.UnauthorizedException;
 import com.phenikaa.cse702051.medbook.model.Doctor;
@@ -28,37 +35,76 @@ import com.phenikaa.cse702051.medbook.repository.PatientRepository;
 import com.phenikaa.cse702051.medbook.repository.RoleRepository;
 import com.phenikaa.cse702051.medbook.repository.UserRepository;
 import com.phenikaa.cse702051.medbook.repository.UserRoleRepository;
+import com.phenikaa.cse702051.medbook.security.CurrentUser;
+import com.phenikaa.cse702051.medbook.security.CurrentUserService;
 
+/**
+ * Đăng ký, đăng nhập, đổi mật khẩu (YCCN-01, 02, 04).
+ *
+ * <ul>
+ * <li>Mật khẩu băm BCrypt (cost do {@code PasswordEncoder} cấu hình, hiện 12); không trả hash.</li>
+ * <li>Đăng nhập sai {@code max-failed-logins} lần liên tiếp → khóa {@code lock-minutes} phút.
+ * Thông báo sai tên/mật khẩu luôn giống nhau để không lộ tài khoản có tồn tại hay không.</li>
+ * <li>Mỗi JWT mang {@code jti} và {@code ver} (xem {@link SessionService}); đổi mật khẩu tăng
+ * {@code token_version} nên mọi phiên cũ bị vô hiệu.</li>
+ * <li>Đăng nhập thành công/thất bại/khóa đều ghi audit.</li>
+ * </ul>
+ */
 @Service
 public class AuthService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private static final String INVALID_CREDENTIALS = "Tên đăng nhập/email hoặc mật khẩu không chính xác!";
 
-    @Autowired
-    private RoleRepository roleRepository;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final UserRoleRepository userRoleRepository;
+    private final PatientRepository patientRepository;
+    private final DoctorRepository doctorRepository;
+    private final PatientService patientService;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
+    private final AuditLogService auditLogService;
+    private final CurrentUserService currentUserService;
+    private final int maxFailedLogins;
+    private final int lockMinutes;
 
-    @Autowired
-    private UserRoleRepository userRoleRepository;
+    private volatile String dummyHash;
 
-    @Autowired
-    private PatientRepository patientRepository;
-
-    @Autowired
-    private DoctorRepository doctorRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private JwtUtil jwtUtil;
+    public AuthService(
+            UserRepository userRepository,
+            RoleRepository roleRepository,
+            UserRoleRepository userRoleRepository,
+            PatientRepository patientRepository,
+            DoctorRepository doctorRepository,
+            PatientService patientService,
+            PasswordEncoder passwordEncoder,
+            JwtUtil jwtUtil,
+            AuditLogService auditLogService,
+            CurrentUserService currentUserService,
+            @Value("${medbook.security.max-failed-logins:5}") int maxFailedLogins,
+            @Value("${medbook.security.lock-minutes:15}") int lockMinutes) {
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.userRoleRepository = userRoleRepository;
+        this.patientRepository = patientRepository;
+        this.doctorRepository = doctorRepository;
+        this.patientService = patientService;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtUtil = jwtUtil;
+        this.auditLogService = auditLogService;
+        this.currentUserService = currentUserService;
+        this.maxFailedLogins = maxFailedLogins;
+        this.lockMinutes = lockMinutes;
+    }
 
     /**
-     * YCCN-01: Đăng ký tài khoản Bệnh nhân mới kèm mã hóa mật khẩu BCrypt (cost factor 12)
+     * YCCN-01: Đăng ký tài khoản Bệnh nhân mới. Luôn gán role PATIENT (client không chọn được
+     * role). Tạo User + gán role + hồ sơ bệnh nhân + bệnh án trong MỘT giao dịch.
      */
+    @Transactional
     public RegisterResponse registerPatient(RegisterRequest request) {
         String username = request.getUsername().trim();
-        String email = request.getEmail().trim();
+        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
 
         if (userRepository.existsByUsername(username)) {
             throw new ConflictException("Tên đăng nhập '" + username + "' đã được sử dụng!");
@@ -99,26 +145,8 @@ public class AuthService {
                 .build();
         userRoleRepository.save(userRole);
 
-        String patientCode = String.format("BN%04d", user.getId());
-
-        Patient patient = Patient.builder()
-                .user(user)
-                .patientCode(patientCode)
-                .fullName(user.getFullName())
-                .dateOfBirth(request.getDateOfBirth() != null ? request.getDateOfBirth() : LocalDate.of(2000, 1, 1))
-                .genderCode(request.getGenderCode() != null && !request.getGenderCode().isBlank() ? request.getGenderCode().toUpperCase() : "OTHER")
-                .phone(user.getPhone() != null ? user.getPhone() : "0000000000")
-                .email(user.getEmail())
-                .address(request.getAddress())
-                .emergencyContactName(request.getEmergencyContactName())
-                .emergencyContactPhone(request.getEmergencyContactPhone())
-                .bloodType(request.getBloodType())
-                .allergies(request.getAllergies())
-                .status("ACTIVE")
-                .createdAt(now)
-                .updatedAt(now)
-                .build();
-        patient = patientRepository.save(patient);
+        // Tạo Patient + MedicalRecord rỗng trong cùng giao dịch với User (lỗi bất kỳ ⇒ rollback cả tài khoản).
+        Patient patient = patientService.createForNewUser(user, request);
 
         return RegisterResponse.builder()
                 .userId(user.getId())
@@ -133,45 +161,70 @@ public class AuthService {
     }
 
     /**
-     * YCCN-02: Đăng nhập hệ thống, đối chiếu mật khẩu BCrypt và cấp JWT Token thực
+     * YCCN-02: Đăng nhập. Không rollback khi ném {@link ApiException} vì phải lưu bộ đếm đăng
+     * nhập sai / thời điểm khóa ngay cả khi đăng nhập thất bại.
      */
+    @Transactional(noRollbackFor = ApiException.class)
     public LoginResponse login(LoginRequest request) {
         String input = request.getUsernameOrEmail().trim();
+        LocalDateTime now = LocalDateTime.now();
 
-        User user = userRepository.findByUsername(input)
-                .or(() -> userRepository.findByEmail(input))
-                .orElseThrow(() -> new UnauthorizedException("Tên đăng nhập/email hoặc mật khẩu không chính xác!"));
+        Optional<User> found = userRepository.findByUsername(input)
+                .or(() -> userRepository.findByEmail(input.toLowerCase(Locale.ROOT)));
 
-        if (!"ACTIVE".equalsIgnoreCase(user.getStatus())) {
-            throw new ForbiddenException("Tài khoản '" + user.getUsername() + "' đã bị khóa hoặc ngừng hoạt động!");
+        if (found.isEmpty()) {
+            // Vẫn tốn thời gian băm như trường hợp có tài khoản để không lộ qua độ trễ phản hồi.
+            passwordEncoder.matches(request.getPassword(), dummyHash());
+            auditLoginFailure(null, input, "USER_NOT_FOUND");
+            throw new UnauthorizedException(INVALID_CREDENTIALS);
+        }
+
+        User user = found.get();
+
+        // Đang bị khóa tạm do đăng nhập sai quá số lần: từ chối, không xét mật khẩu, không gia hạn khóa.
+        if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(now)) {
+            auditLoginFailure(user, input, "TEMPORARILY_LOCKED");
+            throw new AccountLockedException(lockedMessage(user.getLockedUntil(), now), user.getLockedUntil());
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new UnauthorizedException("Tên đăng nhập/email hoặc mật khẩu không chính xác!");
+            throw failedAttempt(user, input, now);
         }
 
-        List<UserRole> userRoles = userRoleRepository.findByUserIdWithRole(user.getId());
-        List<String> roleCodes = userRoles.stream()
-                .map(ur -> ur.getRole().getCode())
-                .collect(Collectors.toList());
+        // Mật khẩu đúng nhưng Admin đã khóa tài khoản.
+        if (!"ACTIVE".equalsIgnoreCase(user.getStatus())) {
+            auditLoginFailure(user, input, "ACCOUNT_DISABLED");
+            throw new AccountLockedException(
+                    "Tài khoản '" + user.getUsername() + "' đã bị khóa. Vui lòng liên hệ quản trị viên!", null);
+        }
+
+        List<String> roleCodes = userRoleRepository.findByUserIdWithRole(user.getId()).stream()
+                .map(userRole -> userRole.getRole().getCode())
+                .toList();
         if (roleCodes.isEmpty()) {
-            roleCodes = List.of("PATIENT");
+            auditLoginFailure(user, input, "NO_ROLE");
+            throw new ForbiddenException("Tài khoản chưa được gán vai trò nào. Vui lòng liên hệ quản trị viên!");
         }
 
-        Long patientId = patientRepository.findByUserId(user.getId())
-                .map(Patient::getId)
-                .orElse(null);
+        user.setFailedLoginCount(0);
+        user.setLockedUntil(null);
+        user.setUpdatedAt(now);
+        userRepository.save(user);
 
-        Long doctorId = doctorRepository.findByUserId(user.getId())
-                .map(Doctor::getId)
-                .orElse(null);
+        Long patientId = patientRepository.findByUserId(user.getId()).map(Patient::getId).orElse(null);
+        Long doctorId = doctorRepository.findByUserId(user.getId()).map(Doctor::getId).orElse(null);
 
-        // Sinh JWT Token thực (có chữ ký HS256, hết hạn sau 24h)
-        String token = jwtUtil.generateToken(user.getId(), user.getUsername(), roleCodes);
+        IssuedToken issued = jwtUtil.issueToken(user.getId(), user.getUsername(), roleCodes, user.getTokenVersion());
+
+        auditLogService.record(AuditEvent.of(AuditActions.LOGIN_SUCCESS, AuditActions.ENTITY_USERS, user.getId())
+                .byActor(user.getId())
+                .with("username", user.getUsername())
+                .with("roles", roleCodes));
 
         return LoginResponse.builder()
-                .token(token)
+                .token(issued.token())
                 .tokenType("Bearer")
+                .expiresAt(issued.expiresAt().toString())
                 .userId(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
@@ -181,5 +234,80 @@ public class AuthService {
                 .doctorId(doctorId)
                 .message("Đăng nhập thành công!")
                 .build();
+    }
+
+    /**
+     * YCCN-04: Đổi mật khẩu của người đang đăng nhập. Mật khẩu cũ sai → 400 (không phải 401 để giao
+     * diện không hiểu nhầm là hết phiên). Thành công → mọi token đã cấp (kể cả token hiện tại) bị vô
+     * hiệu, người dùng phải đăng nhập lại.
+     */
+    @Transactional
+    public void changePassword(ChangePasswordRequest request) {
+        CurrentUser current = currentUserService.requireCurrentUser();
+        User user = userRepository.findById(current.userId())
+                .orElseThrow(() -> new UnauthorizedException("Phiên đăng nhập không còn hợp lệ!"));
+
+        if (!passwordEncoder.matches(request.oldPassword(), user.getPasswordHash())) {
+            throw new FieldValidationException("oldPassword", "Mật khẩu cũ không đúng");
+        }
+        if (passwordEncoder.matches(request.newPassword(), user.getPasswordHash())) {
+            throw new FieldValidationException("newPassword", "Mật khẩu mới phải khác mật khẩu cũ");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        user.setTokenVersion(user.getTokenVersion() + 1);
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        auditLogService.record(AuditEvent.of(AuditActions.PASSWORD_CHANGED, AuditActions.ENTITY_USERS, user.getId())
+                .byActor(user.getId()));
+    }
+
+    // ---------- nội bộ ----------
+
+    /** Ghi nhận một lần sai mật khẩu; đủ số lần thì khóa tạm. Luôn trả về ngoại lệ để ném. */
+    private ApiException failedAttempt(User user, String input, LocalDateTime now) {
+        int failed = user.getFailedLoginCount() + 1;
+        user.setUpdatedAt(now);
+
+        if (failed >= maxFailedLogins) {
+            LocalDateTime until = now.plusMinutes(lockMinutes);
+            user.setLockedUntil(until);
+            user.setFailedLoginCount(0); // hết khóa sẽ có lại đủ số lần thử
+            userRepository.save(user);
+
+            auditLoginFailure(user, input, "WRONG_PASSWORD");
+            auditLogService.record(AuditEvent.of(AuditActions.ACCOUNT_LOCKED, AuditActions.ENTITY_USERS, user.getId())
+                    .with("username", user.getUsername())
+                    .with("lockedUntil", until.toString())
+                    .with("lockMinutes", lockMinutes));
+            return new AccountLockedException(lockedMessage(until, now), until);
+        }
+
+        user.setFailedLoginCount(failed);
+        userRepository.save(user);
+        auditLoginFailure(user, input, "WRONG_PASSWORD");
+        return new UnauthorizedException(INVALID_CREDENTIALS);
+    }
+
+    private void auditLoginFailure(User user, String input, String reason) {
+        auditLogService.record(AuditEvent.of(AuditActions.LOGIN_FAILED, AuditActions.ENTITY_USERS,
+                user == null ? null : user.getId())
+                .with("username", input)
+                .with("reason", reason));
+    }
+
+    private String lockedMessage(LocalDateTime until, LocalDateTime now) {
+        long minutes = Math.max(1, Duration.between(now, until).plusSeconds(59).toMinutes());
+        return "Tài khoản tạm thời bị khóa do đăng nhập sai nhiều lần. Vui lòng thử lại sau " + minutes + " phút!";
+    }
+
+    private String dummyHash() {
+        String hash = dummyHash;
+        if (hash == null) {
+            hash = passwordEncoder.encode("medbook-timing-equalizer");
+            dummyHash = hash;
+        }
+        return hash;
     }
 }

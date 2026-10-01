@@ -1,18 +1,20 @@
 package com.phenikaa.cse702051.medbook.controller;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.phenikaa.cse702051.medbook.dto.MedicalRecordDTO;
 import com.phenikaa.cse702051.medbook.service.MedicalRecordService;
 
+/**
+ * Bệnh án (YCCN-07, 19). Chỉ có hai endpoint đọc; việc tạo bệnh án diễn ra khi đăng ký
+ * bệnh nhân và việc cập nhật nội dung diễn ra qua luồng khám (Dev 4) — không có API ghi
+ * nhận entity thô từ client.
+ */
 @RestController
-@RequestMapping({ "/api/v1/medical-records", "/api/medical-records" })
+@RequestMapping("/api/v1/medical-records")
 public class MedicalRecordController {
 
     private final MedicalRecordService medicalRecordService;
@@ -21,24 +23,15 @@ public class MedicalRecordController {
         this.medicalRecordService = medicalRecordService;
     }
 
-    /**
-     * Điểm cuối xem chi tiết hồ sơ bệnh án - Có phân quyền chống IDOR (Buổi 04).
-     *
-     * @param id         Mã định danh hồ sơ bệnh án
-     * @param authHeader Token Authorization từ header
-     * @param patientId  Header tùy chọn mô phỏng Bệnh nhân (X-Patient-Id)
-     * @param role       Header tùy chọn mô phỏng Vai trò (X-User-Role)
-     * @return Dữ liệu hồ sơ bệnh án MedicalRecordDTO nếu hợp lệ
-     */
-    @GetMapping("/{id}")
-    public ResponseEntity<MedicalRecordDTO> getById(@PathVariable Long id) {
-        MedicalRecordDTO dto = medicalRecordService.getRecordForUser(id);
-
-        return ResponseEntity.ok(dto);
+    /** Bệnh án của bệnh nhân đang đăng nhập — ghi audit. */
+    @GetMapping("/me")
+    public MedicalRecordDTO getMine() {
+        return medicalRecordService.getMyRecord();
     }
 
-    @org.springframework.web.bind.annotation.PostMapping
-    public ResponseEntity<com.phenikaa.cse702051.medbook.model.MedicalRecord> createRecord(@org.springframework.web.bind.annotation.RequestBody com.phenikaa.cse702051.medbook.model.MedicalRecord record) {
-        return ResponseEntity.ok(medicalRecordService.createRecord(record));
+    /** Chi tiết bệnh án: chủ sở hữu hoặc bác sĩ phụ trách; Admin bị từ chối — ghi audit. */
+    @GetMapping("/{id}")
+    public MedicalRecordDTO getById(@PathVariable Long id) {
+        return medicalRecordService.getRecordForUser(id);
     }
 }

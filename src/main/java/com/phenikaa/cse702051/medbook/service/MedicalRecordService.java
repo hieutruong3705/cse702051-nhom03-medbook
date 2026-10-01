@@ -1,154 +1,199 @@
 package com.phenikaa.cse702051.medbook.service;
 
+import java.time.LocalDateTime;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.phenikaa.cse702051.medbook.dto.MedicalRecordDTO;
+import com.phenikaa.cse702051.medbook.dto.UpdateMedicalRecordCommand;
 import com.phenikaa.cse702051.medbook.exception.ForbiddenException;
 import com.phenikaa.cse702051.medbook.exception.ResourceNotFoundException;
-import com.phenikaa.cse702051.medbook.exception.UnauthorizedException;
 import com.phenikaa.cse702051.medbook.model.MedicalRecord;
 import com.phenikaa.cse702051.medbook.model.Patient;
 import com.phenikaa.cse702051.medbook.repository.MedicalRecordRepository;
 import com.phenikaa.cse702051.medbook.repository.PatientRepository;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import com.phenikaa.cse702051.medbook.security.CurrentUser;
+import com.phenikaa.cse702051.medbook.security.CurrentUserService;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
+/**
+ * Bệnh án (YCCN-07, 19, 23). Mỗi bệnh nhân có đúng một bệnh án.
+ *
+ * <p>Quy tắc đọc: bệnh nhân chỉ đọc của chính mình; bác sĩ chỉ đọc bệnh nhân thuộc phạm vi
+ * phụ trách ({@link DoctorScopePolicy}); Admin không đọc được nội dung. Mọi lần đọc thành công
+ * đều ghi audit {@code MEDICAL_RECORD_VIEW}, mọi lần bị từ chối ghi {@code ACCESS_DENIED}.
+ *
+ * <p>Nhóm phương thức "nội bộ" ({@code getOrCreateByPatientId}, {@code createForPatient},
+ * {@code updateClinicalSummary}) dành cho module khác (Auth, luồng khám của Dev 4).
+ */
 @Service
 public class MedicalRecordService {
 
     private final MedicalRecordRepository medicalRecordRepository;
     private final PatientRepository patientRepository;
+    private final CurrentUserService currentUserService;
+    private final CurrentActorService currentActorService;
+    private final DoctorScopePolicy doctorScopePolicy;
+    private final AuditLogService auditLogService;
 
-    public MedicalRecordService(MedicalRecordRepository medicalRecordRepository,
-            PatientRepository patientRepository) {
+    public MedicalRecordService(
+            MedicalRecordRepository medicalRecordRepository,
+            PatientRepository patientRepository,
+            CurrentUserService currentUserService,
+            CurrentActorService currentActorService,
+            DoctorScopePolicy doctorScopePolicy,
+            AuditLogService auditLogService) {
         this.medicalRecordRepository = medicalRecordRepository;
         this.patientRepository = patientRepository;
+        this.currentUserService = currentUserService;
+        this.currentActorService = currentActorService;
+        this.doctorScopePolicy = doctorScopePolicy;
+        this.auditLogService = auditLogService;
     }
 
-    // ========== Internal methods for other services ==========
+    // ========== Nội bộ: dành cho module khác, KHÔNG kiểm quyền người gọi ==========
 
-    /**
-     * Tìm MedicalRecord theo ID - dùng nội bộ bởi
-     * EncounterService/Dev4AuthorizationService
-     */
+    /** Tìm bệnh án theo ID — dùng nội bộ bởi EncounterService/EncounterAccessPolicy. */
+    @Transactional(readOnly = true)
     public MedicalRecord findById(Long id) {
         return medicalRecordRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Không tìm thấy hồ sơ bệnh án với ID: " + id));
     }
 
-    /**
-     * Tìm MedicalRecord theo patientId - dùng nội bộ bởi EncounterService
-     */
+    /** Tìm bệnh án theo patientId — dùng nội bộ. */
+    @Transactional(readOnly = true)
     public MedicalRecord findByPatientId(Long patientId) {
         return medicalRecordRepository.findByPatientId(patientId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Không tìm thấy bệnh án cho bệnh nhân ID: " + patientId));
     }
 
-    // ========== API methods ==========
+    /** Bệnh án của bệnh nhân, tự tạo nếu chưa có (bệnh nhân tạo trước khi có cơ chế tự tạo). */
+    @Transactional
+    public MedicalRecord getOrCreateByPatientId(Long patientId) {
+        return medicalRecordRepository.findByPatientId(patientId)
+                .orElseGet(() -> createForPatient(patientRepository.findById(patientId)
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Không tìm thấy bệnh nhân ID: " + patientId))));
+    }
+
+    /** Tạo bệnh án rỗng cho bệnh nhân mới (idempotent). Gọi trong cùng giao dịch với việc tạo Patient. */
+    @Transactional
+    public MedicalRecord createForPatient(Patient patient) {
+        return medicalRecordRepository.findByPatientId(patient.getId())
+                .orElseGet(() -> {
+                    LocalDateTime now = LocalDateTime.now();
+                    MedicalRecord record = MedicalRecord.builder()
+                            .patient(patient)
+                            .recordCode(String.format("MR%06d", patient.getId()))
+                            .bloodType(patient.getBloodType())
+                            .allergyNotes(patient.getAllergies())
+                            .status("ACTIVE")
+                            .createdAt(now)
+                            .updatedAt(now)
+                            .build();
+                    return medicalRecordRepository.save(record);
+                });
+    }
 
     /**
-     * YCCN-07: Lấy chi tiết hồ sơ bệnh án với kiểm soát phân quyền (chống IDOR)
-     * Dùng JWT context thay vì fake token
+     * Cập nhật tóm tắt bệnh án từ luồng khám. Chỉ bác sĩ đang phụ trách bệnh nhân mới được
+     * ghi; chỉ các trường trong {@link UpdateMedicalRecordCommand} được phép đổi.
      */
+    @Transactional
+    public MedicalRecordDTO updateClinicalSummary(Long recordId, UpdateMedicalRecordCommand command) {
+        CurrentUser user = currentUserService.requireCurrentUser();
+        MedicalRecord record = findById(recordId);
+
+        boolean allowed = user.hasRole("DOCTOR")
+                && currentActorService.findCurrentDoctorId()
+                        .map(doctorId -> doctorScopePolicy.isResponsible(doctorId, record.getPatientId()))
+                        .orElse(false);
+        if (!allowed) {
+            auditLogService.recordAccessDenied(AuditActions.ENTITY_MEDICAL_RECORDS, recordId,
+                    "Ghi bệnh án khi không phụ trách bệnh nhân");
+            throw new ForbiddenException("Bạn không có quyền cập nhật hồ sơ bệnh án này!");
+        }
+
+        if (command.bloodType() != null) {
+            record.setBloodType(command.bloodType());
+        }
+        if (command.chronicConditions() != null) {
+            record.setChronicConditions(command.chronicConditions());
+        }
+        if (command.allergyNotes() != null) {
+            record.setAllergyNotes(command.allergyNotes());
+        }
+        if (command.medicalHistory() != null) {
+            record.setMedicalHistory(command.medicalHistory());
+        }
+        if (command.currentMedications() != null) {
+            record.setCurrentMedications(command.currentMedications());
+        }
+        record.setUpdatedAt(LocalDateTime.now());
+        return toDTO(medicalRecordRepository.save(record));
+    }
+
+    // ========== API: luôn kiểm quyền theo bản ghi và ghi audit ==========
+
+    /** Bệnh án của bệnh nhân đang đăng nhập (YCCN-19). */
+    @Transactional
+    public MedicalRecordDTO getMyRecord() {
+        currentUserService.requireRole("PATIENT");
+        Long patientId = currentActorService.requireCurrentPatientId();
+        MedicalRecord record = getOrCreateByPatientId(patientId);
+        auditLogService.recordMedicalRecordView(record);
+        return toDTO(record);
+    }
+
+    /** Chi tiết bệnh án theo ID: chủ sở hữu hoặc bác sĩ phụ trách (YCCN-07). */
+    @Transactional
     public MedicalRecordDTO getRecordForUser(Long id) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
-            throw new UnauthorizedException("Yêu cầu chưa được xác thực!");
-        }
-
+        CurrentUser user = currentUserService.requireCurrentUser();
         MedicalRecord record = findById(id);
+        assertReadableBy(user, record);
+        auditLogService.recordMedicalRecordView(record);
+        return toDTO(record);
+    }
 
-        boolean isAdmin = auth.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-        boolean isDoctor = auth.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_DOCTOR".equals(a.getAuthority()));
-        boolean isPatient = auth.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_PATIENT".equals(a.getAuthority()));
-
-        // ADMIN không được xem nội dung bệnh án (bảo vệ dữ liệu y tế)
-        if (isAdmin && !isDoctor) {
-            throw new ForbiddenException("Quản trị viên không được phép xem nội dung chi tiết bệnh án!");
+    /** Bệnh án của một bệnh nhân, dành cho bác sĩ phụ trách ({@code GET /patients/{id}/medical-records}). */
+    @Transactional
+    public MedicalRecordDTO getRecordOfPatient(Long patientId) {
+        CurrentUser user = currentUserService.requireCurrentUser();
+        if (!patientRepository.existsById(patientId)) {
+            throw new ResourceNotFoundException("Không tìm thấy bệnh nhân ID: " + patientId);
         }
-
-        // PATIENT chỉ xem bệnh án của chính mình
-        if (isPatient && !isDoctor) {
-            String username = auth.getName();
-            Patient patient = patientRepository.findByUserUsername(username)
-                    .orElseThrow(() -> new ForbiddenException("Không tìm thấy hồ sơ bệnh nhân!"));
-
-            if (!patient.getId().equals(record.getPatientId())) {
-                throw new ForbiddenException("Bạn không có quyền truy cập hồ sơ bệnh án này!");
-            }
-        }
-
-        // DOCTOR xem được bệnh án của bệnh nhân mình phụ trách (logic mở rộng có thể
-        // thêm sau)
-
+        MedicalRecord record = findByPatientId(patientId);
+        assertReadableBy(user, record);
+        auditLogService.recordMedicalRecordView(record);
         return toDTO(record);
     }
 
     /**
-     * Lấy bệnh án của bệnh nhân hiện tại (PATIENT)
+     * Ném {@link ForbiddenException} (và ghi ACCESS_DENIED) nếu người dùng không phải chủ sở hữu
+     * hoặc bác sĩ phụ trách của bệnh án.
      */
-    public List<MedicalRecordDTO> getMyRecords() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = auth.getName();
+    public void assertReadableBy(CurrentUser user, MedicalRecord record) {
+        boolean isOwner = user.hasRole("PATIENT")
+                && currentActorService.findCurrentPatientId()
+                        .map(patientId -> patientId.equals(record.getPatientId()))
+                        .orElse(false);
+        boolean isResponsibleDoctor = user.hasRole("DOCTOR")
+                && currentActorService.findCurrentDoctorId()
+                        .map(doctorId -> doctorScopePolicy.isResponsible(doctorId, record.getPatientId()))
+                        .orElse(false);
 
-        Patient patient = patientRepository.findByUserUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ bệnh nhân!"));
-
-        return medicalRecordRepository.findByPatientId(patient.getId())
-                .stream()
-                .map(this::toDTO)
-                .toList();
-    }
-
-    /**
-     * DOCTOR tạo bệnh án cho bệnh nhân
-     */
-    @Transactional
-    public MedicalRecord createRecord(MedicalRecord record) {
-        LocalDateTime now = LocalDateTime.now();
-        if (record.getCreatedAt() == null)
-            record.setCreatedAt(now);
-        record.setUpdatedAt(now);
-        if (record.getStatus() == null)
-            record.setStatus("ACTIVE");
-
-        // Tạo mã bệnh án tự động
-        if (record.getRecordCode() == null || record.getRecordCode().isBlank()) {
-            long count = medicalRecordRepository.count();
-            record.setRecordCode(String.format("MR%04d", count + 1));
+        if (isOwner || isResponsibleDoctor) {
+            return;
         }
 
-        return medicalRecordRepository.save(record);
-    }
-
-    /**
-     * DOCTOR cập nhật bệnh án
-     */
-    @Transactional
-    public MedicalRecord updateRecord(Long id, MedicalRecord input) {
-        MedicalRecord existing = findById(id);
-
-        if (input.getBloodType() != null)
-            existing.setBloodType(input.getBloodType());
-        if (input.getChronicConditions() != null)
-            existing.setChronicConditions(input.getChronicConditions());
-        if (input.getAllergyNotes() != null)
-            existing.setAllergyNotes(input.getAllergyNotes());
-        if (input.getMedicalHistory() != null)
-            existing.setMedicalHistory(input.getMedicalHistory());
-        if (input.getCurrentMedications() != null)
-            existing.setCurrentMedications(input.getCurrentMedications());
-        existing.setUpdatedAt(LocalDateTime.now());
-
-        return medicalRecordRepository.save(existing);
+        boolean adminOnly = user.hasRole("ADMIN") && !user.hasRole("DOCTOR") && !user.hasRole("PATIENT");
+        auditLogService.recordAccessDenied(AuditActions.ENTITY_MEDICAL_RECORDS, record.getId(),
+                adminOnly ? "Quản trị viên không được đọc nội dung bệnh án" : "Không phải chủ sở hữu hoặc bác sĩ phụ trách");
+        throw new ForbiddenException(adminOnly
+                ? "Quản trị viên không được phép xem nội dung chi tiết bệnh án!"
+                : "Bạn không có quyền truy cập hồ sơ bệnh án này!");
     }
 
     // ========== Helpers ==========
@@ -164,6 +209,7 @@ public class MedicalRecordService {
                 record.getAllergyNotes(),
                 record.getMedicalHistory(),
                 record.getCurrentMedications(),
-                record.getStatus());
+                record.getStatus(),
+                record.getUpdatedAt());
     }
 }

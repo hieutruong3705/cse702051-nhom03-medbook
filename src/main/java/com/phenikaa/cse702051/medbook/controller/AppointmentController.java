@@ -1,25 +1,37 @@
 package com.phenikaa.cse702051.medbook.controller;
 
-import java.util.List;
+import java.time.LocalDate;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.phenikaa.cse702051.medbook.dto.AppointmentDTO;
 import com.phenikaa.cse702051.medbook.dto.AppointmentStatisticsDTO;
-import com.phenikaa.cse702051.medbook.model.Appointment;
+import com.phenikaa.cse702051.medbook.dto.BookAppointmentRequest;
+import com.phenikaa.cse702051.medbook.dto.CancelAppointmentRequest;
+import com.phenikaa.cse702051.medbook.dto.PageResponse;
+import com.phenikaa.cse702051.medbook.dto.RescheduleAppointmentRequest;
+import com.phenikaa.cse702051.medbook.dto.UpdateAppointmentStatusRequest;
 import com.phenikaa.cse702051.medbook.model.AppointmentStatus;
 import com.phenikaa.cse702051.medbook.service.AppointmentReportService;
 import com.phenikaa.cse702051.medbook.service.AppointmentService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Lịch hẹn (YCCN-09…16). Danh tính bệnh nhân/bác sĩ luôn lấy từ JWT — KHÔNG có tham số
+ * {@code patientId}/{@code doctorId} nào trong request.
+ */
 @RestController
 @RequestMapping("/api/v1/appointments")
 @RequiredArgsConstructor
@@ -28,67 +40,66 @@ public class AppointmentController {
     private final AppointmentService appointmentService;
     private final AppointmentReportService reportService;
 
-    // YCCN 10, 11: Đặt lịch khám
+    /** YCCN-10, 11: bệnh nhân đặt lịch. Slot đã bị người khác đặt → 409. */
     @PostMapping
-    public ResponseEntity<Appointment> bookAppointment(
-            @RequestParam Long patientId,
-            @RequestParam Long slotId,
-            @RequestParam(required = false) String notes) {
-        Appointment appointment = appointmentService.bookAppointment(patientId, slotId, notes);
+    public ResponseEntity<AppointmentDTO> book(@Valid @RequestBody BookAppointmentRequest request) {
+        AppointmentDTO appointment = appointmentService.book(request.slotId(), request.serviceId(), request.notes());
         return ResponseEntity.status(HttpStatus.CREATED).body(appointment);
     }
 
-    // YCCN 12: Bệnh nhân hủy lịch
-    @PatchMapping("/{id}/cancel")
-    public ResponseEntity<Appointment> cancelAppointment(
-            @PathVariable Long id,
-            @RequestParam Long patientId) {
-        return ResponseEntity.ok(appointmentService.cancelAppointment(id, patientId));
+    /** Lịch của người đang đăng nhập: bác sĩ → lịch khám của mình; bệnh nhân → lịch của mình. */
+    @GetMapping("/me")
+    public PageResponse<AppointmentDTO> myAppointments(
+            @RequestParam(required = false) AppointmentStatus status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(defaultValue = "desc") String order,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return appointmentService.getMyAppointments(status, from, to, order, page, size);
     }
 
-    // YCCN 13: Bệnh nhân đổi lịch
-    @PatchMapping("/{id}/reschedule")
-    public ResponseEntity<Appointment> rescheduleAppointment(
-            @PathVariable Long id,
-            @RequestParam Long newSlotId,
-            @RequestParam Long patientId) {
-        return ResponseEntity.ok(appointmentService.rescheduleAppointment(id, newSlotId, patientId));
-    }
-
-    // YCCN 16: Bác sĩ cập nhật trạng thái lịch khám
-    @PatchMapping("/{id}/status")
-    public ResponseEntity<Appointment> updateStatus(
-            @PathVariable Long id,
-            @RequestParam AppointmentStatus status,
-            @RequestParam Long doctorId) {
-        return ResponseEntity.ok(appointmentService.updateStatus(id, status, doctorId));
-    }
-
-    // Lấy chi tiết lịch hẹn
+    /** Chi tiết lịch hẹn: chủ lịch hoặc bác sĩ phụ trách. */
     @GetMapping("/{id}")
-    public ResponseEntity<Appointment> getAppointmentById(@PathVariable Long id) {
-        return ResponseEntity.ok(appointmentService.getAppointmentById(id));
+    public AppointmentDTO getById(@PathVariable Long id) {
+        return appointmentService.getById(id);
     }
 
-    // Lấy lịch hẹn của bệnh nhân
-    @GetMapping("/patient/{patientId}")
-    public ResponseEntity<List<Appointment>> getAppointmentsByPatient(@PathVariable Long patientId) {
-        return ResponseEntity.ok(appointmentService.getAppointmentsByPatient(patientId));
+    /** YCCN-12: bệnh nhân hủy lịch của mình (chỉ khi BOOKED và còn đủ thời hạn). */
+    @PatchMapping("/{id}/cancel")
+    public AppointmentDTO cancel(
+            @PathVariable Long id,
+            @Valid @RequestBody(required = false) CancelAppointmentRequest request) {
+        return appointmentService.cancel(id, request == null ? null : request.reason());
     }
 
-    // Lấy lịch hẹn của bác sĩ
-    @GetMapping("/doctor/{doctorId}")
-    public ResponseEntity<List<Appointment>> getAppointmentsByDoctor(@PathVariable Long doctorId) {
-        return ResponseEntity.ok(appointmentService.getAppointmentsByDoctor(doctorId));
+    /** YCCN-13: bệnh nhân đổi lịch sang slot trống khác, nguyên tử. */
+    @PatchMapping("/{id}/reschedule")
+    public AppointmentDTO reschedule(
+            @PathVariable Long id,
+            @Valid @RequestBody RescheduleAppointmentRequest request) {
+        return appointmentService.reschedule(id, request.newSlotId(), request.reason());
     }
 
-    // YCCN 22: Báo cáo thống kê tổng thể cho Admin
+    /** YCCN-16: bác sĩ phụ trách chuyển BOOKED → IN_PROGRESS → COMPLETED. */
+    @PatchMapping("/{id}/status")
+    public AppointmentDTO updateStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateAppointmentStatusRequest request) {
+        return appointmentService.updateStatus(id, request.status());
+    }
+
+    // ---- Báo cáo (tạm thời giữ ở đây; sẽ chuyển sang /admin/reports/appointments) ----
+
+    /** @deprecated thay bằng {@code GET /admin/reports/appointments}. */
+    @Deprecated
     @GetMapping("/admin/reports")
     public ResponseEntity<AppointmentStatisticsDTO> getOverallReport() {
         return ResponseEntity.ok(reportService.getOverallStatistics());
     }
 
-    // YCCN 22: Báo cáo thống kê theo bác sĩ
+    /** @deprecated thay bằng {@code GET /admin/reports/appointments?doctorId=}. */
+    @Deprecated
     @GetMapping("/admin/reports/doctor/{doctorId}")
     public ResponseEntity<AppointmentStatisticsDTO> getDoctorReport(@PathVariable Long doctorId) {
         return ResponseEntity.ok(reportService.getStatisticsByDoctor(doctorId));

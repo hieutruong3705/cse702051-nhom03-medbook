@@ -1,86 +1,210 @@
 package com.phenikaa.cse702051.medbook.service;
 
-import org.springframework.stereotype.Service;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Locale;
+import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.phenikaa.cse702051.medbook.dto.PageResponse;
+import com.phenikaa.cse702051.medbook.dto.PatientAdminDTO;
 import com.phenikaa.cse702051.medbook.dto.PatientDTO;
 import com.phenikaa.cse702051.medbook.dto.PatientUpdateRequest;
-import com.phenikaa.cse702051.medbook.exception.ApiException;
-import com.phenikaa.cse702051.medbook.exception.ErrorCode;
+import com.phenikaa.cse702051.medbook.dto.RegisterRequest;
+import com.phenikaa.cse702051.medbook.exception.ForbiddenException;
 import com.phenikaa.cse702051.medbook.exception.ResourceNotFoundException;
+import com.phenikaa.cse702051.medbook.model.AppointmentStatus;
 import com.phenikaa.cse702051.medbook.model.Patient;
+import com.phenikaa.cse702051.medbook.model.User;
 import com.phenikaa.cse702051.medbook.repository.PatientRepository;
 import com.phenikaa.cse702051.medbook.security.CurrentUser;
 import com.phenikaa.cse702051.medbook.security.CurrentUserService;
 
-import jakarta.servlet.http.HttpServletRequest;
-
+/**
+ * Hồ sơ bệnh nhân (YCCN-01, 07).
+ *
+ * <ul>
+ * <li>Bệnh nhân chỉ xem/sửa hồ sơ của chính mình.</li>
+ * <li>Bác sĩ chỉ thấy bệnh nhân thuộc phạm vi phụ trách ({@link DoctorScopePolicy}).</li>
+ * <li>Admin chỉ thấy trường hành chính ({@link PatientAdminDTO}).</li>
+ * </ul>
+ */
 @Service
 public class PatientService {
 
+    private static final int MAX_PAGE_SIZE = 100;
+
     private final PatientRepository patientRepository;
+    private final MedicalRecordService medicalRecordService;
     private final CurrentUserService currentUserService;
+    private final CurrentActorService currentActorService;
+    private final DoctorScopePolicy doctorScopePolicy;
+    private final AuditLogService auditLogService;
 
-    public PatientService(PatientRepository patientRepository, CurrentUserService currentUserService) {
+    public PatientService(
+            PatientRepository patientRepository,
+            MedicalRecordService medicalRecordService,
+            CurrentUserService currentUserService,
+            CurrentActorService currentActorService,
+            DoctorScopePolicy doctorScopePolicy,
+            AuditLogService auditLogService) {
         this.patientRepository = patientRepository;
+        this.medicalRecordService = medicalRecordService;
         this.currentUserService = currentUserService;
+        this.currentActorService = currentActorService;
+        this.doctorScopePolicy = doctorScopePolicy;
+        this.auditLogService = auditLogService;
     }
 
-    public PatientDTO getCurrentPatient(HttpServletRequest request) {
-        CurrentUser currentUser = currentUserService.requireCurrentUser(request);
-        requirePatientRole(currentUser);
-        return PatientDTO.from(findPatientByCurrentUser(currentUser));
+    /**
+     * Tạo hồ sơ bệnh nhân + bệnh án rỗng cho tài khoản vừa đăng ký. Phải gọi trong cùng giao
+     * dịch với việc tạo {@code User} để lỗi bất kỳ làm rollback cả tài khoản (không để lại
+     * tài khoản mồ côi).
+     */
+    @Transactional
+    public Patient createForNewUser(User user, RegisterRequest request) {
+        LocalDateTime now = LocalDateTime.now();
+
+        Patient patient = Patient.builder()
+                .user(user)
+                // mã tạm duy nhất; đổi thành BN + id ngay bên dưới
+                .patientCode("TMP" + UUID.randomUUID().toString().replace("-", "").substring(0, 12))
+                .fullName(user.getFullName())
+                .dateOfBirth(request.getDateOfBirth() != null ? request.getDateOfBirth() : LocalDate.of(2000, 1, 1))
+                .genderCode(request.getGenderCode() != null && !request.getGenderCode().isBlank()
+                        ? request.getGenderCode().trim().toUpperCase(Locale.ROOT)
+                        : "OTHER")
+                .phone(user.getPhone() != null ? user.getPhone() : "0000000000")
+                .email(user.getEmail())
+                .address(request.getAddress())
+                .emergencyContactName(request.getEmergencyContactName())
+                .emergencyContactPhone(request.getEmergencyContactPhone())
+                .bloodType(request.getBloodType())
+                .allergies(request.getAllergies())
+                .status("ACTIVE")
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+        patient = patientRepository.save(patient);
+        patient.setPatientCode(String.format("BN%06d", patient.getId()));
+        patient = patientRepository.save(patient);
+
+        medicalRecordService.createForPatient(patient);
+        return patient;
     }
 
-    public PatientDTO updateCurrentPatient(PatientUpdateRequest updateRequest, HttpServletRequest request) {
-        CurrentUser currentUser = currentUserService.requireCurrentUser(request);
-        requirePatientRole(currentUser);
+    @Transactional(readOnly = true)
+    public PatientDTO getCurrentPatient() {
+        currentUserService.requireRole("PATIENT");
+        return PatientDTO.from(currentPatient());
+    }
 
-        Patient patient = findPatientByCurrentUser(currentUser);
+    @Transactional
+    public PatientDTO updateCurrentPatient(PatientUpdateRequest updateRequest) {
+        currentUserService.requireRole("PATIENT");
+        Patient patient = currentPatient();
         applyUpdate(patient, updateRequest);
+        patient.setUpdatedAt(LocalDateTime.now());
         return PatientDTO.from(patientRepository.save(patient));
     }
 
-    public Patient findPatientByCurrentUser(CurrentUser currentUser) {
-        return patientRepository.findByUserId(currentUser.userId())
-                .orElseThrow(() -> new ResourceNotFoundException("Khong tim thay ho so benh nhan cua tai khoan hien tai"));
+    /**
+     * Danh sách bệnh nhân. Bác sĩ → chỉ bệnh nhân trong phạm vi phụ trách, đầy đủ thông tin lâm sàng
+     * cơ bản ({@link PatientDTO}); Admin → mọi bệnh nhân nhưng chỉ trường hành chính.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<?> search(String keyword, int page, int size) {
+        CurrentUser user = currentUserService.requireRole("DOCTOR", "ADMIN");
+        PageRequest pageable = PageRequest.of(Math.max(page, 0), clampSize(size), Sort.by("fullName").ascending());
+        String pattern = toPattern(keyword);
+
+        if (user.hasRole("DOCTOR")) {
+            Long doctorId = currentActorService.requireCurrentDoctorId();
+            Page<Patient> result = patientRepository.searchForDoctor(
+                    doctorId, pattern, AppointmentStatus.CANCELLED, pageable);
+            return PageResponse.from(result, PatientDTO::from);
+        }
+        return PageResponse.from(patientRepository.searchAll(pattern, pageable), PatientAdminDTO::from);
     }
 
-    private void requirePatientRole(CurrentUser currentUser) {
-        if (!currentUser.hasRole("PATIENT")) {
-            throw new ApiException(ErrorCode.FORBIDDEN, "Chi benh nhan moi duoc thuc hien thao tac nay");
+    /**
+     * Chi tiết một bệnh nhân. Bác sĩ phải phụ trách bệnh nhân (ngược lại 403 + audit
+     * ACCESS_DENIED) và lần đọc được ghi audit PATIENT_VIEW; Admin nhận trường hành chính.
+     */
+    @Transactional
+    public Object getById(Long id) {
+        CurrentUser user = currentUserService.requireRole("DOCTOR", "ADMIN");
+        Patient patient = patientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bệnh nhân ID: " + id));
+
+        if (user.hasRole("DOCTOR")) {
+            Long doctorId = currentActorService.requireCurrentDoctorId();
+            if (!doctorScopePolicy.isResponsible(doctorId, patient.getId())) {
+                auditLogService.recordAccessDenied(AuditActions.ENTITY_PATIENTS, id,
+                        "Bác sĩ không phụ trách bệnh nhân");
+                throw new ForbiddenException("Bạn không phụ trách bệnh nhân này!");
+            }
+            auditLogService.record(AuditEvent.of(AuditActions.PATIENT_VIEW, AuditActions.ENTITY_PATIENTS, id));
+            return PatientDTO.from(patient);
+        }
+        return PatientAdminDTO.from(patient);
+    }
+
+    private Patient currentPatient() {
+        Long patientId = currentActorService.requireCurrentPatientId();
+        return patientRepository.findById(patientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ bệnh nhân của tài khoản hiện tại!"));
+    }
+
+    private void applyUpdate(Patient patient, PatientUpdateRequest request) {
+        if (request.fullName() != null) {
+            patient.setFullName(request.fullName().trim());
+        }
+        if (request.dateOfBirth() != null) {
+            patient.setDateOfBirth(request.dateOfBirth());
+        }
+        if (request.genderCode() != null) {
+            patient.setGenderCode(request.genderCode());
+        }
+        if (request.phone() != null) {
+            patient.setPhone(request.phone().trim());
+        }
+        if (request.email() != null) {
+            patient.setEmail(request.email().trim());
+        }
+        if (request.address() != null) {
+            patient.setAddress(request.address().trim());
+        }
+        if (request.emergencyContactName() != null) {
+            patient.setEmergencyContactName(request.emergencyContactName().trim());
+        }
+        if (request.emergencyContactPhone() != null) {
+            patient.setEmergencyContactPhone(request.emergencyContactPhone().trim());
+        }
+        if (request.bloodType() != null) {
+            patient.setBloodType(request.bloodType().toUpperCase(Locale.ROOT));
+        }
+        if (request.allergies() != null) {
+            patient.setAllergies(request.allergies());
         }
     }
 
-    private void applyUpdate(Patient patient, PatientUpdateRequest updateRequest) {
-        if (updateRequest.fullName() != null) {
-            patient.setFullName(updateRequest.fullName());
+    private static int clampSize(int size) {
+        if (size <= 0) {
+            return 20;
         }
-        if (updateRequest.dateOfBirth() != null) {
-            patient.setDateOfBirth(updateRequest.dateOfBirth());
-        }
-        if (updateRequest.genderCode() != null) {
-            patient.setGenderCode(updateRequest.genderCode());
-        }
-        if (updateRequest.phone() != null) {
-            patient.setPhone(updateRequest.phone());
-        }
-        if (updateRequest.email() != null) {
-            patient.setEmail(updateRequest.email());
-        }
-        if (updateRequest.address() != null) {
-            patient.setAddress(updateRequest.address());
-        }
-        if (updateRequest.emergencyContactName() != null) {
-            patient.setEmergencyContactName(updateRequest.emergencyContactName());
-        }
-        if (updateRequest.emergencyContactPhone() != null) {
-            patient.setEmergencyContactPhone(updateRequest.emergencyContactPhone());
-        }
-        if (updateRequest.bloodType() != null) {
-            patient.setBloodType(updateRequest.bloodType());
-        }
-        if (updateRequest.allergies() != null) {
-            patient.setAllergies(updateRequest.allergies());
-        }
+        return Math.min(size, MAX_PAGE_SIZE);
+    }
+
+    /** Chuỗi tìm kiếm không phân biệt hoa thường; ký tự đại diện của người dùng bị vô hiệu hóa. */
+    private static String toPattern(String keyword) {
+        String cleaned = keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT);
+        cleaned = cleaned.replace("%", "").replace("_", "");
+        return "%" + cleaned + "%";
     }
 }

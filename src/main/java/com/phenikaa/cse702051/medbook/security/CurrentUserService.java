@@ -1,83 +1,74 @@
 package com.phenikaa.cse702051.medbook.security;
 
 import java.util.Arrays;
-import java.util.LinkedHashSet;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import com.phenikaa.cse702051.medbook.exception.ApiException;
-import com.phenikaa.cse702051.medbook.exception.ErrorCode;
+import com.phenikaa.cse702051.medbook.exception.ForbiddenException;
+import com.phenikaa.cse702051.medbook.exception.UnauthorizedException;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+/**
+ * Nguồn danh tính duy nhất của toàn hệ thống: chỉ đọc {@link AuthenticatedUser}
+ * do {@code JwtAuthenticationFilter} đặt vào SecurityContext. Không tin bất kỳ
+ * header hay tham số nào do client tự đặt.
+ */
 @Service
 public class CurrentUserService {
 
-    private static final String MOCK_USER_ID_HEADER = "X-MedBook-User-Id";
-    private static final String MOCK_ROLES_HEADER = "X-MedBook-Roles";
+    public Optional<CurrentUser> findCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null
+                && authentication.isAuthenticated()
+                && authentication.getPrincipal() instanceof AuthenticatedUser user
+                && user.userId() != null) {
+            return Optional.of(user.toCurrentUser());
+        }
+        return Optional.empty();
+    }
 
+    public CurrentUser requireCurrentUser() {
+        return findCurrentUser()
+                .orElseThrow(() -> new UnauthorizedException("Bạn chưa đăng nhập hoặc phiên đã hết hạn!"));
+    }
+
+    /**
+     * Giữ lại để các service cũ ({@code PatientService}, {@code AuditLogService})
+     * không phải đổi chữ ký. Tham số {@code request} bị bỏ qua.
+     */
     public CurrentUser requireCurrentUser(HttpServletRequest request) {
-        Long userId = resolveUserId(request)
-                .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED, "Chua dang nhap"));
-        Set<String> roles = resolveRoles(request);
-        return new CurrentUser(userId, roles);
+        return requireCurrentUser();
     }
 
-    private Optional<Long> resolveUserId(HttpServletRequest request) {
-        Optional<Long> mockUserId = parseLong(request.getHeader(MOCK_USER_ID_HEADER));
-        if (mockUserId.isPresent()) {
-            return mockUserId;
-        }
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null
-                || !authentication.isAuthenticated()
-                || authentication instanceof AnonymousAuthenticationToken) {
-            return Optional.empty();
-        }
-
-        return parseLong(authentication.getName());
+    public Long requireUserId() {
+        return requireCurrentUser().userId();
     }
 
-    private Set<String> resolveRoles(HttpServletRequest request) {
-        Set<String> roles = new LinkedHashSet<>();
-        String mockRoles = request.getHeader(MOCK_ROLES_HEADER);
-        if (mockRoles != null && !mockRoles.isBlank()) {
-            roles.addAll(Arrays.stream(mockRoles.split(","))
-                    .map(CurrentUser::normalizeRole)
-                    .filter(role -> !role.isBlank())
-                    .collect(Collectors.toCollection(LinkedHashSet::new)));
-        }
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            for (GrantedAuthority authority : authentication.getAuthorities()) {
-                String role = CurrentUser.normalizeRole(authority.getAuthority());
-                if (!role.isBlank()) {
-                    roles.add(role);
-                }
-            }
-        }
-
-        return Set.copyOf(roles);
+    public boolean isAdmin() {
+        return findCurrentUser().map(user -> user.hasRole("ADMIN")).orElse(false);
     }
 
-    private Optional<Long> parseLong(String value) {
-        if (value == null || value.isBlank()) {
-            return Optional.empty();
-        }
+    public boolean isDoctor() {
+        return findCurrentUser().map(user -> user.hasRole("DOCTOR")).orElse(false);
+    }
 
-        try {
-            return Optional.of(Long.parseLong(value.trim()));
-        } catch (NumberFormatException exception) {
-            return Optional.empty();
+    public boolean isPatient() {
+        return findCurrentUser().map(user -> user.hasRole("PATIENT")).orElse(false);
+    }
+
+    /**
+     * Yêu cầu người dùng hiện tại có ít nhất một trong các role; nếu không → 403.
+     */
+    public CurrentUser requireRole(String... roles) {
+        CurrentUser user = requireCurrentUser();
+        boolean allowed = Arrays.stream(roles).anyMatch(user::hasRole);
+        if (!allowed) {
+            throw new ForbiddenException("Bạn không có quyền thực hiện thao tác này!");
         }
+        return user;
     }
 }
