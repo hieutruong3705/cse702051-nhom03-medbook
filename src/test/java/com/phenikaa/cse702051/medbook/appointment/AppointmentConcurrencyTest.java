@@ -37,7 +37,8 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData;
  */
 class AppointmentConcurrencyTest extends AbstractApiTest {
 
-    private static final int THREADS = 100;
+    private static final int THREADS = Integer.getInteger("medbook.concurrency.requests", 100);
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(AppointmentConcurrencyTest.class);
     private static final ObjectMapper JSON = new ObjectMapper();
 
     @Autowired
@@ -81,8 +82,9 @@ class AppointmentConcurrencyTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("100 yêu cầu đồng thời đặt cùng một slot → đúng 1 thành công (201), 99 lần 409, 0 lỗi 5xx")
+    @DisplayName("Các yêu cầu đồng thời đặt cùng một slot: đúng 1 thành công, còn lại 409, không có 5xx")
     void hundredConcurrentBookingsOnlyOneSucceeds() throws Exception {
+        assertTrue(THREADS >= 2, "cần ít nhất hai yêu cầu để kiểm tra tranh chấp");
         AppointmentSlot slot = data.futureSlot(ApiTestData.DOCTOR1_ID);
         String patient1 = patientToken();
         String patient2 = patient2Token();
@@ -95,7 +97,7 @@ class AppointmentConcurrencyTest extends AbstractApiTest {
         List<Integer> statuses = runConcurrently(tasks);
 
         assertEquals(1, count(statuses, 201), "chỉ một yêu cầu được thành công: " + statuses);
-        assertEquals(THREADS - 1, count(statuses, 409), "99 yêu cầu còn lại phải nhận 409: " + statuses);
+        assertEquals(THREADS - 1, count(statuses, 409), "các yêu cầu còn lại phải nhận 409: " + statuses);
         assertEquals(0, statuses.stream().filter(s -> s >= 500).count(), "không được có lỗi 5xx: " + statuses);
 
         AppointmentSlot saved = slots.findById(slot.getId()).orElseThrow();
@@ -104,6 +106,13 @@ class AppointmentConcurrencyTest extends AbstractApiTest {
         assertEquals(1, appointments.findAll().stream()
                 .filter(a -> a.getSlot().getId().equals(slot.getId())).count(),
                 "các yêu cầu thua không được để lại lịch hẹn nào");
+        for (int i = 0; i < statuses.size(); i++) {
+            LOG.info("V4_REQUEST request={} slot={} status={}", i + 1, slot.getId(), statuses.get(i));
+        }
+        LOG.info("V4_RESULT requests={} created={} conflict={} serverErrors={} activeAppointments={} slotStatus={}",
+                THREADS, count(statuses, 201), count(statuses, 409),
+                statuses.stream().filter(s -> s >= 500).count(),
+                appointments.countActiveBySlotId(slot.getId()), saved.getStatus());
     }
 
     @Test
