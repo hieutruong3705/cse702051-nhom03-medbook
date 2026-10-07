@@ -1,5 +1,7 @@
 package com.phenikaa.cse702051.medbook.controller;
 
+import java.net.URI;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -22,6 +24,10 @@ import com.phenikaa.cse702051.medbook.dto.CreateScheduleRequest;
 import com.phenikaa.cse702051.medbook.dto.DoctorScheduleDTO;
 import com.phenikaa.cse702051.medbook.dto.PageResponse;
 import com.phenikaa.cse702051.medbook.dto.UpdateScheduleRequest;
+import com.phenikaa.cse702051.medbook.dto.schedule.DayOffDTO;
+import com.phenikaa.cse702051.medbook.dto.schedule.DayOffRequest;
+import com.phenikaa.cse702051.medbook.dto.schedule.ScheduleSlotDTO;
+import com.phenikaa.cse702051.medbook.service.DoctorDayOffService;
 import com.phenikaa.cse702051.medbook.service.DoctorScheduleService;
 
 import jakarta.validation.Valid;
@@ -35,9 +41,11 @@ import jakarta.validation.Valid;
 public class DoctorScheduleController {
 
     private final DoctorScheduleService scheduleService;
+    private final DoctorDayOffService dayOffService;
 
-    public DoctorScheduleController(DoctorScheduleService scheduleService) {
+    public DoctorScheduleController(DoctorScheduleService scheduleService, DoctorDayOffService dayOffService) {
         this.scheduleService = scheduleService;
+        this.dayOffService = dayOffService;
     }
 
     /** Ca của tôi theo ngày tăng dần; mặc định từ hôm nay (truyền {@code from} để xem cả ca đã qua). */
@@ -60,7 +68,8 @@ public class DoctorScheduleController {
     /** Tạo ca và sinh slot. Ca chồng giờ → 422. */
     @PostMapping
     public ResponseEntity<DoctorScheduleDTO> create(@Valid @RequestBody CreateScheduleRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(scheduleService.create(request));
+        DoctorScheduleDTO created = scheduleService.create(request);
+        return ResponseEntity.created(URI.create("/api/v1/doctor-schedules/" + created.id())).body(created);
     }
 
     @GetMapping("/{id}")
@@ -84,11 +93,41 @@ public class DoctorScheduleController {
     @PostMapping("/{id}/breaks")
     public ResponseEntity<DoctorScheduleDTO> addBreak(
             @PathVariable Long id, @Valid @RequestBody AddBreakRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(scheduleService.addBreak(id, request));
+        DoctorScheduleDTO created = scheduleService.addBreak(id, request);
+        return ResponseEntity.created(URI.create("/api/v1/doctor-schedules/" + created.id())).body(created);
     }
 
     @DeleteMapping("/{id}/breaks/{breakId}")
     public DoctorScheduleDTO removeBreak(@PathVariable Long id, @PathVariable Long breakId) {
         return scheduleService.removeBreak(id, breakId);
+    }
+
+    /** Slot của một ca kèm mã lịch hẹn đang giữ chỗ (không có thông tin bệnh nhân). */
+    @GetMapping("/{id}/slots")
+    public List<ScheduleSlotDTO> slotsOfSchedule(@PathVariable Long id) {
+        return scheduleService.listSlotsOfSchedule(id);
+    }
+
+    // ---------- Ngày nghỉ ----------
+
+    /** Ngày nghỉ của tôi theo ngày tăng dần; mặc định từ hôm nay. */
+    @GetMapping("/days-off")
+    public List<DayOffDTO> daysOff(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return dayOffService.listMine(from, to);
+    }
+
+    /** Đăng ký nghỉ cả ngày: gỡ giờ trống của ngày đó. Ngày đã có lịch đặt → 409; trùng ngày nghỉ → 422. */
+    @PostMapping("/days-off")
+    public ResponseEntity<DayOffDTO> addDayOff(@Valid @RequestBody DayOffRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(dayOffService.create(request));
+    }
+
+    /** Xóa ngày nghỉ: sinh lại giờ trống theo các ca đang có của ngày đó. */
+    @DeleteMapping("/days-off/{dayOffId}")
+    public ResponseEntity<Void> removeDayOff(@PathVariable Long dayOffId) {
+        dayOffService.delete(dayOffId);
+        return ResponseEntity.noContent().build();
     }
 }

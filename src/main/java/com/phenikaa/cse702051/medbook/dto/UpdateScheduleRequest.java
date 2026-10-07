@@ -15,7 +15,7 @@ public record UpdateScheduleRequest(
         LocalTime endTime,
 
         @Min(value = 5, message = "Mỗi slot tối thiểu 5 phút")
-        @Max(value = 240, message = "Mỗi slot tối đa 240 phút")
+        @Max(value = 120, message = "Mỗi slot tối đa 120 phút")
         Integer slotMinutes
 ) {
 }
