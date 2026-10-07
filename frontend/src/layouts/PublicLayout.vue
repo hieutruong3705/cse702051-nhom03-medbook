@@ -47,16 +47,16 @@
     <footer class="border-t border-slate-200 bg-white">
       <div class="mx-auto grid max-w-7xl gap-6 px-4 py-8 text-sm text-slate-600 sm:px-6 md:grid-cols-3 lg:px-8">
         <div>
-          <p class="font-semibold text-slate-900">MedBook</p>
-          <p class="mt-2">Hệ thống mô phỏng quản lý bệnh án và đặt lịch khám.</p>
+          <p class="font-semibold text-slate-900">{{ PROJECT.name }}</p>
+          <p class="mt-2">Đề tài: {{ PROJECT.topic }}.</p>
         </div>
         <div>
-          <p class="font-semibold text-slate-900">Hỗ trợ</p>
-          <p class="mt-2">support@medbook.vn</p>
+          <p class="font-semibold text-slate-900">{{ PROJECT.group }}</p>
+          <p class="mt-2">Lớp học phần {{ PROJECT.course }} ({{ PROJECT.classSection }})</p>
         </div>
         <div>
-          <p class="font-semibold text-slate-900">Nhóm 03</p>
-          <p class="mt-2">CSE702051 - 2026</p>
+          <p class="font-semibold text-slate-900">Lưu ý</p>
+          <p class="mt-2" data-test="data-notice">{{ PROJECT.dataNotice }}.</p>
         </div>
       </div>
     </footer>
@@ -64,6 +64,7 @@
 </template>
 
 <script setup>
+import { PROJECT } from '@/config/project'
 import { ref } from 'vue'
 import UserMenu from '@/components/auth/UserMenu.vue'
 

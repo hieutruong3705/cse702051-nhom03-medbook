@@ -1,4 +1,4 @@
-// Child routes under /doctor.
+// Route con của khu bác sĩ (/doctor).
 export default [
   {
     path: 'dashboard',
@@ -29,6 +29,18 @@ export default [
     name: 'doctor-patients',
     component: () => import('@/views/doctor/DoctorPatientsView.vue'),
     meta: { title: 'Bệnh nhân' }
+  },
+  {
+    path: 'patients/:id(\\d+)',
+    name: 'doctor-patient-detail',
+    component: () => import('@/views/doctor/DoctorPatientDetailView.vue'),
+    meta: { title: 'Chi tiết bệnh nhân' }
+  },
+  {
+    path: 'notifications',
+    name: 'doctor-notifications',
+    component: () => import('@/views/doctor/DoctorNotificationsView.vue'),
+    meta: { title: 'Thông báo' }
   },
   {
     path: 'profile',

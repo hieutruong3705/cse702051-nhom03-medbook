@@ -1,5 +1,5 @@
 <template>
-  <DashboardLayout title="Quản trị" eyebrow="ADMIN" :items="items" profile-path="/admin/profile">
+  <DashboardLayout title="Quản trị" eyebrow="Quản trị viên" :items="items" profile-path="/admin/profile">
     <slot />
   </DashboardLayout>
 </template>
@@ -15,6 +15,6 @@ const items = [
   { to: '/admin/appointments', label: 'Lịch hẹn', icon: 'fa-regular fa-calendar-check' },
   { to: '/admin/invoices', label: 'Hóa đơn', icon: 'fa-solid fa-file-invoice-dollar' },
   { to: '/admin/reports', label: 'Báo cáo', icon: 'fa-solid fa-chart-column' },
-  { to: '/admin/audit-logs', label: 'Audit log', icon: 'fa-solid fa-shield-halved' }
+  { to: '/admin/audit-logs', label: 'Nhật ký hệ thống', icon: 'fa-solid fa-shield-halved' }
 ]
 </script>

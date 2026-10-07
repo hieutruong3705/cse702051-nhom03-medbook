@@ -45,6 +45,6 @@ export default [
     path: 'audit-logs',
     name: 'admin-audit-logs',
     component: () => import('@/views/admin/AdminAuditLogsView.vue'),
-    meta: { roles: ['ADMIN'], title: 'Audit log' }
+    meta: { roles: ['ADMIN'], title: 'Nhật ký hệ thống' }
   }
 ]

@@ -1,5 +1,5 @@
 <template>
-  <DashboardLayout title="Khu bệnh nhân" eyebrow="PATIENT" :items="items" profile-path="/patient/profile">
+  <DashboardLayout title="Khu bệnh nhân" eyebrow="Bệnh nhân" :items="items" profile-path="/patient/profile" notifications-path="/patient/notifications">
     <slot />
   </DashboardLayout>
 </template>
