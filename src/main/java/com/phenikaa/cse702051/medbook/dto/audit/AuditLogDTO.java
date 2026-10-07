@@ -1,4 +1,4 @@
-package com.phenikaa.cse702051.medbook.dto;
+package com.phenikaa.cse702051.medbook.dto.audit;
 
 import java.time.LocalDateTime;
 
