@@ -39,7 +39,24 @@ const PAGES = {
 }
 
 async function violationsOf(page, route) {
+  // Đổi trang trong ứng dụng một trang chạy hiệu ứng "mờ ra rồi mờ vào" và chỉ bắt đầu sau khi tải xong mã của trang
+  // mới. Ghi nhớ khung nhìn đang hiện rồi đợi tới khi nó được thay bằng khung nhìn mới, nếu không axe sẽ quét trang cũ
+  // hoặc quét đúng lúc trang mới còn đang mờ.
+  const alreadyThere = await page.evaluate((target) => location.hash === target.slice(1), route)
+  if (!alreadyThere) {
+    await page.evaluate(() => {
+      window.__previousView = document.querySelector('#main-content > *')
+    })
+  }
   await page.goto(route)
+  if (!alreadyThere) {
+    await page
+      .waitForFunction(() => {
+        const view = document.querySelector('#main-content > *')
+        return view && view !== window.__previousView
+      }, null, { timeout: 5_000 })
+      .catch(() => null) // hai đường dẫn dùng chung một khung nhìn thì không có gì để đợi
+  }
   await page.waitForLoadState('networkidle')
   await expect(page.locator('h1').first()).toBeVisible()
   // Đợi hiệu ứng chuyển trang chạy xong, nếu không màu chữ đang mờ dần sẽ bị tính là thiếu tương phản. Hiệu ứng có
