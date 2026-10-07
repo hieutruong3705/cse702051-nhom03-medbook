@@ -17,4 +17,11 @@ public interface AppointmentSlotRepository extends JpaRepository<AppointmentSlot
 
     /** Slot của bác sĩ trong khoảng ngày — dùng để tổng hợp số slot cho cả trang danh sách ca (tránh N+1). */
     List<AppointmentSlot> findByDoctorIdAndSlotDateBetween(Long doctorId, LocalDate from, LocalDate to);
+
+    /** Mọi slot của một bác sĩ (dùng khi xóa hẳn hồ sơ bác sĩ chưa có lịch sử). */
+    List<AppointmentSlot> findByDoctorId(Long doctorId);
+
+    /** Slot ở một trạng thái của bác sĩ từ một ngày trở đi (dùng khi bác sĩ ngừng nhận lịch). */
+    List<AppointmentSlot> findByDoctorIdAndStatusAndSlotDateGreaterThanEqual(
+            Long doctorId, String status, LocalDate from);
 }

@@ -1,5 +1,6 @@
 package com.phenikaa.cse702051.medbook.repository;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -51,4 +52,27 @@ public interface AppointmentRepository
     default long countActiveBySlotId(Long slotId) {
         return countBySlotIdAndStatusNot(slotId, AppointmentStatus.CANCELLED);
     }
+
+    // ---- Tra theo lô và kiểm tra tồn tại cho module khác (danh mục, bác sĩ, lịch làm việc) ----
+
+    /** Bác sĩ đã từng có lịch hẹn (kể cả đã hủy) hay chưa — quyết định xóa hẳn hay chỉ ngừng hoạt động. */
+    @Query("select count(a) > 0 from Appointment a where a.doctor.id = :doctorId")
+    boolean existsForDoctor(@Param("doctorId") Long doctorId);
+
+    /** Dịch vụ khám đã được chọn trong lịch hẹn nào hay chưa — quyết định xóa hẳn hay chỉ ngừng sử dụng. */
+    @Query("select count(a) > 0 from Appointment a where a.serviceId = :serviceId")
+    boolean existsForService(@Param("serviceId") Long serviceId);
+
+    /** Trong các slot cho trước, những slot đã từng gắn với lịch hẹn (không xóa cứng được vì khóa ngoại). */
+    @Query("select distinct a.slot.id from Appointment a where a.slot.id in :slotIds")
+    List<Long> findSlotIdsWithAnyAppointment(@Param("slotIds") Collection<Long> slotIds);
+
+    /** Cặp (slotId, appointmentId) của các lịch đang giữ chỗ trên những slot cho trước. */
+    @Query("""
+            select a.slot.id, a.id from Appointment a
+            where a.slot.id in :slotIds and a.status <> :cancelled
+            """)
+    List<Object[]> findActiveBySlotIds(
+            @Param("slotIds") Collection<Long> slotIds,
+            @Param("cancelled") AppointmentStatus cancelled);
 }

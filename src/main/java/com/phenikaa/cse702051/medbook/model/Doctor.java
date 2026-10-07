@@ -47,7 +47,8 @@ public class Doctor {
     @Column(length = 20)
     private String phone;
 
-    @Column(name = "license_number", length = 50)
+    /** Số giấy phép hành nghề; mỗi số chỉ thuộc về một hồ sơ bác sĩ. */
+    @Column(name = "license_number", length = 50, unique = true)
     private String licenseNumber;
 
     @Column(columnDefinition = "TEXT")
