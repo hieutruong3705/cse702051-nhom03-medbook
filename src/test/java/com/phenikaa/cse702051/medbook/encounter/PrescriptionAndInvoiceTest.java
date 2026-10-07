@@ -186,20 +186,26 @@ class PrescriptionAndInvoiceTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("Tìm thuốc chỉ trả dòng thuộc đơn mà người gọi được đọc (không lộ đơn của bệnh nhân khác)")
-    void searchDoesNotLeakAcrossPatients() throws Exception {
+    @DisplayName("Không còn tra cứu dòng thuốc theo tên (404 với mọi người); dòng thuốc chỉ đọc được qua đơn của chính lần khám")
+    void medicineNameSearchIsGoneSoNothingLeaksAcrossPatients() throws Exception {
         IsolatedDoctor doc = data.isolatedDoctor("rx_search_doc");
         IsolatedPatient owner = data.isolatedPatient("rx_search_owner");
         IsolatedPatient stranger = data.isolatedPatient("rx_search_stranger");
         Encounter encounter = data.openEncounter(doc.doctorId(), owner.patientId());
         long prescriptionId = newPrescription(doc.token(), encounter.getId());
-        send(post("/api/v1/prescriptions/%d/items".formatted(prescriptionId)), doc.token(),
-                "{\"medicineName\":\"Zyrtecxyz 10mg\",\"quantity\":5}").andExpect(status().isOk());
+        long itemId = idOf(send(post("/api/v1/prescriptions/%d/items".formatted(prescriptionId)), doc.token(),
+                "{\"medicineName\":\"Zyrtecxyz 10mg\",\"quantity\":5}").andExpect(status().isOk()).andReturn());
 
-        getAs(owner.token(), "/api/v1/prescription-items/search?medicineName=zyrtecxyz")
-                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
-        getAs(stranger.token(), "/api/v1/prescription-items/search?medicineName=zyrtecxyz")
-                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        for (String token : new String[] { owner.token(), stranger.token(), doc.token(), adminToken() }) {
+            getAs(token, "/api/v1/prescription-items/search?medicineName=zyrtecxyz")
+                    .andExpect(status().isNotFound());
+        }
+        // chủ lần khám vẫn đọc được dòng thuốc của mình; bệnh nhân khác thì không
+        getAs(owner.token(), "/api/v1/prescription-items/" + itemId)
+                .andExpect(status().isOk()).andExpect(jsonPath("$.medicineName").value("Zyrtecxyz 10mg"));
+        getAs(stranger.token(), "/api/v1/prescription-items/" + itemId).andExpect(status().isForbidden());
+        getAs(stranger.token(), "/api/v1/prescriptions/%d/items".formatted(prescriptionId))
+                .andExpect(status().isForbidden());
     }
 
     // ---------- hóa đơn ----------
@@ -252,7 +258,8 @@ class PrescriptionAndInvoiceTest extends AbstractApiTest {
         getAs(doc.token(), invoiceUrl).andExpect(status().isOk());
         MvcResult mine = getAs(owner.token(), "/api/v1/invoices/me").andExpect(status().isOk()).andReturn();
         boolean listed = false;
-        for (JsonNode node : JSON.readTree(mine.getResponse().getContentAsString())) {
+        // danh sách của tôi nay là một trang {content, page, size, totalElements, totalPages}
+        for (JsonNode node : JSON.readTree(mine.getResponse().getContentAsString()).get("content")) {
             listed |= node.get("id").asLong() == invoiceId;
         }
         assertTrue(listed);

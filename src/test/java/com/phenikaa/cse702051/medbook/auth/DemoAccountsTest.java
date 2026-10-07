@@ -17,7 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 
 /**
- * Tài khoản demo trong {@code data.sql} (dev/H2): cả 5 tài khoản dùng chung mật khẩu demo
+ * Tài khoản demo trong {@code data-h2.sql} (dev/H2): cả 5 tài khoản dùng chung mật khẩu demo
  * {@value #DEMO_PASSWORD}. Test này bảo đảm thông tin ghi trong README/tài liệu luôn đăng nhập được.
  */
 class DemoAccountsTest extends AbstractApiTest {

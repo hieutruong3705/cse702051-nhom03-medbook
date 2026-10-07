@@ -32,7 +32,7 @@ import com.phenikaa.cse702051.medbook.repository.PatientRepository;
 import com.phenikaa.cse702051.medbook.service.MedicalRecordService;
 
 /**
- * Dữ liệu dựng thêm trên nền seed ({@code data.sql}) cho test. Mọi phương thức idempotent vì
+ * Dữ liệu dựng thêm trên nền seed ({@code data-h2.sql}) cho test. Mọi phương thức idempotent vì
  * các test dùng chung một Spring context (và một DB H2) trong cùng JVM.
  *
  * <p>Seed: bác sĩ 1 (user 2) – Nội tổng quát, bác sĩ 2 (user 3) – Nhi; bệnh nhân 1 (user 4), 2 (user 5).

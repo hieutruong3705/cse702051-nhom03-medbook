@@ -42,7 +42,7 @@ class JwtIdentityTest extends AbstractApiTest {
     @Test
     @DisplayName("Header X-MedBook-Roles không nâng quyền lên ADMIN")
     void spoofedRolesHeaderDoesNotEscalate() throws Exception {
-        mvc.perform(get("/api/v1/audit-logs")
+        mvc.perform(get("/api/v1/admin/audit-logs")
                 .header("Authorization", patientToken())
                 .header("X-MedBook-User-Id", String.valueOf(ADMIN_USER_ID))
                 .header("X-MedBook-Roles", "ADMIN,DOCTOR"))

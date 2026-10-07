@@ -38,12 +38,53 @@ class SecurityRoutingTest extends AbstractApiTest {
                 Arguments.of(DOCTOR, "GET", "/api/v1/admin/invoices", 403),
                 Arguments.of(ADMIN, "GET", "/api/v1/admin/invoices", 200),
                 Arguments.of(PATIENT, "GET", "/api/v1/admin/data-metrics", 403),
-                Arguments.of(PATIENT, "GET", "/api/v1/audit-logs", 403),
-                Arguments.of(NONE, "GET", "/api/v1/audit-logs", 401),
-                Arguments.of(PATIENT, "GET", "/api/v1/appointments/admin/reports", 403),
-                Arguments.of(DOCTOR, "GET", "/api/v1/appointments/admin/reports", 403),
-                Arguments.of(ADMIN, "GET", "/api/v1/appointments/admin/reports", 200),
+                Arguments.of(NONE, "GET", "/api/v1/admin/audit-logs", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/admin/audit-logs", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/admin/audit-logs", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/audit-logs", 200),
+                Arguments.of(DOCTOR, "GET", "/api/v1/admin/audit-logs/action-codes", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/audit-logs/action-codes", 200),
+                Arguments.of(NONE, "GET", "/api/v1/audit-logs", 401), // đường dẫn cũ đã gỡ
+                Arguments.of(ADMIN, "GET", "/api/v1/audit-logs", 404),
+                // --- Quản trị danh mục ---
+                Arguments.of(NONE, "GET", "/api/v1/admin/specialties", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/admin/specialties", 403),
+                Arguments.of(DOCTOR, "POST", "/api/v1/admin/medical-services", 403),
+                Arguments.of(DOCTOR, "DELETE", "/api/v1/admin/medicines/1", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/specialties", 200),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/medical-services", 200),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/medicines", 200),
+                Arguments.of(ADMIN, "POST", "/api/v1/admin/specialties", 400), // qua route; body rỗng bị validate
+                // --- Lịch hẹn và báo cáo cho Admin ---
+                Arguments.of(NONE, "GET", "/api/v1/admin/appointments", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/admin/appointments", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/admin/appointments", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/appointments", 200),
+                Arguments.of(NONE, "GET", "/api/v1/admin/reports/appointments", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/admin/reports/appointments", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/admin/reports/appointments", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/reports/appointments", 200),
+                Arguments.of(DOCTOR, "GET", "/api/v1/admin/reports/appointments/export", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/reports/appointments/export", 200),
                 Arguments.of(PATIENT, "GET", "/api/v1/system/metrics", 403),
+                // --- Tài khoản: quản trị chỉ Admin; /users/me cho mọi vai trò; /roles và /user-roles đã gỡ ---
+                Arguments.of(NONE, "GET", "/api/v1/admin/users", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/admin/users", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/admin/users", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/users", 200),
+                Arguments.of(DOCTOR, "POST", "/api/v1/admin/users", 403),
+                Arguments.of(ADMIN, "POST", "/api/v1/admin/users", 400), // qua route; body rỗng bị validate
+                Arguments.of(PATIENT, "PATCH", "/api/v1/admin/users/1/status", 403),
+                Arguments.of(DOCTOR, "PUT", "/api/v1/admin/users/1/roles", 403),
+                Arguments.of(NONE, "GET", "/api/v1/users/me", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/users/me", 200),
+                Arguments.of(DOCTOR, "GET", "/api/v1/users/me", 200),
+                Arguments.of(ADMIN, "GET", "/api/v1/users/me", 200),
+                Arguments.of(PATIENT, "GET", "/api/v1/users", 403),
+                Arguments.of(PATIENT, "GET", "/api/v1/users/1", 403),
+                Arguments.of(NONE, "GET", "/api/v1/roles", 401),
+                Arguments.of(ADMIN, "GET", "/api/v1/roles", 404),
+                Arguments.of(ADMIN, "GET", "/api/v1/user-roles", 404),
 
                 // --- Ghi vào hồ sơ bác sĩ/danh mục (đường dẫn cũ) chỉ Admin ---
                 Arguments.of(PATIENT, "POST", "/api/v1/doctors/admin", 403),
@@ -52,10 +93,24 @@ class SecurityRoutingTest extends AbstractApiTest {
                 Arguments.of(PATIENT, "DELETE", "/api/v1/doctors/admin/1", 403),
                 Arguments.of(NONE, "POST", "/api/v1/doctors/admin", 401),
 
-                // --- Hóa đơn: bệnh nhân/bác sĩ không được thu tiền/hủy ---
-                Arguments.of(PATIENT, "PUT", "/api/v1/invoices/1/pay", 403),
-                Arguments.of(DOCTOR, "PUT", "/api/v1/invoices/1/pay", 403),
-                Arguments.of(PATIENT, "PUT", "/api/v1/invoices/1/void", 403),
+                // --- Hóa đơn: chỉ Admin thu tiền/hủy và xem doanh thu; đường dẫn PUT cũ đã gỡ ---
+                Arguments.of(NONE, "PATCH", "/api/v1/admin/invoices/1/collect", 401),
+                Arguments.of(PATIENT, "PATCH", "/api/v1/admin/invoices/1/collect", 403),
+                Arguments.of(DOCTOR, "PATCH", "/api/v1/admin/invoices/1/collect", 403),
+                Arguments.of(PATIENT, "PATCH", "/api/v1/admin/invoices/1/void", 403),
+                Arguments.of(DOCTOR, "PATCH", "/api/v1/admin/invoices/1/void", 403),
+                Arguments.of(ADMIN, "PATCH", "/api/v1/admin/invoices/999999/collect", 404),
+                Arguments.of(ADMIN, "PATCH", "/api/v1/admin/invoices/999999/void", 400), // qua route; thiếu lý do hủy
+                Arguments.of(NONE, "GET", "/api/v1/admin/reports/revenue", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/admin/reports/revenue", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/admin/reports/revenue", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/reports/revenue", 200),
+                Arguments.of(NONE, "PUT", "/api/v1/invoices/1/pay", 401),
+                Arguments.of(PATIENT, "PUT", "/api/v1/invoices/1/pay", 404),
+                Arguments.of(ADMIN, "PUT", "/api/v1/invoices/1/pay", 404),
+                Arguments.of(ADMIN, "PUT", "/api/v1/invoices/1/void", 404),
+                Arguments.of(DOCTOR, "GET", "/api/v1/invoices/me", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/invoices/999999", 404),
 
                 // --- Lịch hẹn ---
                 Arguments.of(DOCTOR, "POST", "/api/v1/appointments?patientId=4&slotId=1", 403),
@@ -76,11 +131,19 @@ class SecurityRoutingTest extends AbstractApiTest {
                 Arguments.of(DOCTOR, "GET", "/api/v1/doctor-schedules/slots", 200),
                 Arguments.of(PATIENT, "POST", "/api/v1/doctor-schedules", 403),
                 Arguments.of(ADMIN, "DELETE", "/api/v1/doctor-schedules/1", 403),
-                Arguments.of(PATIENT, "GET", "/api/v1/schedule-breaks", 403),
+                Arguments.of(NONE, "GET", "/api/v1/doctor-schedules/days-off", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/doctor-schedules/days-off", 403),
+                Arguments.of(ADMIN, "POST", "/api/v1/doctor-schedules/days-off", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/doctor-schedules/days-off", 200),
+                Arguments.of(DOCTOR, "POST", "/api/v1/doctor-schedules/days-off", 400), // qua route; thiếu ngày
+                Arguments.of(PATIENT, "GET", "/api/v1/doctor-schedules/1/slots", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/doctor-schedules/999999/slots", 404),
+                Arguments.of(NONE, "GET", "/api/v1/schedule-breaks", 401), // đường dẫn cũ (rỗng) đã gỡ
+                Arguments.of(DOCTOR, "GET", "/api/v1/schedule-breaks", 404),
                 Arguments.of(NONE, "GET", "/api/v1/medicines", 401),
                 Arguments.of(PATIENT, "GET", "/api/v1/medicines", 403),
-                Arguments.of(DOCTOR, "GET", "/api/v1/medicines", 404),
-                Arguments.of(ADMIN, "GET", "/api/v1/medicines", 404),
+                Arguments.of(DOCTOR, "GET", "/api/v1/medicines", 200),
+                Arguments.of(ADMIN, "GET", "/api/v1/medicines", 200),
 
                 // --- Bệnh nhân ---
                 Arguments.of(NONE, "GET", "/api/v1/patients/me", 401),
@@ -137,8 +200,11 @@ class SecurityRoutingTest extends AbstractApiTest {
                 Arguments.of(NONE, "GET", "/api/v1/doctors/999999/slots", 404),
                 Arguments.of(NONE, "GET", "/api/v1/appointment-slots/available?doctorId=1", 401), // đường dẫn cũ cần đăng nhập
                 Arguments.of(PATIENT, "GET", "/api/v1/appointment-slots/available?doctorId=1", 200),
-                Arguments.of(NONE, "GET", "/api/v1/specialties", 404), // công khai, controller chưa có endpoint
+                Arguments.of(NONE, "GET", "/api/v1/specialties", 200), // chuyên khoa ACTIVE công khai
+                Arguments.of(NONE, "GET", "/api/v1/specialties/999999", 404),
                 Arguments.of(NONE, "GET", "/api/v1/medical-services", 200), // danh mục dịch vụ ACTIVE công khai
+                Arguments.of(PATIENT, "POST", "/api/v1/specialties", 403), // ghi vào đường dẫn công khai: chỉ Admin
+                Arguments.of(PATIENT, "DELETE", "/api/v1/medical-services/1", 403),
                 Arguments.of(NONE, "GET", "/api/v1/system/status", 200),
                 Arguments.of(NONE, "POST", "/api/v1/auth/login", 400), // công khai, body rỗng bị validate
                 Arguments.of(NONE, "POST", "/api/v1/auth/register", 400),
