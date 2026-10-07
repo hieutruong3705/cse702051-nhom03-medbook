@@ -1,7 +1,8 @@
 package com.phenikaa.cse702051.medbook.controller;
 
 import java.util.List;
-
+import jakarta.servlet.http.HttpServletRequest;
+import com.phenikaa.cse702051.medbook.service.AuditLogService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,16 +28,29 @@ public class AppointmentController {
 
     private final AppointmentService appointmentService;
     private final AppointmentReportService reportService;
+private final AppointmentService appointmentService;
 
     // YCCN 10, 11: Đặt lịch khám
-    @PostMapping
-    public ResponseEntity<Appointment> bookAppointment(
-            @RequestParam Long patientId,
-            @RequestParam Long slotId,
-            @RequestParam(required = false) String notes) {
-        Appointment appointment = appointmentService.bookAppointment(patientId, slotId, notes);
-        return ResponseEntity.status(HttpStatus.CREATED).body(appointment);
-    }
+@PostMapping
+public ResponseEntity<Appointment> bookAppointment(
+        @RequestParam Long patientId,
+        @RequestParam Long slotId,
+        @RequestParam(required = false) String notes,
+        HttpServletRequest request) {
+
+    Appointment appointment = appointmentService.bookAppointment(patientId, slotId, notes);
+
+    auditLogService.record(
+            "APPOINTMENT_BOOKED",
+            "APPOINTMENT",
+            appointment.getId(),
+            request.getRemoteAddr(),
+            request.getHeader("User-Agent"),
+            "{\"patientId\":" + patientId + ",\"slotId\":" + slotId + "}"
+    );
+
+    return ResponseEntity.status(HttpStatus.CREATED).body(appointment);
+}
 
     // YCCN 12: Bệnh nhân hủy lịch
     @PatchMapping("/{id}/cancel")
