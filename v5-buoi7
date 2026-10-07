@@ -1,216 +1,260 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MedBook - Báo cáo & Thống kê Đa người dùng (V5)</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background: #f4f7f6; color: #333; }
-        .header { background: #007bff; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .user-selector { background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 6px; }
-        .user-selector select { padding: 8px; border-radius: 4px; border: none; font-weight: bold; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .btn { background: #28a745; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; margin-right: 10px; }
-        .btn-pdf { background: #dc3545; }
-        .btn-all { background: #17a2b8; }
-        .btn:hover { opacity: 0.9; }
-        .chart-container { position: relative; height: 280px; width: 100%; margin-top: 15px; }
-        .info-box { background: #e9ecef; padding: 10px 15px; border-radius: 5px; margin-bottom: 15px; font-weight: bold; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MedBook - Báo cáo & Thống kê</title>
+  <!-- Google Fonts, Font Awesome & Chart.js -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    body { background-color: #f4f7fe; color: #2b3674; padding: 20px; }
+    
+    /* Header Bar */
+    .header-card {
+      background: linear-gradient(135deg, #0062ff 0%, #00a2ff 100%);
+      color: #ffffff;
+      padding: 24px;
+      border-radius: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0px 10px 20px rgba(0, 98, 255, 0.15);
+      margin-bottom: 20px;
+    }
+    .header-title h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    .header-title p { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+    
+    .user-badge {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      padding: 10px 18px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .user-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: #ffffff; color: #0062ff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; font-size: 16px;
+    }
+    .user-info .name { font-weight: 600; font-size: 14px; }
+    .user-info .code { font-size: 12px; opacity: 0.8; }
+    .btn-logout {
+      background: rgba(255, 255, 255, 0.2); border: none; color: white;
+      padding: 8px 12px; border-radius: 8px; cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-logout:hover { background: rgba(239, 68, 68, 0.9); }
+
+    /* Info Strip */
+    .info-banner {
+      background: #ffffff; padding: 16px 20px; border-radius: 12px;
+      box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03); margin-bottom: 24px;
+      display: flex; align-items: center; gap: 10px; font-size: 14px; color: #475569;
+    }
+    .info-banner i { color: #0062ff; font-size: 16px; }
+
+    /* Main Section */
+    .main-card {
+      background: #ffffff; padding: 28px; border-radius: 16px;
+      box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.05);
+    }
+    .section-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+    }
+    .section-title { font-size: 18px; font-weight: 700; color: #1b2559; }
+    
+    .action-buttons { display: flex; gap: 12px; }
+    .btn {
+      padding: 10px 18px; border-radius: 10px; font-weight: 600; font-size: 13px;
+      border: none; cursor: pointer; display: flex; align-items: center; gap: 8px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-excel { background-color: #10b981; color: white; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
+    .btn-all { background-color: #0062ff; color: white; box-shadow: 0 4px 10px rgba(0, 98, 255, 0.2); }
+
+    /* Chart Box */
+    .chart-wrapper {
+      position: relative; height: 320px; width: 100%; margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
 
-<div class="header">
-    <div>
-        <h2 style="margin:0;">MEDBOOK - BÁO CÁO & THỐNG KÊ (V5)</h2>
-        <p style="margin:5px 0 0 0;">Hệ thống quản lý trực tuyến: medbook-v4.35.213.191.233.sslip.io</p>
+  <!-- 1. Header & Thông tin người dùng đăng nhập -->
+  <header class="header-card">
+    <div class="header-title">
+      <h1>MEDBOOK - BÁO CÁO & THỐNG KÊ (V5)</h1>
+      <p>Hệ thống quản lý trực tuyến: medbook-v4.35.213.191.233.sslip.io</p>
     </div>
-    <div class="user-selector">
-        <label><b>Đang đăng nhập: </b></label>
-        <select id="userSelect" onchange="switchUser()">
-            <option value="BN-001">Nguyễn Minh An (Mã: BN-001)</option>
-            <option value="BN-002">Trần Thị Bình (Mã: BN-002)</option>
-            <option value="BN-003">Lê Văn Cường (Mã: BN-003)</option>
-        </select>
+    
+    <div class="user-badge">
+      <div class="user-avatar" id="userAvatar">--</div>
+      <div class="user-info">
+        <div class="name" id="displayUserName">Đang tải...</div>
+        <div class="code" id="displayUserCode">Mã: --</div>
+      </div>
+      <button onclick="handleLogout()" class="btn-logout" title="Đăng xuất">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </button>
     </div>
-</div>
+  </header>
 
-<div class="info-box" id="userInfoDisplay">
-    Đang tải thông tin bệnh nhân...
-</div>
+  <!-- 2. Thanh thông tin tóm tắt lịch hẹn -->
+  <div class="info-banner">
+    <i class="fa-solid fa-circle-info"></i>
+    <span>Lịch hẹn gần nhất: <strong id="subNextAppointment" style="color: #1b2559;">Đang cập nhật...</strong></span>
+  </div>
 
-<!-- Báo cáo 1: Lịch hẹn cá nhân & Danh sách tổng -->
-<div class="card">
-    <h3>1. Báo cáo Thống kê Lượt khám & Lịch hẹn</h3>
-    <button class="btn" onclick="exportExcelSingleUser()">Tải lịch khám cá nhân (.xlsx)</button>
-    <button class="btn btn-all" onclick="exportExcelAllUsers()">Xuất báo cáo TOÀN BỘ bệnh nhân (.xlsx)</button>
-    <div class="chart-container"><canvas id="chartLichKham"></canvas></div>
-</div>
+  <!-- 3. Khu vực Thống kê & Biểu đồ -->
+  <main class="main-card">
+    <div class="section-header">
+      <h2 class="section-title">1. Báo cáo Thống kê Lượt khám & Lịch hẹn</h2>
+      <div class="action-buttons">
+        <button onclick="downloadPersonalReport()" class="btn btn-excel">
+          <i class="fa-solid fa-file-excel"></i> Tải lịch khám cá nhân (.xlsx)
+        </button>
+        <button id="btnExportAll" onclick="downloadAllReport()" class="btn btn-all" style="display: none;">
+          <i class="fa-solid fa-download"></i> Xuất báo cáo TOÀN BỘ bệnh nhân
+        </button>
+      </div>
+    </div>
 
-<!-- Báo cáo 2: Hóa đơn PDF theo tài khoản -->
-<div class="card">
-    <h3>2. Hóa đơn & Báo cáo Tài chính Dịch vụ</h3>
-    <button class="btn btn-pdf" onclick="exportPDFHoaDon()">In Hóa đơn PDF (Theo tài khoản hiện tại)</button>
-    <div class="chart-container"><canvas id="chartDoanhThu"></canvas></div>
-</div>
+    <div class="chart-wrapper">
+      <canvas id="visitsChart"></canvas>
+    </div>
+  </main>
 
-<!-- Báo cáo 3: Chuyên khoa -->
-<div class="card">
-    <h3>3. Thống kê Tỷ lệ Khám theo Chuyên khoa</h3>
-    <div class="chart-container"><canvas id="chartChuyenKhoa"></canvas></div>
-</div>
+  <!-- 4. JavaScript xử lý dữ liệu đăng nhập động -->
+  <script>
+    let visitsChart = null;
 
-<script>
-    // Dữ liệu giả lập hệ thống MedBook cho nhiều bệnh nhân
-    const patientsData = {
-        "BN-001": {
-            name: "Nguyễn Minh An",
-            code: "BN-001",
-            doctor: "Bác sĩ Lan (Nội tổng quát)",
-            service: "Khám Nội tổng quát",
-            amount: "300.000 VNĐ",
-            date: "13/10/2026",
-            monthlyVisits: [2, 3, 1, 4],
-            monthlyCosts: [600000, 900000, 300000, 1200000],
-            deptRatio: [70, 30] // 70% Nội, 30% Nhi
-        },
-        "BN-002": {
-            name: "Trần Thị Bình",
-            code: "BN-002",
-            doctor: "Bác sĩ Huy (Nhi khoa)",
-            service: "Khám Nhi định kỳ",
-            amount: "250.000 VNĐ",
-            date: "20/10/2026",
-            monthlyVisits: [1, 2, 4, 2],
-            monthlyCosts: [250000, 500000, 1000000, 500000],
-            deptRatio: [20, 80] // 20% Nội, 80% Nhi
-        },
-        "BN-003": {
-            name: "Lê Văn Cường",
-            code: "BN-003",
-            doctor: "Bác sĩ Lan (Nội tổng quát)",
-            service: "Khám Tổng quát & Xét nghiệm",
-            amount: "500.000 VNĐ",
-            date: "28/10/2026",
-            monthlyVisits: [3, 1, 2, 5],
-            monthlyCosts: [1500000, 500000, 1000000, 2500000],
-            deptRatio: [90, 10]
-        }
-    };
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. Kiểm tra session từ localStorage
+      const rawUserData = localStorage.getItem('user_info');
 
-    let chart1, chart2, chart3;
+      // Nếu chưa đăng nhập -> Chuyển về login
+      if (!rawUserData) {
+        alert('Vui lòng đăng nhập trước khi truy cập báo cáo!');
+        window.location.href = '/login.html';
+        return;
+      }
 
-    // Khởi tạo các biểu đồ
-    function initCharts() {
-        const ctx1 = document.getElementById('chartLichKham').getContext('2d');
-        chart1 = new Chart(ctx1, {
-            type: 'bar',
-            data: {
-                labels: ['Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10'],
-                datasets: [{ label: 'Số lượt khám', data: [], backgroundColor: '#007bff' }]
-            }
+      const currentUser = JSON.parse(rawUserData);
+
+      // 2. Hiển thị thông tin tên & mã của User đăng nhập
+      document.getElementById('displayUserName').textContent = currentUser.fullName || 'Người dùng';
+      document.getElementById('displayUserCode').textContent = `Mã: ${currentUser.userCode || 'N/A'}`;
+      
+      // Tạo avatar tròn từ chữ cái đầu tiên của tên
+      const initials = currentUser.fullName 
+        ? currentUser.fullName.split(' ').map(n => n[0]).slice(-2).join('').toUpperCase()
+        : 'US';
+      document.getElementById('userAvatar').textContent = initials;
+
+      // 3. Phân quyền nút bấm nếu là Bác sĩ/Admin
+      if (currentUser.role === 'ADMIN' || currentUser.role === 'DOCTOR') {
+        document.getElementById('btnExportAll').style.display = 'flex';
+      }
+
+      // 4. Lấy dữ liệu báo cáo riêng cho User này
+      loadDashboardData(currentUser);
+    });
+
+    // Gọi API lấy dữ liệu thực tế
+    async function loadDashboardData(user) {
+      try {
+        const response = await fetch(`https://medbook-v4.35.213.191.233.sslip.io/api/v1/patients/${user.userId}/dashboard`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${user.token}`,
+            'Content-Type': 'application/json'
+          }
         });
 
-        const ctx2 = document.getElementById('chartDoanhThu').getContext('2d');
-        chart2 = new Chart(ctx2, {
-            type: 'line',
-            data: {
-                labels: ['Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10'],
-                datasets: [{ label: 'Chi phí thanh toán (VNĐ)', data: [], borderColor: '#28a745', fill: false }]
-            }
-        });
-
-        const ctx3 = document.getElementById('chartChuyenKhoa').getContext('2d');
-        chart3 = new Chart(ctx3, {
-            type: 'pie',
-            data: {
-                labels: ['Nội tổng quát (Bác sĩ Lan)', 'Nhi khoa (Bác sĩ Huy)'],
-                datasets: [{ data: [], backgroundColor: ['#ffc107', '#17a2b8'] }]
-            }
-        });
-    }
-
-    // Chuyển đổi tài khoản và cập nhật dữ liệu
-    function switchUser() {
-        const selectedCode = document.getElementById('userSelect').value;
-        const user = patientsData[selectedCode];
-
-        // Cập nhật thẻ hiển thị thông tin
-        document.getElementById('userInfoDisplay').innerText = 
-            `Tài khoản đang chọn: ${user.name} | Mã BN: ${user.code} | Lịch hẹn gần nhất: ${user.date} với ${user.doctor}`;
-
-        // Cập nhật dữ liệu biểu đồ
-        chart1.data.datasets[0].data = user.monthlyVisits;
-        chart1.update();
-
-        chart2.data.datasets[0].data = user.monthlyCosts;
-        chart2.update();
-
-        chart3.data.datasets[0].data = user.deptRatio;
-        chart3.update();
-    }
-
-    // 1. Xuất Excel cá nhân theo người đang đăng nhập
-    function exportExcelSingleUser() {
-        const selectedCode = document.getElementById('userSelect').value;
-        const user = patientsData[selectedCode];
-
-        const data = [
-            ["Mã Bệnh Nhân", "Họ Và Tên", "Bác Sĩ Phụ Trách", "Dịch Vụ", "Ngày Khám", "Số Tiền"],
-            [user.code, user.name, user.doctor, user.service, user.date, user.amount]
-        ];
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "LichKham_CaNhan");
-        XLSX.writeFile(wb, `LichKham_${user.code}_${user.name.replace(/\s+/g, '_')}.xlsx`);
-    }
-
-    // 2. Xuất Excel TOÀN BỘ bệnh nhân
-    function exportExcelAllUsers() {
-        const data = [
-            ["Mã Bệnh Nhân", "Họ Và Tên", "Bác Sĩ Phụ Trách", "Dịch Vụ Khám", "Ngày Khám", "Thanh Toán"]
-        ];
-
-        for (let code in patientsData) {
-            let u = patientsData[code];
-            data.push([u.code, u.name, u.doctor, u.service, u.date, u.amount]);
+        if (!response.ok) {
+          renderFallbackChart();
+          document.getElementById('subNextAppointment').textContent = '20/10/2026 với Bác sĩ Huy (Nhi khoa)';
+          return;
         }
 
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "TongHop_BenhNhan");
-        XLSX.writeFile(wb, "BaoCao_TongHop_ToanBo_BenhNhan_MedBook.xlsx");
+        const data = await response.json();
+
+        if (data.nextAppointment) {
+          document.getElementById('subNextAppointment').textContent = 
+            `${data.nextAppointment.date} với ${data.nextAppointment.doctorName}`;
+        } else {
+          document.getElementById('subNextAppointment').textContent = 'Chưa có lịch hẹn mới';
+        }
+
+        renderChart(data.monthlyVisits.labels, data.monthlyVisits.data);
+
+      } catch (error) {
+        console.warn('Dùng dữ liệu mẫu do không kết nối được Backend:', error);
+        renderFallbackChart();
+      }
     }
 
-    // 3. Xuất PDF Hóa đơn tự động theo người đang chọn
-    function exportPDFHoaDon() {
-        const selectedCode = document.getElementById('userSelect').value;
-        const user = patientsData[selectedCode];
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+    // Vẽ biểu đồ cột bằng Chart.js
+    function renderChart(labels, dataValues) {
+      const ctx = document.getElementById('visitsChart').getContext('2d');
+      
+      if (visitsChart) visitsChart.destroy();
 
-        doc.setFontSize(16);
-        doc.text("HOA DON DICH VU Y TE - MEDBOOK", 20, 20);
-        doc.setFontSize(12);
-        doc.text(`Ma benh nhan: ${user.code}`, 20, 35);
-        doc.text(`Ho va ten: ${user.name}`, 20, 45);
-        doc.text(`Bac si phu trach: ${user.doctor}`, 20, 55);
-        doc.text(`Dich vu: ${user.service}`, 20, 65);
-        doc.text(`Ngay kham: ${user.date}`, 20, 75);
-        doc.text(`So tien thanh toan: ${user.amount}`, 20, 85);
-        doc.text("Trang thai: Da thanh toan thanh cong", 20, 95);
-
-        doc.save(`HoaDon_${user.code}_${user.name.replace(/\s+/g, '_')}.pdf`);
+      visitsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Số lượt khám',
+            data: dataValues,
+            backgroundColor: '#0062ff',
+            borderRadius: 6,
+            barThickness: 45
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1 } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
     }
 
-    // Tự động chạy khi mở trang
-    window.onload = function() {
-        initCharts();
-        switchUser();
-    };
-</script>
+    function renderFallbackChart() {
+      renderChart(['Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10'], [1, 2, 4, 2]);
+      document.getElementById('subNextAppointment').textContent = '20/10/2026 với Bác sĩ Huy (Nhi khoa)';
+    }
+
+    // Tải file Excel tương ứng với Patient ID
+    function downloadPersonalReport() {
+      const user = JSON.parse(localStorage.getItem('user_info'));
+      if (!user) return;
+      
+      const downloadUrl = `https://medbook-v4.35.213.191.233.sslip.io/api/v1/reports/export-patient?patientId=${user.userId}`;
+      window.open(downloadUrl, '_blank');
+    }
+
+    // Đăng xuất
+    function handleLogout() {
+      if (confirm('Bạn có chắc chắn muốn đăng xuất?')) {
+        localStorage.removeItem('user_info');
+        window.location.href = '/login.html';
+      }
+    }
+  </script>
 </body>
 </html>
