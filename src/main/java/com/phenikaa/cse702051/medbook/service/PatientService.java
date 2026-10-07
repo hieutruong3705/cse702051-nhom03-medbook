@@ -98,6 +98,29 @@ public class PatientService {
         return patient;
     }
 
+    /**
+     * Đồng bộ họ tên, điện thoại, email từ tài khoản sang hồ sơ bệnh nhân khi người dùng sửa ở {@code /users/me}
+     * hoặc Admin sửa tài khoản. Gọi trong cùng giao dịch với việc lưu {@code User}; tài khoản không có hồ sơ bệnh
+     * nhân thì không làm gì. Không kiểm quyền người gọi (API nội bộ cho module tài khoản). Giá trị {@code null}
+     * hoặc rỗng nghĩa là giữ nguyên, vì hai cột họ tên và điện thoại của bệnh nhân không được để trống.
+     */
+    @Transactional
+    public void syncContactFromUser(Long userId, String fullName, String phone, String email) {
+        patientRepository.findByUserId(userId).ifPresent(patient -> {
+            if (fullName != null && !fullName.isBlank()) {
+                patient.setFullName(fullName.trim());
+            }
+            if (phone != null && !phone.isBlank()) {
+                patient.setPhone(phone.trim());
+            }
+            if (email != null && !email.isBlank()) {
+                patient.setEmail(email.trim());
+            }
+            patient.setUpdatedAt(LocalDateTime.now());
+            patientRepository.save(patient);
+        });
+    }
+
     @Transactional(readOnly = true)
     public PatientDTO getCurrentPatient() {
         currentUserService.requireRole("PATIENT");
@@ -120,7 +143,9 @@ public class PatientService {
     @Transactional(readOnly = true)
     public PageResponse<?> search(String keyword, int page, int size) {
         CurrentUser user = currentUserService.requireRole("DOCTOR", "ADMIN");
-        PageRequest pageable = PageRequest.of(Math.max(page, 0), clampSize(size), Sort.by("fullName").ascending());
+        // khóa chính làm tiêu chí phụ: bệnh nhân trùng họ tên không bị lặp hoặc bỏ sót giữa các trang
+        PageRequest pageable = PageRequest.of(Math.max(page, 0), clampSize(size),
+                Sort.by("fullName").ascending().and(Sort.by("id").ascending()));
         String pattern = toPattern(keyword);
 
         if (user.hasRole("DOCTOR")) {
