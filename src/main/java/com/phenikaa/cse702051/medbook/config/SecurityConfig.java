@@ -15,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -35,16 +36,31 @@ public class SecurityConfig {
 
     private static final String API = "/api/v1";
 
+    /**
+     * Giao diện là bản build tĩnh cùng nguồn (không tải script, font hay ảnh từ máy chủ khác) nên chỉ cho phép
+     * {@code 'self'}. Vue gắn style nội tuyến qua thuộc tính {@code style} nên {@code style-src} cần
+     * {@code 'unsafe-inline'}; script nội tuyến vẫn bị cấm. {@code blob:} để xem trước và tải tệp đính kèm.
+     */
+    static final String DEFAULT_CONTENT_SECURITY_POLICY = "default-src 'self'; script-src 'self'; "
+            + "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; "
+            + "connect-src 'self'; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; "
+            + "form-action 'self'; frame-ancestors 'none'";
+
+    /** Ứng dụng không dùng camera, micro, định vị hay thanh toán của trình duyệt nên tắt hẳn. */
+    static final String PERMISSIONS_POLICY = "camera=(), microphone=(), geolocation=(), payment=()";
+
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ApiErrorWriter apiErrorWriter;
     private final List<String> allowedOrigins;
     private final boolean openApiEnabled;
+    private final String contentSecurityPolicy;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter,
             ApiErrorWriter apiErrorWriter,
             @Value("${medbook.cors.allowed-origins:http://localhost:5173,http://localhost:3000,http://localhost:8080}") String allowedOrigins,
-            @Value("${medbook.openapi.enabled:false}") boolean openApiEnabled) {
+            @Value("${medbook.openapi.enabled:false}") boolean openApiEnabled,
+            @Value("${medbook.security.content-security-policy:}") String contentSecurityPolicy) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.apiErrorWriter = apiErrorWriter;
         this.allowedOrigins = Arrays.stream(allowedOrigins.split(","))
@@ -52,6 +68,9 @@ public class SecurityConfig {
                 .filter(origin -> !origin.isEmpty())
                 .toList();
         this.openApiEnabled = openApiEnabled;
+        this.contentSecurityPolicy = contentSecurityPolicy == null || contentSecurityPolicy.isBlank()
+                ? DEFAULT_CONTENT_SECURITY_POLICY
+                : contentSecurityPolicy.trim();
     }
 
     @Bean
@@ -66,10 +85,21 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
+                // Header bảo mật cho cả API lẫn giao diện tĩnh. HSTS chỉ được gửi trên kết nối HTTPS
+                // (sau reverse proxy cần server.forward-headers-strategy để nhận biết HTTPS).
+                .headers(headers -> headers
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(contentSecurityPolicy))
+                        .frameOptions(frame -> frame.deny())
+                        .referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                        .permissionsPolicyHeader(permissions -> permissions.policy(PERMISSIONS_POLICY))
+                        .httpStrictTransportSecurity(hsts -> hsts
+                                .includeSubDomains(true)
+                                .maxAgeInSeconds(31_536_000)))
+
                 .authorizeHttpRequests(auth -> {
                     // === PUBLIC: giao diện tĩnh ===
                     auth.requestMatchers("/", "/index.html", "/favicon.svg", "/favicon.ico", "/icons.svg",
-                            "/assets/**", "/error").permitAll();
+                            "/robots.txt", "/sitemap.xml", "/assets/**", "/error").permitAll();
 
                     // === PUBLIC: OpenAPI (chỉ khi medbook.openapi.enabled=true, mặc định tắt) ===
                     if (openApiEnabled) {
@@ -89,29 +119,25 @@ public class SecurityConfig {
                             API + "/doctors", API + "/doctors/**",
                             API + "/specialties", API + "/specialties/**",
                             API + "/medical-services", API + "/medical-services/**",
-                            API + "/system/status").permitAll();
+                            API + "/system/status", API + "/health").permitAll();
 
                     // === ADMIN ===
                     auth.requestMatchers(API + "/admin/**").hasRole("ADMIN");
-                    auth.requestMatchers(API + "/audit-logs", API + "/audit-logs/**").hasRole("ADMIN");
-                    auth.requestMatchers(API + "/roles", API + "/roles/**").hasRole("ADMIN");
-                    auth.requestMatchers(API + "/user-roles", API + "/user-roles/**").hasRole("ADMIN");
                     auth.requestMatchers(API + "/system/**").hasRole("ADMIN");
-                    auth.requestMatchers(API + "/appointments/admin/**").hasRole("ADMIN");
-                    // Ghi vào danh mục/hồ sơ bác sĩ (đường dẫn cũ) chỉ dành cho Admin
+                    // Các đường dẫn danh mục và bác sĩ chỉ ĐỌC là công khai (hoặc cho bác sĩ). Mọi phương thức ghi
+                    // trên chính các đường dẫn đó bị chặn với người không phải Admin, để một endpoint ghi lỡ
+                    // thêm vào sau này không tự động mở cho mọi người đã đăng nhập. Việc quản trị nằm ở /admin/**.
                     for (HttpMethod method : List.of(HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH,
                             HttpMethod.DELETE)) {
                         auth.requestMatchers(method,
-                                API + "/doctors/**", API + "/specialties/**",
-                                API + "/medical-services/**", API + "/medicines/**").hasRole("ADMIN");
+                                API + "/doctors", API + "/doctors/**",
+                                API + "/specialties", API + "/specialties/**",
+                                API + "/medical-services", API + "/medical-services/**",
+                                API + "/medicines", API + "/medicines/**").hasRole("ADMIN");
                     }
-                    // Đánh dấu thu tiền/hủy hóa đơn (đường dẫn cũ): không dành cho bệnh nhân/bác sĩ
-                    auth.requestMatchers(HttpMethod.PUT, API + "/invoices/*/pay", API + "/invoices/*/void")
-                            .hasRole("ADMIN");
 
                     // === DOCTOR ===
                     auth.requestMatchers(API + "/doctor-schedules", API + "/doctor-schedules/**").hasRole("DOCTOR");
-                    auth.requestMatchers(API + "/schedule-breaks", API + "/schedule-breaks/**").hasRole("DOCTOR");
                     auth.requestMatchers(HttpMethod.PATCH, API + "/appointments/*/status").hasRole("DOCTOR");
                     auth.requestMatchers(HttpMethod.GET, API + "/medicines", API + "/medicines/**")
                             .hasAnyRole("DOCTOR", "ADMIN");
@@ -130,6 +156,10 @@ public class SecurityConfig {
                     auth.requestMatchers(API + "/patients/me").hasRole("PATIENT");
                     auth.requestMatchers(HttpMethod.GET, API + "/encounters/me").hasRole("PATIENT");
                     auth.requestMatchers(API + "/patients", API + "/patients/**").hasAnyRole("DOCTOR", "ADMIN");
+
+                    // === Thông báo trong ứng dụng: chỉ bệnh nhân và bác sĩ (Admin không có lịch khám) ===
+                    auth.requestMatchers(API + "/notifications", API + "/notifications/**")
+                            .hasAnyRole("PATIENT", "DOCTOR");
 
                     // === Đã đăng nhập; service kiểm tra thêm quyền theo bản ghi ===
                     auth.requestMatchers(API + "/auth/**").authenticated();

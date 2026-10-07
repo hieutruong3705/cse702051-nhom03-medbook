@@ -2,9 +2,11 @@ package com.phenikaa.cse702051.medbook.exception;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -30,6 +32,10 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    /** Tên gói Java hoặc dấu vết ngoại lệ lọt vào thông điệp lỗi. */
+    private static final Pattern INTERNAL_DETAIL = Pattern.compile(
+            "\\b(java|javax|jakarta|org|com|net|io)\\.[a-z][\\w.]*\\.[A-Z]\\w*|Exception\\b|\\bat \\w+\\.");
+
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ApiError> handleApiException(ApiException exception, HttpServletRequest request) {
         return buildResponse(exception.getErrorCode(), exception.getMessage(), request.getRequestURI());
@@ -45,6 +51,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(ErrorCode.ACCOUNT_LOCKED.getStatus()).body(body);
     }
 
+    /** Vượt giới hạn tần suất: 429 kèm header {@code Retry-After} (giây). */
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ApiError> handleTooManyRequests(TooManyRequestsException exception,
+            HttpServletRequest request) {
+        String retryAfter = String.valueOf(exception.getRetryAfterSeconds());
+        ApiError body = ApiError.of(ErrorCode.TOO_MANY_REQUESTS, exception.getMessage(), request.getRequestURI(),
+                Map.of("retryAfterSeconds", retryAfter));
+        return ResponseEntity.status(ErrorCode.TOO_MANY_REQUESTS.getStatus())
+                .header("Retry-After", retryAfter)
+                .body(body);
+    }
+
     /** Lỗi nghiệp vụ gắn với một trường của form (ví dụ mật khẩu cũ sai) → 400 kèm details. */
     @ExceptionHandler(FieldValidationException.class)
     public ResponseEntity<ApiError> handleFieldValidation(FieldValidationException exception,
@@ -52,6 +70,27 @@ public class GlobalExceptionHandler {
         ApiError body = ApiError.of(ErrorCode.VALIDATION_FAILED, exception.getMessage(), request.getRequestURI(),
                 exception.getDetails());
         return ResponseEntity.status(ErrorCode.VALIDATION_FAILED.getStatus()).body(body);
+    }
+
+    /** Giá trị trùng với bản ghi đã có (mã, tên đăng nhập, email...) → 409 kèm details theo trường. */
+    @ExceptionHandler(FieldConflictException.class)
+    public ResponseEntity<ApiError> handleFieldConflict(FieldConflictException exception,
+            HttpServletRequest request) {
+        ApiError body = ApiError.of(ErrorCode.CONFLICT, exception.getMessage(), request.getRequestURI(),
+                exception.getDetails());
+        return ResponseEntity.status(ErrorCode.CONFLICT.getStatus()).body(body);
+    }
+
+    /**
+     * Hai yêu cầu cùng sửa một bản ghi (khóa lạc quan {@code @Version}) hoặc chờ khóa quá lâu. Service nên bắt và
+     * báo thông điệp cụ thể hơn; đây là lớp chặn cuối để xung đột không bao giờ thành lỗi 500.
+     */
+    @ExceptionHandler(ConcurrencyFailureException.class)
+    public ResponseEntity<ApiError> handleConcurrencyFailure(
+            ConcurrencyFailureException exception,
+            HttpServletRequest request) {
+        return buildResponse(ErrorCode.CONFLICT,
+                "Dữ liệu vừa được người khác thay đổi. Vui lòng tải lại và thử lại!", request.getRequestURI());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -94,7 +133,16 @@ public class GlobalExceptionHandler {
             MethodArgumentTypeMismatchException.class
     })
     public ResponseEntity<ApiError> handleBadRequest(Exception exception, HttpServletRequest request) {
-        return buildResponse(ErrorCode.BAD_REQUEST, exception.getMessage(), request.getRequestURI());
+        // Thông điệp gốc của Spring chứa tên lớp Java và chi tiết bộ phân tích JSON: không trả ra ngoài.
+        String message;
+        if (exception instanceof MissingServletRequestParameterException missing) {
+            message = "Thiếu tham số bắt buộc: " + missing.getParameterName();
+        } else if (exception instanceof MethodArgumentTypeMismatchException mismatch) {
+            message = "Tham số '" + mismatch.getName() + "' không đúng định dạng!";
+        } else {
+            message = "Nội dung yêu cầu không đọc được: sai cú pháp JSON hoặc sai kiểu dữ liệu!";
+        }
+        return buildResponse(ErrorCode.BAD_REQUEST, message, request.getRequestURI());
     }
 
     /**
@@ -109,7 +157,8 @@ public class GlobalExceptionHandler {
         StackTraceElement origin = exception.getStackTrace().length > 0 ? exception.getStackTrace()[0] : null;
         log.warn("IllegalArgumentException tại {} {}: {} (nguồn: {})",
                 request.getMethod(), request.getRequestURI(), exception.getMessage(), origin);
-        return buildResponse(ErrorCode.BAD_REQUEST, exception.getMessage(), request.getRequestURI());
+        return buildResponse(ErrorCode.BAD_REQUEST, safeMessage(exception.getMessage(), ErrorCode.BAD_REQUEST),
+                request.getRequestURI());
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -153,14 +202,17 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleMethodNotAllowed(
             HttpRequestMethodNotSupportedException exception,
             HttpServletRequest request) {
-        return buildResponse(ErrorCode.METHOD_NOT_ALLOWED, exception.getMessage(), request.getRequestURI());
+        return buildResponse(ErrorCode.METHOD_NOT_ALLOWED,
+                "Phương thức " + request.getMethod() + " không được hỗ trợ cho đường dẫn này!",
+                request.getRequestURI());
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<ApiError> handleUnsupportedMediaType(
             HttpMediaTypeNotSupportedException exception,
             HttpServletRequest request) {
-        return buildResponse(ErrorCode.UNSUPPORTED_MEDIA_TYPE, exception.getMessage(), request.getRequestURI());
+        return buildResponse(ErrorCode.UNSUPPORTED_MEDIA_TYPE,
+                "Kiểu nội dung (Content-Type) của yêu cầu không được hỗ trợ!", request.getRequestURI());
     }
 
     @ExceptionHandler(ResponseStatusException.class)
@@ -179,7 +231,7 @@ public class GlobalExceptionHandler {
             case 422 -> ErrorCode.UNPROCESSABLE_ENTITY;
             default -> ErrorCode.INTERNAL_ERROR;
         };
-        return buildResponse(errorCode, exception.getReason(), request.getRequestURI());
+        return buildResponse(errorCode, safeMessage(exception.getReason(), errorCode), request.getRequestURI());
     }
 
     @ExceptionHandler(Exception.class)
@@ -187,6 +239,18 @@ public class GlobalExceptionHandler {
         log.error("Lỗi không mong đợi tại {} {}", request.getMethod(), request.getRequestURI(), exception);
         return buildResponse(ErrorCode.INTERNAL_ERROR, ErrorCode.INTERNAL_ERROR.getDefaultMessage(),
                 request.getRequestURI());
+    }
+
+    /**
+     * Thông điệp do mã của ứng dụng viết thì giữ nguyên; thông điệp rỗng hoặc có dấu hiệu sinh từ thư viện (chứa
+     * tên gói Java, ví dụ {@code No enum constant com...}) được thay bằng thông điệp chung để không lộ cấu trúc
+     * bên trong.
+     */
+    private static String safeMessage(String message, ErrorCode errorCode) {
+        if (message == null || message.isBlank() || INTERNAL_DETAIL.matcher(message).find()) {
+            return errorCode.getDefaultMessage();
+        }
+        return message;
     }
 
     private ResponseEntity<ApiError> buildResponse(ErrorCode errorCode, String message, String path) {

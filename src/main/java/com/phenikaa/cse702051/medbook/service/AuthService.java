@@ -23,6 +23,7 @@ import com.phenikaa.cse702051.medbook.exception.ApiException;
 import com.phenikaa.cse702051.medbook.exception.ConflictException;
 import com.phenikaa.cse702051.medbook.exception.FieldValidationException;
 import com.phenikaa.cse702051.medbook.exception.ForbiddenException;
+import com.phenikaa.cse702051.medbook.exception.TooManyRequestsException;
 import com.phenikaa.cse702051.medbook.exception.UnauthorizedException;
 import com.phenikaa.cse702051.medbook.model.Doctor;
 import com.phenikaa.cse702051.medbook.model.Patient;
@@ -37,6 +38,7 @@ import com.phenikaa.cse702051.medbook.repository.UserRepository;
 import com.phenikaa.cse702051.medbook.repository.UserRoleRepository;
 import com.phenikaa.cse702051.medbook.security.CurrentUser;
 import com.phenikaa.cse702051.medbook.security.CurrentUserService;
+import com.phenikaa.cse702051.medbook.security.LoginRateLimiter;
 
 /**
  * Đăng ký, đăng nhập, đổi mật khẩu (YCCN-01, 02, 04).
@@ -45,6 +47,8 @@ import com.phenikaa.cse702051.medbook.security.CurrentUserService;
  * <li>Mật khẩu băm BCrypt (cost do {@code PasswordEncoder} cấu hình, hiện 12); không trả hash.</li>
  * <li>Đăng nhập sai {@code max-failed-logins} lần liên tiếp → khóa {@code lock-minutes} phút.
  * Thông báo sai tên/mật khẩu luôn giống nhau để không lộ tài khoản có tồn tại hay không.</li>
+ * <li>Một địa chỉ IP đăng nhập sai quá nhiều lần trong thời gian ngắn (trên bất kỳ tài khoản nào) → 429,
+ * xem {@link LoginRateLimiter}.</li>
  * <li>Mỗi JWT mang {@code jti} và {@code ver} (xem {@link SessionService}); đổi mật khẩu tăng
  * {@code token_version} nên mọi phiên cũ bị vô hiệu.</li>
  * <li>Đăng nhập thành công/thất bại/khóa đều ghi audit.</li>
@@ -65,6 +69,7 @@ public class AuthService {
     private final LoginSessionService loginSessions;
     private final AuditLogService auditLogService;
     private final CurrentUserService currentUserService;
+    private final LoginRateLimiter loginRateLimiter;
     private final int maxFailedLogins;
     private final int lockMinutes;
 
@@ -81,6 +86,7 @@ public class AuthService {
             LoginSessionService loginSessions,
             AuditLogService auditLogService,
             CurrentUserService currentUserService,
+            LoginRateLimiter loginRateLimiter,
             @Value("${medbook.security.max-failed-logins:5}") int maxFailedLogins,
             @Value("${medbook.security.lock-minutes:15}") int lockMinutes) {
         this.userRepository = userRepository;
@@ -93,6 +99,7 @@ public class AuthService {
         this.loginSessions = loginSessions;
         this.auditLogService = auditLogService;
         this.currentUserService = currentUserService;
+        this.loginRateLimiter = loginRateLimiter;
         this.maxFailedLogins = maxFailedLogins;
         this.lockMinutes = lockMinutes;
     }
@@ -168,6 +175,13 @@ public class AuthService {
     public LoginResponse login(LoginRequest request) {
         String input = request.getUsernameOrEmail().trim();
         LocalDateTime now = LocalDateTime.now();
+
+        // IP này vừa đăng nhập sai quá nhiều lần: từ chối ngay, không tra tài khoản và không xét mật khẩu.
+        long retryAfter = loginRateLimiter.retryAfterSeconds(loginRateLimiter.currentClient());
+        if (retryAfter > 0) {
+            throw new TooManyRequestsException("Bạn đã đăng nhập sai quá nhiều lần. Vui lòng thử lại sau "
+                    + Math.max(1, (retryAfter + 59) / 60) + " phút!", retryAfter);
+        }
 
         Optional<User> found = userRepository.findByUsername(input)
                 .or(() -> userRepository.findByEmail(input.toLowerCase(Locale.ROOT)));
@@ -297,6 +311,12 @@ public class AuthService {
                 user == null ? null : user.getId())
                 .with("username", input)
                 .with("reason", reason));
+        if (loginRateLimiter.recordFailure(loginRateLimiter.currentClient())) {
+            // ghi một lần cho mỗi đợt chạm ngưỡng; các lần bị 429 sau đó không ghi thêm để nhật ký không bị làm ngập
+            auditLogService.recordInCurrentTransaction(AuditEvent.of(AuditActions.LOGIN_RATE_LIMITED,
+                    AuditActions.ENTITY_USERS, user == null ? null : user.getId())
+                    .with("username", input));
+        }
     }
 
     private String lockedMessage(LocalDateTime until, LocalDateTime now) {
