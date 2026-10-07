@@ -157,6 +157,23 @@ describe('AppointmentDetail', () => {
     wrapper.unmount()
   })
 
+  it('hủy lịch bị 422 (lịch đã chuyển sang đang khám): hiện lý do và tải lại trạng thái thật', async () => {
+    appointmentsApi.cancel.mockRejectedValue(
+      new ApiRequestError({ status: 422, code: 'UNPROCESSABLE_ENTITY', message: 'Chỉ có thể hủy lịch hẹn ở trạng thái BOOKED (hiện tại: IN_PROGRESS)!' })
+    )
+    const wrapper = await mountView()
+    appointmentsApi.get.mockClear()
+
+    byText(wrapper.element, 'Hủy lịch').click()
+    await flushPromises()
+    byText(body(), 'Xác nhận hủy').click()
+    await flushPromises()
+
+    expect(body().querySelector('[data-test="cancel-error"]').textContent).toContain('trạng thái BOOKED')
+    expect(appointmentsApi.get).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
+
   it('đổi lịch: chọn ngày và khung giờ mới rồi gửi newSlotId', async () => {
     appointmentsApi.reschedule.mockResolvedValue(booked({ slotId: 202, date: addDays(6), startTime: '10:00:00', endTime: '10:30:00' }))
     const wrapper = await mountView()

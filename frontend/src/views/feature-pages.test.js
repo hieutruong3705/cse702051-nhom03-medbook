@@ -34,7 +34,10 @@ vi.mock('@/api/auth', () => ({
 
 vi.mock('@/api/doctors', () => ({
   doctorsApi: {
-    list: vi.fn().mockResolvedValue({ content: [{ id: 1, fullName: 'Bac si Lan', specialty: { name: 'Noi tong quat' } }] })
+    list: vi.fn().mockResolvedValue({
+      content: [{ id: 1, fullName: 'Bác sĩ Lan', specialtyId: 1, specialtyName: 'Nội tổng quát', bio: 'Mười năm kinh nghiệm' }],
+      page: 0, size: 20, totalElements: 1, totalPages: 1
+    })
   }
 }))
 
@@ -71,7 +74,12 @@ describe('feature page smoke tests', () => {
   it('renders public doctors page with mocked rows', async () => {
     const wrapper = mount(DoctorsView)
     await flushPromises()
-    expect(wrapper.text()).toContain('Bac si Lan')
+    expect(wrapper.text()).toContain('Bác sĩ Lan')
+    expect(wrapper.text()).toContain('Nội tổng quát')
+    // hồ sơ công khai không có số giấy phép; nút đặt lịch mang sẵn mã bác sĩ
+    expect(wrapper.text()).not.toContain('Mã hành nghề')
+    expect(wrapper.find('a[href="/patient/booking?doctorId=1"]').text()).toContain('Đặt lịch')
+    expect(wrapper.find('#doctor-specialty').text()).toContain('Noi tong quat')
   })
 
   it('renders public specialties page with mocked cards', async () => {

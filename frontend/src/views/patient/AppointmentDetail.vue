@@ -177,8 +177,8 @@ async function confirmCancel() {
     toast.success('Đã hủy lịch hẹn')
   } catch (err) {
     actionError.value = apiErrorMessage(err)
-    // 409: trạng thái đã đổi hoặc quá hạn hủy → tải lại để hiển thị đúng thực tế
-    if (err?.status === 409) await reloadQuietly()
+    // 422: lịch không còn ở trạng thái hủy được; 409: quá hạn hủy → tải lại để hiển thị đúng thực tế
+    if (err?.status === 409 || err?.status === 422) await reloadQuietly()
   } finally {
     acting.value = false
   }
@@ -223,6 +223,9 @@ async function confirmReschedule() {
       // Khung giờ mới vừa bị người khác đặt: lịch cũ giữ nguyên; tải lại danh sách giờ, bỏ lựa chọn cũ
       newSlotId.value = null
       refreshKey.value += 1
+      await reloadQuietly()
+    } else if (err?.status === 422) {
+      // Lịch không còn ở trạng thái đổi được (đang khám, đã khám xong hoặc đã hủy)
       await reloadQuietly()
     }
   } finally {

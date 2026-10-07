@@ -70,7 +70,25 @@
       <form v-if="editable" class="mt-5 border-t border-slate-100 pt-4" novalidate :data-test="`item-form-${rx.id}`" @submit.prevent="addItem(rx)">
         <h4 class="text-sm font-semibold text-slate-900">Thêm thuốc</h4>
         <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <BaseInput :id="`rx-${rx.id}-name`" v-model="draftFor(rx).medicineName" label="Tên thuốc" required :error="draftFor(rx).errors.medicineName" />
+          <BaseSelect
+            v-if="medicineOptions.length"
+            :id="`rx-${rx.id}-medicine`"
+            v-model="draftFor(rx).medicineId"
+            label="Thuốc"
+            required
+            placeholder="Chọn thuốc trong danh mục"
+            :options="medicineOptions"
+            :error="draftFor(rx).errors.medicineId"
+          />
+          <BaseInput
+            v-if="needsName(draftFor(rx))"
+            :id="`rx-${rx.id}-name`"
+            v-model="draftFor(rx).medicineName"
+            label="Tên thuốc"
+            required
+            :hint="medicineOptions.length ? 'Thuốc không có trong danh mục của phòng khám.' : ''"
+            :error="draftFor(rx).errors.medicineName"
+          />
           <BaseInput :id="`rx-${rx.id}-quantity`" v-model="draftFor(rx).quantity" label="Số lượng" type="number" required :error="draftFor(rx).errors.quantity" />
           <BaseInput :id="`rx-${rx.id}-days`" v-model="draftFor(rx).durationDays" label="Số ngày dùng" type="number" :error="draftFor(rx).errors.durationDays" />
           <BaseInput :id="`rx-${rx.id}-dosage`" v-model="draftFor(rx).dosage" label="Liều dùng" placeholder="VD: 1 viên" :error="draftFor(rx).errors.dosage" />
@@ -97,8 +115,9 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
-import { BaseButton, BaseInput, ConfirmDialog, LoadingSpinner, StatusBadge } from '@/components/ui'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { BaseButton, BaseInput, BaseSelect, ConfirmDialog, LoadingSpinner, StatusBadge } from '@/components/ui'
+import { catalogApi } from '@/api/catalog'
 import { prescriptionItemsApi } from '@/api/prescriptionItems'
 import { prescriptionsApi } from '@/api/prescriptions'
 import { useToast } from '@/composables/useToast'
@@ -125,7 +144,23 @@ const removeOpen = ref(false)
 const removing = ref(null)
 const removeBusy = ref(false)
 
+// Thuốc lấy từ danh mục do Quản trị viên quản lý; máy chủ chép tên thuốc vào đơn và từ chối thuốc đã ngừng dùng.
+// Khi không tải được danh mục (hoặc danh mục trống), biểu mẫu quay về ô nhập tên để bác sĩ vẫn kê được đơn.
+const OTHER_MEDICINE = 'other'
+const medicines = ref([])
+const medicineOptions = computed(() =>
+  medicines.value.length
+    ? [
+        ...medicines.value.map((item) => ({ label: item.unit ? `${item.name} (${item.unit})` : item.name, value: String(item.id) })),
+        { label: 'Thuốc ngoài danh mục (tự nhập tên)', value: OTHER_MEDICINE }
+      ]
+    : []
+)
+const fromCatalog = (draft) => medicineOptions.value.length > 0 && draft.medicineId !== '' && draft.medicineId !== OTHER_MEDICINE
+const needsName = (draft) => !medicineOptions.value.length || draft.medicineId === OTHER_MEDICINE
+
 const blankDraft = () => ({
+  medicineId: '',
   medicineName: '',
   quantity: '',
   durationDays: '',
@@ -143,6 +178,15 @@ function draftFor(rx) {
 }
 
 const list = (response) => (Array.isArray(response) ? response : (response?.content ?? []))
+
+async function loadMedicines() {
+  if (!props.editable) return
+  try {
+    medicines.value = list(await catalogApi.medicines.list({ status: 'ACTIVE', size: 100 }))
+  } catch {
+    medicines.value = []
+  }
+}
 
 async function load() {
   loading.value = true
@@ -182,16 +226,22 @@ async function createPrescription() {
 
 function validate(draft) {
   const errors = {}
-  const name = draft.medicineName.trim()
-  if (!name) errors.medicineName = 'Phải nhập tên thuốc'
-  else if (name.length > 200) errors.medicineName = 'Tên thuốc tối đa 200 ký tự'
+  if (medicineOptions.value.length && draft.medicineId === '') {
+    errors.medicineId = 'Phải chọn thuốc'
+  } else if (needsName(draft)) {
+    const name = draft.medicineName.trim()
+    if (!name) errors.medicineName = 'Phải nhập tên thuốc'
+    else if (name.length > 200) errors.medicineName = 'Tên thuốc tối đa 200 ký tự'
+  }
 
   const quantity = Number(draft.quantity)
   if (draft.quantity === '' || !Number.isFinite(quantity) || quantity <= 0) errors.quantity = 'Số lượng phải lớn hơn 0'
+  else if (!Number.isInteger(quantity) || quantity > 999) errors.quantity = 'Số lượng phải là số nguyên từ 1 đến 999'
 
   if (draft.durationDays !== '') {
     const days = Number(draft.durationDays)
     if (!Number.isInteger(days) || days <= 0) errors.durationDays = 'Số ngày phải là số nguyên dương'
+    else if (days > 365) errors.durationDays = 'Số ngày tối đa 365'
   }
   if (draft.dosage.length > 100) errors.dosage = 'Liều dùng tối đa 100 ký tự'
   if (draft.frequency.length > 100) errors.frequency = 'Tần suất tối đa 100 ký tự'
@@ -209,7 +259,7 @@ async function addItem(rx) {
   draft.saving = true
   try {
     const created = await prescriptionItemsApi.create(rx.id, {
-      medicineName: draft.medicineName.trim(),
+      ...(fromCatalog(draft) ? { medicineId: Number(draft.medicineId) } : { medicineName: draft.medicineName.trim() }),
       quantity: Number(draft.quantity),
       durationDays: draft.durationDays === '' ? undefined : Number(draft.durationDays),
       dosage: draft.dosage.trim() || undefined,
@@ -249,5 +299,8 @@ async function confirmRemove() {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  loadMedicines()
+})
 </script>
