@@ -134,7 +134,7 @@ class AppointmentReportTest extends AbstractApiTest {
         IsolatedDoctor doctor = data.isolatedDoctor("rpt_empty_doc");
         LocalDate day = ReportFixtures.freshDay();
 
-        for (String groupBy : new String[] { "NONE", "DAY", "DOCTOR", "SPECIALTY" }) {
+        for (String groupBy : new String[] { "NONE", "DAY", "MONTH", "YEAR", "DOCTOR", "SPECIALTY" }) {
             JsonNode report = report(get(URL).param("from", day.toString()).param("to", day.toString())
                     .param("doctorId", String.valueOf(doctor.doctorId())).param("groupBy", groupBy));
             assertEquals(0, report.get("total").asInt());
@@ -273,7 +273,7 @@ class AppointmentReportTest extends AbstractApiTest {
         Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
         statistics.setStatisticsEnabled(true);
 
-        for (String groupBy : new String[] { "NONE", "DAY", "DOCTOR", "SPECIALTY" }) {
+        for (String groupBy : new String[] { "NONE", "DAY", "MONTH", "YEAR", "DOCTOR", "SPECIALTY" }) {
             statistics.clear();
             AppointmentReportDTO report = reportService.report(day, day.plusDays(2), null, null, groupBy);
             long queries = statistics.getPrepareStatementCount();

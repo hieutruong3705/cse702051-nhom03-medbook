@@ -133,6 +133,44 @@ public interface AppointmentReportRepository extends Repository<Appointment, Lon
             @Param("doctorId") Long doctorId,
             @Param("specialtyId") Long specialtyId);
 
+    /** Mỗi dòng: {@code [Integer năm, Integer tháng, AppointmentStatus, Long số lịch]}, tháng tăng dần. */
+    @Query("""
+            select year(s.slotDate), month(s.slotDate), a.status, count(a)
+            from Appointment a
+            join a.slot s
+            join a.doctor d
+            left join d.specialty sp
+            where s.slotDate between :from and :to
+              and (:doctorId is null or d.id = :doctorId)
+              and (:specialtyId is null or sp.id = :specialtyId)
+            group by year(s.slotDate), month(s.slotDate), a.status
+            order by year(s.slotDate), month(s.slotDate)
+            """)
+    List<Object[]> countByMonthAndStatus(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("doctorId") Long doctorId,
+            @Param("specialtyId") Long specialtyId);
+
+    /** Mỗi dòng: {@code [Integer năm, AppointmentStatus, Long số lịch]}, năm tăng dần. */
+    @Query("""
+            select year(s.slotDate), a.status, count(a)
+            from Appointment a
+            join a.slot s
+            join a.doctor d
+            left join d.specialty sp
+            where s.slotDate between :from and :to
+              and (:doctorId is null or d.id = :doctorId)
+              and (:specialtyId is null or sp.id = :specialtyId)
+            group by year(s.slotDate), a.status
+            order by year(s.slotDate)
+            """)
+    List<Object[]> countByYearAndStatus(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("doctorId") Long doctorId,
+            @Param("specialtyId") Long specialtyId);
+
     /** Mỗi dòng: {@code [Long id bác sĩ, String tên bác sĩ, AppointmentStatus, Long số lịch]}, theo tên. */
     @Query("""
             select d.id, d.fullName, a.status, count(a)

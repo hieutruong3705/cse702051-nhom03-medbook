@@ -37,6 +37,7 @@ public class InvoiceReportService {
     public static final String GROUP_NONE = "NONE";
     public static final String GROUP_DAY = "DAY";
     public static final String GROUP_MONTH = "MONTH";
+    public static final String GROUP_YEAR = "YEAR";
 
     private static final int DEFAULT_DAYS = 30;
     private static final int MAX_DAYS = 366;
@@ -61,7 +62,7 @@ public class InvoiceReportService {
     /**
      * @param from    ngày lập đầu tiên được tính; bỏ trống cả hai đầu → 30 ngày gần nhất
      * @param to      ngày lập cuối cùng được tính (trọn ngày); khoảng tối đa 366 ngày
-     * @param groupBy {@code NONE} (mặc định), {@code DAY} hoặc {@code MONTH}; giá trị khác → 400
+     * @param groupBy {@code NONE} (mặc định), {@code DAY}, {@code MONTH} hoặc {@code YEAR}; giá trị khác → 400
      */
     @Transactional(readOnly = true)
     public RevenueReportDTO revenue(LocalDate from, LocalDate to, String groupBy) {
@@ -90,6 +91,13 @@ public class InvoiceReportService {
                             .totals.add((String) row[2], ((Number) row[3]).longValue(), amount(row[4]));
                 }
             }
+            case GROUP_YEAR -> {
+                for (Object[] row : invoiceRepository.sumByYearAndStatus(start, endExclusive)) {
+                    String year = "%04d".formatted(number(row[0]));
+                    groups.computeIfAbsent(year, GroupTotals::new)
+                            .totals.add((String) row[1], ((Number) row[2]).longValue(), amount(row[3]));
+                }
+            }
             default -> {
                 for (Object[] row : invoiceRepository.sumByStatus(start, endExclusive)) {
                     overall.add((String) row[0], ((Number) row[1]).longValue(), amount(row[2]));
@@ -109,13 +117,15 @@ public class InvoiceReportService {
     }
 
     /**
-     * Xuất báo cáo doanh thu ra CSV: một dòng cho mỗi ngày hoặc tháng (mặc định theo ngày), kèm dòng tổng cộng.
+     * Xuất báo cáo doanh thu ra CSV: một dòng cho mỗi ngày, tháng hoặc năm (mặc định theo ngày), kèm dòng tổng cộng.
      * {@code groupBy=NONE} chỉ có dòng tổng cộng.
      */
     @Transactional(readOnly = true)
     public CsvExport exportRevenueCsv(LocalDate from, LocalDate to, String groupBy) {
         RevenueReportDTO report = revenue(from, to, groupBy == null || groupBy.isBlank() ? GROUP_DAY : groupBy);
-        CsvWriter csv = new CsvWriter().row(GROUP_MONTH.equals(report.groupBy()) ? "Tháng" : "Ngày",
+        String period = GROUP_YEAR.equals(report.groupBy()) ? "Năm"
+                : GROUP_MONTH.equals(report.groupBy()) ? "Tháng" : "Ngày";
+        CsvWriter csv = new CsvWriter().row(period,
                 "Giá trị lập hóa đơn", "Đã thu", "Chưa thu", "Số hóa đơn", "Số hóa đơn đã hủy");
         for (RevenueReportDTO.Group group : report.groups()) {
             csv.row(group.label(), group.invoicedAmount(), group.collectedAmount(), group.unpaidAmount(),
@@ -185,8 +195,9 @@ public class InvoiceReportService {
         }
         String normalized = groupBy.trim().toUpperCase(Locale.ROOT);
         return switch (normalized) {
-            case GROUP_NONE, GROUP_DAY, GROUP_MONTH -> normalized;
-            default -> throw new FieldValidationException("groupBy", "Chỉ nhóm được theo NONE, DAY hoặc MONTH");
+            case GROUP_NONE, GROUP_DAY, GROUP_MONTH, GROUP_YEAR -> normalized;
+            default -> throw new FieldValidationException("groupBy",
+                    "Chỉ nhóm được theo NONE, DAY, MONTH hoặc YEAR");
         };
     }
 

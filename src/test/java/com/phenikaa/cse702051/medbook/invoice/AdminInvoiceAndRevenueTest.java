@@ -397,6 +397,15 @@ class AdminInvoiceAndRevenueTest extends AbstractApiTest {
         assertEquals(new BigDecimal("0.75"), money(april, "collectedAmount"));
         assertEquals(1, april.get("voidCount").asInt());
         assertReconciles(byMonth);
+
+        JsonNode byYear = adminGet(get(REVENUE).param("from", "2001-03-01").param("to", "2001-04-30")
+                .param("groupBy", "year"));
+        assertEquals("YEAR", byYear.get("groupBy").asText());
+        assertEquals(1, byYear.get("groups").size());
+        assertEquals("2001", byYear.get("groups").get(0).get("key").asText());
+        assertEquals("2001", byYear.get("groups").get(0).get("label").asText());
+        assertEquals(new BigDecimal("250001.50"), money(byYear.get("groups").get(0), "invoicedAmount"));
+        assertReconciles(byYear);
     }
 
     private static void assertReconciles(JsonNode report) {
@@ -445,7 +454,7 @@ class AdminInvoiceAndRevenueTest extends AbstractApiTest {
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.details.to").exists());
         mvc.perform(get(REVENUE).param("groupBy", "week").header("Authorization", adminToken()))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.details.groupBy").value("Chỉ nhóm được theo NONE, DAY hoặc MONTH"));
+                .andExpect(jsonPath("$.details.groupBy").value("Chỉ nhóm được theo NONE, DAY, MONTH hoặc YEAR"));
 
         JsonNode recent = adminGet(get(REVENUE));
         assertEquals(LocalDate.now().minusDays(29).toString(), recent.get("from").asText());
