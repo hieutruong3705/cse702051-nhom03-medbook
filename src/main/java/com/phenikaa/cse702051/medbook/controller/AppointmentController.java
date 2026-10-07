@@ -18,7 +18,6 @@ import com.phenikaa.cse702051.medbook.model.Appointment;
 import com.phenikaa.cse702051.medbook.model.AppointmentStatus;
 import com.phenikaa.cse702051.medbook.service.AppointmentReportService;
 import com.phenikaa.cse702051.medbook.service.AppointmentService;
-
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -26,9 +25,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AppointmentController {
 
-    private final AppointmentService appointmentService;
-    private final AppointmentReportService reportService;
-private final AppointmentService appointmentService;
+   private final AppointmentService appointmentService;
+private final AppointmentReportService reportService;
+private final AuditLogService auditLogService;
 
     // YCCN 10, 11: Đặt lịch khám
 @PostMapping
