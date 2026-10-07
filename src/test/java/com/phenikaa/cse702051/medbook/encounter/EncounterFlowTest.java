@@ -143,7 +143,7 @@ class EncounterFlowTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("Bắt đầu khám hai lần → 409; lịch đã hủy/đã hoàn thành → 409, trạng thái không đổi")
+    @DisplayName("Bắt đầu khám hai lần → 409; lịch đã hủy/đã hoàn thành → 422, trạng thái không đổi")
     void startOnlyFromBookedAndOnlyOnce() throws Exception {
         IsolatedDoctor doc = data.isolatedDoctor("enc_twice");
         IsolatedPatient pat = data.isolatedPatient("enc_twice");
@@ -154,11 +154,11 @@ class EncounterFlowTest extends AbstractApiTest {
         assertEquals(AppointmentStatus.IN_PROGRESS, statusOf(booked.getId()));
 
         Appointment cancelled = data.newAppointment(doc.doctorId(), pat.patientId(), AppointmentStatus.CANCELLED);
-        startExam(doc.token(), cancelled.getId()).andExpect(status().isConflict());
+        startExam(doc.token(), cancelled.getId()).andExpect(status().isUnprocessableContent());
         assertEquals(AppointmentStatus.CANCELLED, statusOf(cancelled.getId()));
 
         Appointment completed = data.newAppointment(doc.doctorId(), pat.patientId(), AppointmentStatus.COMPLETED);
-        startExam(doc.token(), completed.getId()).andExpect(status().isConflict());
+        startExam(doc.token(), completed.getId()).andExpect(status().isUnprocessableContent());
         assertEquals(AppointmentStatus.COMPLETED, statusOf(completed.getId()));
     }
 

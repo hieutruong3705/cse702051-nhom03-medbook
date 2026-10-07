@@ -191,7 +191,7 @@ class AppointmentBookingTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("Hủy lịch không cần body; hủy lần 2 → 409; lịch người khác → 403; không tồn tại → 404")
+    @DisplayName("Hủy lịch không cần body; hủy lần 2 → 422; lịch người khác → 403; không tồn tại → 404")
     void cancelRules() throws Exception {
         long id = bookOk(patientToken(), slot.getId());
 
@@ -200,7 +200,7 @@ class AppointmentBookingTest extends AbstractApiTest {
 
         mvc.perform(patch("/api/v1/appointments/" + id + "/cancel").header("Authorization", patientToken()))
                 .andExpect(status().isOk());
-        patchJson(patientToken(), "/api/v1/appointments/" + id + "/cancel", "{}").andExpect(status().isConflict());
+        patchJson(patientToken(), "/api/v1/appointments/" + id + "/cancel", "{}").andExpect(status().isUnprocessableContent());
         patchJson(patientToken(), "/api/v1/appointments/99999999/cancel", "{}").andExpect(status().isNotFound());
         patchJson(doctorToken(), "/api/v1/appointments/" + id + "/cancel", "{}").andExpect(status().isForbidden());
     }
@@ -310,18 +310,18 @@ class AppointmentBookingTest extends AbstractApiTest {
     // ---------- trạng thái khám ----------
 
     @Test
-    @DisplayName("Máy trạng thái: BOOKED → IN_PROGRESS → COMPLETED đúng thứ tự; nhảy cóc hoặc đi lùi → 409")
+    @DisplayName("Máy trạng thái: BOOKED → IN_PROGRESS → COMPLETED đúng thứ tự; nhảy cóc hoặc đi lùi → 422")
     void statusTransitions() throws Exception {
         long id = bookOk(patientToken(), slot.getId());
         String url = "/api/v1/appointments/" + id + "/status";
 
-        patchJson(doctorToken(), url, "{\"status\":\"COMPLETED\"}").andExpect(status().isConflict());
+        patchJson(doctorToken(), url, "{\"status\":\"COMPLETED\"}").andExpect(status().isUnprocessableContent());
         patchJson(doctorToken(), url, "{\"status\":\"IN_PROGRESS\"}")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("IN_PROGRESS"));
-        patchJson(doctorToken(), url, "{\"status\":\"IN_PROGRESS\"}").andExpect(status().isConflict());
+        patchJson(doctorToken(), url, "{\"status\":\"IN_PROGRESS\"}").andExpect(status().isUnprocessableContent());
         patchJson(doctorToken(), url, "{\"status\":\"COMPLETED\"}")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("COMPLETED"));
-        patchJson(doctorToken(), url, "{\"status\":\"IN_PROGRESS\"}").andExpect(status().isConflict());
+        patchJson(doctorToken(), url, "{\"status\":\"IN_PROGRESS\"}").andExpect(status().isUnprocessableContent());
         assertEquals(AppointmentStatus.COMPLETED, reloadAppointment(id).getStatus());
         assertEquals(1, appointments.countActiveBySlotId(slot.getId()), "lịch đã khám xong vẫn giữ slot");
     }
@@ -345,16 +345,16 @@ class AppointmentBookingTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("Đang khám hoặc đã khám xong thì bệnh nhân không hủy/đổi được (409)")
+    @DisplayName("Đang khám hoặc đã khám xong thì bệnh nhân không hủy/đổi được (422)")
     void cannotCancelOnceExaminationStarted() throws Exception {
         long id = bookOk(patientToken(), slot.getId());
         patchJson(doctorToken(), "/api/v1/appointments/" + id + "/status", "{\"status\":\"IN_PROGRESS\"}")
                 .andExpect(status().isOk());
 
-        patchJson(patientToken(), "/api/v1/appointments/" + id + "/cancel", "{}").andExpect(status().isConflict());
+        patchJson(patientToken(), "/api/v1/appointments/" + id + "/cancel", "{}").andExpect(status().isUnprocessableContent());
         AppointmentSlot target = data.futureSlot(ApiTestData.DOCTOR1_ID);
         patchJson(patientToken(), "/api/v1/appointments/" + id + "/reschedule",
-                "{\"newSlotId\":%d}".formatted(target.getId())).andExpect(status().isConflict());
+                "{\"newSlotId\":%d}".formatted(target.getId())).andExpect(status().isUnprocessableContent());
         assertEquals("BOOKED", reload(slot).getStatus());
     }
 

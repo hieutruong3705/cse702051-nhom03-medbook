@@ -106,6 +106,39 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    @DisplayName("UnprocessableEntityException → 422 UNPROCESSABLE_ENTITY, giữ nguyên thông điệp")
+    void unprocessableEntity() {
+        var response = handler.handleApiException(
+                new UnprocessableEntityException("Ca làm việc chồng giờ"), request("/api/v1/doctor-schedules"));
+
+        assertError(response, 422, ErrorCode.UNPROCESSABLE_ENTITY, "/api/v1/doctor-schedules");
+        assertEquals("Ca làm việc chồng giờ", response.getBody().message());
+        assertEquals(java.util.Map.of(), response.getBody().details());
+    }
+
+    @Test
+    @DisplayName("FieldConflictException → 409 CONFLICT kèm details theo tên trường")
+    void fieldConflictCarriesDetails() {
+        var response = handler.handleFieldConflict(
+                new FieldConflictException("code", "Mã đã được sử dụng"), request("/api/v1/admin/specialties"));
+
+        assertError(response, 409, ErrorCode.CONFLICT, "/api/v1/admin/specialties");
+        assertEquals("Mã đã được sử dụng", response.getBody().message());
+        assertEquals(java.util.Map.of("code", "Mã đã được sử dụng"), response.getBody().details());
+    }
+
+    @Test
+    @DisplayName("Xung đột khóa lạc quan chưa được service bắt → 409, không phải 500")
+    void concurrencyFailureBecomesConflict() {
+        var response = handler.handleConcurrencyFailure(
+                new org.springframework.dao.OptimisticLockingFailureException("row was updated"), request("/a"));
+
+        assertError(response, 409, ErrorCode.CONFLICT, "/a");
+        assertEquals("Dữ liệu vừa được người khác thay đổi. Vui lòng tải lại và thử lại!",
+                response.getBody().message());
+    }
+
+    @Test
     @DisplayName("Lỗi bất ngờ → 500 ApiError, không lộ nội dung ngoại lệ")
     void unexpectedError() {
         var response = handler.handleUnexpected(new RuntimeException("bí mật nội bộ"), request("/a"));
