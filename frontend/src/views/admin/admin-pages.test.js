@@ -528,7 +528,13 @@ describe('trang quản trị', () => {
       expect(wrapper.text()).toContain('12')
       expect(wrapper.text()).toContain('Giá trị lập hóa đơn')
       expect(wrapper.text()).toContain('Siêu âm')
-      expect(wrapper.findAll('[role="img"]')).toHaveLength(3)
+      // mỗi báo cáo có một biểu đồ tròn (tỷ trọng) và một biểu đồ cột hoặc thanh ngang kèm bảng số liệu
+      expect(wrapper.findAll('[role="img"]')).toHaveLength(6)
+      expect(wrapper.findAll('svg[role="img"]')).toHaveLength(3)
+      expect(wrapper.text()).toContain('Tỷ lệ lịch khám theo trạng thái')
+      expect(wrapper.text()).toContain('Tỷ lệ đã thu và chưa thu')
+      expect(wrapper.text()).toContain('Tỷ trọng thành tiền theo dịch vụ')
+      expect(wrapper.text()).toContain('70%')
       expect(wrapper.findAll('table')).toHaveLength(3)
       expect(wrapper.find('#report-appointment-group').text()).not.toContain('Tuần')
 
@@ -538,6 +544,44 @@ describe('trang quản trị', () => {
       await wrapper.find('#report-revenue-group').setValue('MONTH')
       await flushPromises()
       expect(mocks.reportRevenue).toHaveBeenLastCalledWith({ groupBy: 'MONTH' })
+    })
+
+    it('lọc nhanh theo khoảng thời gian và nhóm theo tháng, năm', async () => {
+      resetMocks()
+      const wrapper = mount(AdminReportsView)
+      await flushPromises()
+      const today = new Date()
+      const iso = (date) =>
+        `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+
+      await wrapper.find('#report-period').setValue('THIS_YEAR')
+      await flushPromises()
+      const year = { from: `${today.getFullYear()}-01-01`, to: iso(today) }
+      expect(mocks.reportAppointments).toHaveBeenLastCalledWith({ ...year, groupBy: 'DAY' })
+      expect(mocks.reportRevenue).toHaveBeenLastCalledWith({ ...year, groupBy: 'DAY' })
+      expect(mocks.reportServices).toHaveBeenLastCalledWith(year)
+      expect(wrapper.find('#report-from').element.value).toBe(year.from)
+
+      await wrapper.find('#report-period').setValue('THIS_MONTH')
+      await flushPromises()
+      expect(mocks.reportServices).toHaveBeenLastCalledWith({ from: iso(new Date(today.getFullYear(), today.getMonth(), 1)), to: iso(today) })
+
+      await wrapper.find('#report-appointment-group').setValue('YEAR')
+      await wrapper.find('#report-revenue-group').setValue('YEAR')
+      await flushPromises()
+      expect(mocks.reportAppointments).toHaveBeenLastCalledWith(expect.objectContaining({ groupBy: 'YEAR' }))
+      expect(mocks.reportRevenue).toHaveBeenLastCalledWith(expect.objectContaining({ groupBy: 'YEAR' }))
+
+      // tự nhập ngày thì bộ chọn nhanh chuyển sang "Tùy chọn" và không tự tải lại
+      const calls = mocks.reportServices.mock.calls.length
+      await wrapper.find('#report-from').setValue('2026-01-15')
+      await flushPromises()
+      expect(wrapper.find('#report-period').element.value).toBe('CUSTOM')
+      expect(mocks.reportServices.mock.calls.length).toBe(calls)
+
+      await wrapper.find('#report-period').setValue('LAST_30')
+      await flushPromises()
+      expect(mocks.reportServices).toHaveBeenLastCalledWith({})
     })
 
     it('xuất CSV cho cả ba báo cáo theo khoảng ngày đang chọn', async () => {
