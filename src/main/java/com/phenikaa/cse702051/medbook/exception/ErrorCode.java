@@ -13,6 +13,7 @@ public enum ErrorCode {
     PAYLOAD_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE,"Tệp hoặc nội dung gửi lên quá lớn"),
     UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Content-Type không được hỗ trợ"),
     UNPROCESSABLE_ENTITY(HttpStatus.UNPROCESSABLE_CONTENT,"Dữ liệu hợp lệ về cú pháp nhưng không thể xử lý"),
+    TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "Quá nhiều yêu cầu, vui lòng thử lại sau"),
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "Phương thức HTTP không được hỗ trợ"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống");
 

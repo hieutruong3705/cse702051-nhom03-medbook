@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.phenikaa.cse702051.medbook.config.RequestIdFilter;
 import com.phenikaa.cse702051.medbook.exception.ErrorCode;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -36,6 +37,7 @@ public class ApiErrorWriter {
         body.put("message", message == null || message.isBlank() ? errorCode.getDefaultMessage() : message);
         body.put("path", request.getRequestURI());
         body.put("details", Map.of());
+        body.put("requestId", RequestIdFilter.currentRequestId());
 
         response.setStatus(errorCode.getStatus().value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

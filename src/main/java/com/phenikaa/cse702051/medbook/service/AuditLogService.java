@@ -2,7 +2,6 @@ package com.phenikaa.cse702051.medbook.service;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -15,7 +14,6 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.phenikaa.cse702051.medbook.dto.AuditLogDTO;
 import com.phenikaa.cse702051.medbook.model.AuditLog;
 import com.phenikaa.cse702051.medbook.model.MedicalRecord;
 import com.phenikaa.cse702051.medbook.repository.AuditLogRepository;
@@ -100,35 +98,6 @@ public class AuditLogService {
                 medicalRecord.getId())
                 .with("accessType", "VIEW_MEDICAL_RECORD")
                 .byActor(currentUser == null ? null : currentUser.userId()));
-    }
-
-    /**
-     * Danh sách audit tối giản của bản cũ; sẽ thay bằng {@code AuditLogQueryService}
-     * có lọc/phân trang ở {@code GET /admin/audit-logs}.
-     */
-    @Transactional(readOnly = true)
-    public List<AuditLogDTO> listAuditLogs(Long actorUserId, String entityType, Long entityId,
-            HttpServletRequest request) {
-        currentUserService.requireRole("ADMIN");
-
-        if (entityType != null && entityId != null) {
-            return auditLogRepository.findByEntityTypeAndEntityId(entityType, entityId)
-                    .stream()
-                    .map(AuditLogDTO::from)
-                    .toList();
-        }
-
-        if (actorUserId != null) {
-            return auditLogRepository.findByActorUserId(actorUserId)
-                    .stream()
-                    .map(AuditLogDTO::from)
-                    .toList();
-        }
-
-        return auditLogRepository.findAll()
-                .stream()
-                .map(AuditLogDTO::from)
-                .toList();
     }
 
     private AuditLog persist(AuditEvent event) {

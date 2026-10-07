@@ -8,7 +8,7 @@ import com.phenikaa.cse702051.medbook.dto.SystemStatusDTO;
 import com.phenikaa.cse702051.medbook.service.SystemStatusService;
 
 @RestController
-@RequestMapping("/api/v1/system")
+@RequestMapping("/api/v1")
 public class SystemStatusController {
 
     private final SystemStatusService systemStatusService;
@@ -17,7 +17,8 @@ public class SystemStatusController {
         this.systemStatusService = systemStatusService;
     }
 
-    @GetMapping("/status")
+    /** {@code /health} là đường dẫn kiểm tra sức khỏe theo quy ước chung; {@code /system/status} giữ cho bản đã triển khai. */
+    @GetMapping({ "/health", "/system/status" })
     public SystemStatusDTO getStatus() {
         return systemStatusService.getStatus();
     }
