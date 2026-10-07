@@ -1,6 +1,7 @@
 package com.phenikaa.cse702051.medbook.controller;
 
-import org.springframework.http.HttpStatus;
+import java.net.URI;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,7 +38,8 @@ public class EncounterController {
     /** Bác sĩ phụ trách bắt đầu khám từ lịch BOOKED: lịch → IN_PROGRESS, tạo lần khám OPEN. */
     @PostMapping
     public ResponseEntity<EncounterDTO> create(@Valid @RequestBody CreateEncounterRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(encounterService.create(request));
+        EncounterDTO created = encounterService.create(request);
+        return ResponseEntity.created(URI.create("/api/v1/encounters/" + created.id())).body(created);
     }
 
     /** Lịch sử khám của bệnh nhân đang đăng nhập, mới nhất trước. */

@@ -15,6 +15,13 @@ public class PrescriptionItem {
     @Column(name = "prescription_id", nullable = false)
     private Long prescriptionId;
 
+    /**
+     * Thuốc trong danh mục mà dòng này được kê từ đó; {@code null} với thuốc ngoài danh mục. Tên thuốc vẫn được
+     * chụp vào {@link #medicineName} tại thời điểm kê nên đổi tên hay ngừng dùng thuốc sau này không làm đổi đơn cũ.
+     */
+    @Column(name = "medicine_id")
+    private Long medicineId;
+
     @Column(name = "medicine_name", nullable = false, length = 200)
     private String medicineName;
 
@@ -53,6 +60,14 @@ public class PrescriptionItem {
 
     public void setPrescriptionId(Long prescriptionId) {
         this.prescriptionId = prescriptionId;
+    }
+
+    public Long getMedicineId() {
+        return medicineId;
+    }
+
+    public void setMedicineId(Long medicineId) {
+        this.medicineId = medicineId;
     }
 
     public String getMedicineName() {
