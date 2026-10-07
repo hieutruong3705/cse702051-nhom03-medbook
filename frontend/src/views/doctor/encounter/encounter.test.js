@@ -44,7 +44,7 @@ vi.mock('@/api/prescriptions', () => ({ prescriptionsApi: { listByEncounter: vi.
 vi.mock('@/api/prescriptionItems', () => ({ prescriptionItemsApi: { listByPrescription: vi.fn(), create: vi.fn(), remove: vi.fn() } }))
 vi.mock('@/api/attachments', () => ({ attachmentsApi: { listByEncounter: vi.fn(), upload: vi.fn(), download: vi.fn(), remove: vi.fn() } }))
 vi.mock('@/api/invoices', () => ({ invoicesApi: { byEncounter: vi.fn(), items: vi.fn(), createForEncounter: vi.fn() } }))
-vi.mock('@/api/catalog', () => ({ catalogApi: { services: { list: vi.fn() } } }))
+vi.mock('@/api/catalog', () => ({ catalogApi: { services: { list: vi.fn() }, medicines: { list: vi.fn() } } }))
 
 vi.mock('./encounterUtils', async (importOriginal) => {
   const actual = await importOriginal()
@@ -86,6 +86,8 @@ beforeEach(() => {
   attachmentsApi.listByEncounter.mockResolvedValue([])
   invoicesApi.byEncounter.mockRejectedValue(apiError(404, 'Lần khám này chưa có hóa đơn'))
   catalogApi.services.list.mockResolvedValue([{ id: 1, name: 'Khám tổng quát', price: 200000 }, { id: 2, name: 'Siêu âm', price: 250000 }])
+  // Mặc định danh mục thuốc trống: biểu mẫu kê đơn dùng ô nhập tên. Test về danh mục tự đặt dữ liệu.
+  catalogApi.medicines.list.mockResolvedValue([])
 })
 
 afterEach(() => {
@@ -394,6 +396,68 @@ describe('EncounterPrescriptionsTab', () => {
     expect(wrapper.find('[data-test="item-32"]').exists()).toBe(true)
     expect(wrapper.find('#rx-20-name').element.value).toBe('')
     wrapper.unmount()
+  })
+
+  it('có danh mục thuốc: bắt buộc chọn thuốc và gửi medicineId, không gửi tên tự nhập', async () => {
+    catalogApi.medicines.list.mockResolvedValue({ content: [{ id: 2, name: 'Amoxicillin 500mg', unit: 'Viên' }, { id: 5, name: 'Vitamin C 500mg', unit: '' }] })
+    prescriptionItemsApi.create.mockResolvedValue({ id: 33, medicineId: 2, medicineName: 'Amoxicillin 500mg', quantity: 14 })
+    const wrapper = await mountTab()
+
+    expect(catalogApi.medicines.list).toHaveBeenCalledWith({ status: 'ACTIVE', size: 100 })
+    const options = wrapper.findAll('#rx-20-medicine option').map((option) => option.text())
+    expect(options).toEqual(['Chọn thuốc trong danh mục', 'Amoxicillin 500mg (Viên)', 'Vitamin C 500mg', 'Thuốc ngoài danh mục (tự nhập tên)'])
+    expect(wrapper.find('#rx-20-name').exists()).toBe(false)
+
+    await wrapper.find('#rx-20-quantity').setValue('14')
+    await wrapper.find('[data-test="item-form-20"]').trigger('submit')
+    expect(wrapper.find('#rx-20-medicine-error').text()).toContain('Phải chọn thuốc')
+    expect(prescriptionItemsApi.create).not.toHaveBeenCalled()
+
+    await wrapper.find('#rx-20-medicine').setValue('2')
+    await wrapper.find('[data-test="item-form-20"]').trigger('submit')
+    await flushPromises()
+    expect(prescriptionItemsApi.create).toHaveBeenCalledWith(20, {
+      medicineId: 2,
+      quantity: 14,
+      durationDays: undefined,
+      dosage: undefined,
+      frequency: undefined,
+      instructions: undefined
+    })
+    expect(wrapper.find('[data-test="item-33"]').text()).toContain('Amoxicillin 500mg')
+    expect(wrapper.find('#rx-20-medicine').element.value).toBe('')
+    wrapper.unmount()
+  })
+
+  it('có danh mục thuốc: chọn "ngoài danh mục" thì hiện ô tên và gửi tên tự nhập', async () => {
+    catalogApi.medicines.list.mockResolvedValue({ content: [{ id: 2, name: 'Amoxicillin 500mg', unit: 'Viên' }] })
+    prescriptionItemsApi.create.mockResolvedValue({ id: 34, medicineName: 'Nước muối sinh lý', quantity: 2 })
+    const wrapper = await mountTab()
+
+    await wrapper.find('#rx-20-medicine').setValue('other')
+    await wrapper.find('#rx-20-quantity').setValue('2')
+    await wrapper.find('[data-test="item-form-20"]').trigger('submit')
+    expect(wrapper.find('#rx-20-name-error').text()).toContain('Phải nhập tên thuốc')
+
+    await wrapper.find('#rx-20-name').setValue('Nước muối sinh lý')
+    await wrapper.find('[data-test="item-form-20"]').trigger('submit')
+    await flushPromises()
+    expect(prescriptionItemsApi.create.mock.calls[0][1]).toMatchObject({ medicineName: 'Nước muối sinh lý', quantity: 2 })
+    expect(prescriptionItemsApi.create.mock.calls[0][1]).not.toHaveProperty('medicineId')
+    wrapper.unmount()
+  })
+
+  it('không tải được danh mục thuốc: vẫn kê được đơn bằng ô nhập tên; chế độ chỉ đọc không gọi danh mục', async () => {
+    catalogApi.medicines.list.mockRejectedValue(apiError(500, 'Lỗi hệ thống'))
+    const wrapper = await mountTab()
+    expect(wrapper.find('#rx-20-medicine').exists()).toBe(false)
+    expect(wrapper.find('#rx-20-name').exists()).toBe(true)
+    wrapper.unmount()
+
+    catalogApi.medicines.list.mockClear()
+    const readonly = await mountTab(false)
+    expect(catalogApi.medicines.list).not.toHaveBeenCalled()
+    readonly.unmount()
   })
 
   it('409 khi thêm thuốc: hiện lỗi và phát stale', async () => {

@@ -144,7 +144,8 @@ async function load() {
     } catch (err) {
       if (err?.status !== 404) throw err
       // 404: lần khám chưa có hóa đơn → hiện biểu mẫu lập mới cùng danh mục dịch vụ
-      services.value = list(await catalogApi.services.list())
+      // size 100: lấy cả danh mục (mặc định máy chủ chỉ trả 20 dịch vụ đầu)
+      services.value = list(await catalogApi.services.list({ size: 100 }))
     }
   } catch (err) {
     loadError.value = apiErrorMessage(err)
@@ -164,6 +165,9 @@ function validate() {
       ok = false
     } else if (!(Number(line.quantity) > 0)) {
       line.error = 'Số lượng phải lớn hơn 0'
+      ok = false
+    } else if (!Number.isInteger(Number(line.quantity)) || Number(line.quantity) > 100) {
+      line.error = 'Số lượng phải là số nguyên từ 1 đến 100'
       ok = false
     }
   })

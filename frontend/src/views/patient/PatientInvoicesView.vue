@@ -59,7 +59,7 @@ async function load() {
   error.value = ''
   try {
     const response = await invoicesApi.mine({ ...filters, page: page.value, size: size.value })
-    rows.value = response.content ?? response.items ?? response
+    rows.value = response?.content ?? []
     setPageResponse(response)
   } catch (err) {
     error.value = apiErrorMessage(err)
