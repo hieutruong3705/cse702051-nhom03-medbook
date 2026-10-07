@@ -1,1 +1,0 @@
-import{r as e}from"./auth-CH9HB6ui.js";var t={create:t=>e.post(`/encounters`,t).then(e=>e.data),mine:(t={})=>e.get(`/encounters/me`,{params:t}).then(e=>e.data),list:(t={})=>e.get(`/encounters`,{params:t}).then(e=>e.data),get:t=>e.get(`/encounters/${t}`).then(e=>e.data),update:(t,n)=>e.put(`/encounters/${t}`,n).then(e=>e.data)};export{t};

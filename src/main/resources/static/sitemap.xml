@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Bản đồ trang. Ứng dụng dùng định tuyến sau dấu # nên chỉ trang gốc là địa chỉ lập chỉ mục được; các mục công
+     khai (bác sĩ, chuyên khoa, dịch vụ) mở từ trang gốc. Khi có tên miền chính thức, thay "/" bằng địa chỉ đầy đủ
+     (https://ten-mien/). -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+</urlset>

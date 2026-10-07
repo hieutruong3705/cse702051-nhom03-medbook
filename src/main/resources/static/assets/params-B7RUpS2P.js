@@ -1,0 +1,1 @@
+function e(e={}){return Object.fromEntries(Object.entries(e).filter(([,e])=>e!==``&&e!=null))}function t(e){let t=e?.details;return t&&typeof t==`object`&&!Array.isArray(t)?t:{}}function n(e,t){let n=URL.createObjectURL(e),r=document.createElement(`a`);r.href=n,r.download=t,document.body.appendChild(r),r.click(),r.remove(),URL.revokeObjectURL(n)}export{n,t as r,e as t};
