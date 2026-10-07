@@ -1,647 +1,455 @@
 package com.phenikaa.cse702051.medbook.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.phenikaa.cse702051.medbook.dto.PageResponse;
+import com.phenikaa.cse702051.medbook.dto.invoice.AdminInvoiceDTO;
+import com.phenikaa.cse702051.medbook.dto.invoice.InvoiceDTO;
+import com.phenikaa.cse702051.medbook.dto.invoice.InvoiceItemDTO;
+import com.phenikaa.cse702051.medbook.dto.invoice.InvoiceLineRequest;
+import com.phenikaa.cse702051.medbook.dto.invoice.InvoiceSummaryDTO;
 import com.phenikaa.cse702051.medbook.exception.ConflictException;
-import com.phenikaa.cse702051.medbook.exception.ForbiddenException;
+import com.phenikaa.cse702051.medbook.exception.FieldValidationException;
 import com.phenikaa.cse702051.medbook.exception.ResourceNotFoundException;
 import com.phenikaa.cse702051.medbook.model.Encounter;
 import com.phenikaa.cse702051.medbook.model.Invoice;
 import com.phenikaa.cse702051.medbook.model.InvoiceItem;
-import com.phenikaa.cse702051.medbook.model.MedicalRecord;
 import com.phenikaa.cse702051.medbook.model.MedicalService;
+import com.phenikaa.cse702051.medbook.model.Patient;
 import com.phenikaa.cse702051.medbook.repository.EncounterRepository;
 import com.phenikaa.cse702051.medbook.repository.InvoiceItemRepository;
 import com.phenikaa.cse702051.medbook.repository.InvoiceRepository;
 import com.phenikaa.cse702051.medbook.repository.MedicalServiceRepository;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import com.phenikaa.cse702051.medbook.repository.PatientRepository;
+import com.phenikaa.cse702051.medbook.security.CurrentUser;
+import com.phenikaa.cse702051.medbook.security.CurrentUserService;
+import com.phenikaa.cse702051.medbook.util.CatalogRules;
+import com.phenikaa.cse702051.medbook.util.DateRanges;
+import com.phenikaa.cse702051.medbook.util.PageRequests;
+import com.phenikaa.cse702051.medbook.util.ReferenceCodes;
+import com.phenikaa.cse702051.medbook.util.SearchTerms;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 
+/**
+ * Hóa đơn của lần khám (YCCN-22). Không có cổng thanh toán: "đã thu" là việc Admin ghi nhận tiền thu tại quầy.
+ *
+ * <ul>
+ * <li><b>Lập</b>: chỉ bác sĩ phụ trách lần khám. Mọi dòng phải là một dịch vụ đang hoạt động trong danh mục; tên
+ * và đơn giá luôn lấy từ danh mục, không bao giờ từ client. Mỗi lần khám (lịch hẹn) có nhiều nhất một hóa đơn,
+ * được bảo đảm bằng UNIQUE({@code appointment_id}) nên hai yêu cầu lập cùng lúc chỉ một yêu cầu thành công.</li>
+ * <li><b>Đọc</b>: bệnh nhân chủ hóa đơn, bác sĩ phụ trách lần khám và Admin (hóa đơn là dữ liệu hành chính, các
+ * dòng là dịch vụ chứ không phải nội dung khám). Người khác → 403 kèm audit.</li>
+ * <li><b>Thu, hủy</b>: chỉ Admin, chỉ từ {@code UNPAID}, bằng cập nhật có điều kiện ở CSDL nên thu và hủy gửi
+ * cùng lúc chỉ một yêu cầu thắng, yêu cầu kia nhận 409.</li>
+ * <li>Tiền dùng {@code BigDecimal} hai chữ số thập phân, làm tròn {@code HALF_UP}.</li>
+ * </ul>
+ */
 @Service
 public class InvoiceService {
 
+    public static final String UNPAID = "UNPAID";
+    public static final String PAID = "PAID";
+    public static final String VOID = "VOID";
+
+    static final int MAX_LINES = 20;
+    static final int MAX_QUANTITY = 100;
+    private static final BigDecimal MAX_TOTAL = new BigDecimal("9999999999.99");
+    private static final int MAX_VOID_REASON = 255;
+    private static final Sort NEWEST_FIRST = Sort.by(Sort.Direction.DESC, "issuedAt")
+            .and(Sort.by(Sort.Direction.DESC, "id"));
+    private static final String ALREADY_INVOICED = "Lần khám này đã có hóa đơn";
+
     private final InvoiceRepository invoiceRepository;
-    private final InvoiceItemRepository invoiceItemRepository;
+    private final InvoiceItemRepository itemRepository;
     private final EncounterRepository encounterRepository;
     private final EncounterService encounterService;
     private final MedicalRecordService medicalRecordService;
-    private final Dev4AuthorizationService authorizationService;
-    private final MedicalServiceRepository medicalServiceRepository;
+    private final MedicalServiceRepository serviceRepository;
+    private final PatientRepository patientRepository;
+    private final EncounterAccessPolicy policy;
+    private final CurrentUserService currentUserService;
+    private final CurrentActorService currentActorService;
+    private final AuditLogService auditLogService;
 
     public InvoiceService(
             InvoiceRepository invoiceRepository,
-            InvoiceItemRepository invoiceItemRepository,
+            InvoiceItemRepository itemRepository,
             EncounterRepository encounterRepository,
             EncounterService encounterService,
             MedicalRecordService medicalRecordService,
-            Dev4AuthorizationService authorizationService,
-            MedicalServiceRepository medicalServiceRepository
-    ) {
+            MedicalServiceRepository serviceRepository,
+            PatientRepository patientRepository,
+            EncounterAccessPolicy policy,
+            CurrentUserService currentUserService,
+            CurrentActorService currentActorService,
+            AuditLogService auditLogService) {
         this.invoiceRepository = invoiceRepository;
-        this.invoiceItemRepository = invoiceItemRepository;
+        this.itemRepository = itemRepository;
         this.encounterRepository = encounterRepository;
         this.encounterService = encounterService;
         this.medicalRecordService = medicalRecordService;
-        this.authorizationService = authorizationService;
-        this.medicalServiceRepository = medicalServiceRepository;
+        this.serviceRepository = serviceRepository;
+        this.patientRepository = patientRepository;
+        this.policy = policy;
+        this.currentUserService = currentUserService;
+        this.currentActorService = currentActorService;
+        this.auditLogService = auditLogService;
     }
 
-    // ============================================================
-    // CREATE INVOICE
-    // ============================================================
-
-    @Transactional
-    public Invoice createInvoice(
-            Long encounterId,
-            List<InvoiceItem> items,
-            BigDecimal discountAmount
-    ) {
-
-        if (encounterId == null || encounterId <= 0) {
-            throw new IllegalArgumentException(
-                    "Encounter ID không hợp lệ"
-            );
-        }
-
-        if (items == null || items.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Hóa đơn phải có ít nhất một sản phẩm/dịch vụ"
-            );
-        }
-
-        if (discountAmount == null) {
-            discountAmount = BigDecimal.ZERO;
-        }
-
-        if (discountAmount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException(
-                    "Discount không được âm"
-            );
-        }
-
-        // ========================================================
-        // 1. KIỂM TRA ENCOUNTER
-        // ========================================================
-
-        Encounter encounter =
-                encounterService.getById(encounterId);
-
-        // Chỉ doctor phụ trách encounter mới được tạo invoice
-        authorizationService.assertDoctorOwnsEncounter(
-                encounter
-        );
-
-        // ========================================================
-        // 2. LẤY MEDICAL RECORD
-        // ========================================================
-
-        MedicalRecord medicalRecord =
-                medicalRecordService.findById(
-                        encounter.getMedicalRecordId()
-                );
-
-        Long patientId =
-                medicalRecord.getPatientId();
-
-        if (patientId == null) {
-            throw new IllegalArgumentException(
-                    "Medical record chưa có patient ID"
-            );
-        }
-
-        // ========================================================
-        // 3. MỘT APPOINTMENT CHỈ GẮN MỘT INVOICE
-        // ========================================================
-
-        Long appointmentId =
-                encounter.getAppointmentId();
-
-        if (appointmentId != null
-                && invoiceRepository.existsByAppointmentId(
-                        appointmentId
-                )) {
-
-            throw new ConflictException(
-                    "Lần khám này đã có hóa đơn"
-            );
-        }
-
-        // ========================================================
-        // 4. TÍNH SUBTOTAL
-        // ========================================================
-
-        BigDecimal subtotal =
-                BigDecimal.ZERO;
-
-        for (InvoiceItem item : items) {
-
-            if (item == null) {
-                throw new IllegalArgumentException(
-                        "Invoice item không được null"
-                );
-            }
-
-            // Dòng hóa đơn luôn là bản ghi MỚI: không cho client truyền id để ghi đè dòng của hóa đơn khác.
-            item.setId(null);
-
-            // Dòng gắn với dịch vụ: đơn giá và tên lấy từ danh mục phía server, bỏ qua giá client gửi lên.
-            if (item.getServiceId() != null) {
-                MedicalService service =
-                        medicalServiceRepository.findById(item.getServiceId())
-                                .orElseThrow(() ->
-                                        new ResourceNotFoundException(
-                                                "Không tìm thấy dịch vụ với ID: "
-                                                        + item.getServiceId()
-                                        )
-                                );
-
-                if (!"ACTIVE".equalsIgnoreCase(service.getStatus())) {
-                    throw new IllegalArgumentException(
-                            "Dịch vụ \"" + service.getName()
-                                    + "\" đã ngừng sử dụng"
-                    );
-                }
-
-                item.setUnitPrice(service.getPrice());
-
-                if (item.getDescription() == null
-                        || item.getDescription().isBlank()) {
-                    item.setDescription(service.getName());
-                }
-            }
-
-            if (item.getDescription() == null
-                    || item.getDescription()
-                    .trim()
-                    .isEmpty()) {
-
-                throw new IllegalArgumentException(
-                        "Description của invoice item không được để trống"
-                );
-            }
-
-            if (item.getQuantity() == null
-                    || item.getQuantity()
-                    .compareTo(BigDecimal.ZERO) <= 0) {
-
-                throw new IllegalArgumentException(
-                        "Quantity phải lớn hơn 0"
-                );
-            }
-
-            if (item.getUnitPrice() == null
-                    || item.getUnitPrice()
-                    .compareTo(BigDecimal.ZERO) < 0) {
-
-                throw new IllegalArgumentException(
-                        "Unit price không được âm"
-                );
-            }
-
-            BigDecimal lineTotal =
-                    item.getQuantity()
-                            .multiply(
-                                    item.getUnitPrice()
-                            );
-
-            item.setDescription(
-                    item.getDescription().trim()
-            );
-
-            item.setLineTotal(lineTotal);
-
-            subtotal =
-                    subtotal.add(lineTotal);
-        }
-
-        // ========================================================
-        // 5. TÍNH TOTAL
-        // ========================================================
-
-        BigDecimal totalAmount =
-                subtotal.subtract(
-                        discountAmount
-                );
-
-        if (totalAmount.compareTo(
-                BigDecimal.ZERO
-        ) < 0) {
-
-            throw new IllegalArgumentException(
-                    "Discount không được lớn hơn subtotal"
-            );
-        }
-
-        // ========================================================
-        // 6. TẠO INVOICE
-        // ========================================================
-
-        Invoice invoice =
-                new Invoice();
-
-        invoice.setInvoiceCode(
-                generateInvoiceCode()
-        );
-
-        invoice.setPatientId(
-                patientId
-        );
-
-        invoice.setAppointmentId(
-                appointmentId
-        );
-
-        invoice.setSubtotal(
-                subtotal
-        );
-
-        invoice.setDiscountAmount(
-                discountAmount
-        );
-
-        invoice.setTotalAmount(
-                totalAmount
-        );
-
-        invoice.setStatus(
-                "UNPAID"
-        );
-
-        invoice.setIssuedAt(
-                LocalDateTime.now()
-        );
-
-        Invoice savedInvoice =
-                invoiceRepository.save(
-                        invoice
-                );
-
-        // ========================================================
-        // 7. LƯU INVOICE ITEMS
-        // ========================================================
-
-        LocalDateTime now =
-                LocalDateTime.now();
-
-        for (InvoiceItem item : items) {
-
-            item.setInvoiceId(
-                    savedInvoice.getId()
-            );
-
-            if (item.getCreatedAt() == null) {
-                item.setCreatedAt(now);
-            }
-
-            invoiceItemRepository.save(item);
-        }
-
-        return savedInvoice;
-    }
-
-    // ============================================================
-    // GET INVOICE BY ID
-    // ============================================================
-
-    @Transactional(readOnly = true)
-    public Invoice getInvoiceById(
-            Long invoiceId
-    ) {
-
-        if (invoiceId == null || invoiceId <= 0) {
-            throw new IllegalArgumentException(
-                    "Invoice ID không hợp lệ"
-            );
-        }
-
-        Invoice invoice =
-                invoiceRepository.findById(
-                        invoiceId
-                ).orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Không tìm thấy hóa đơn với ID: "
-                                        + invoiceId
-                        )
-                );
-
-        assertInvoiceAccess(invoice);
-
-        return invoice;
-    }
-
-    // ============================================================
-    // GET INVOICE BY ENCOUNTER
-    // ============================================================
+    // ================= Lập hóa đơn (bác sĩ phụ trách) =================
 
     /**
-     * Hóa đơn của một lần khám (qua lịch hẹn). Chỉ bệnh nhân chủ lần khám hoặc bác sĩ phụ trách xem được
-     * (kiểm tra bằng {@code EncounterService.getAccessibleById}); chưa lập hóa đơn → 404.
+     * Lập hóa đơn cho lần khám (đang mở hoặc đã hoàn thành đều được).
+     *
+     * @param lines          các dòng {@code {serviceId, quantity}}: 1–20 dòng, không lặp dịch vụ, số lượng nguyên 1–100
+     * @param discountAmount giảm giá, {@code 0 ≤ giảm giá ≤ tạm tính}
      */
-    @Transactional(readOnly = true)
-    public Invoice getByEncounter(
-            Long encounterId
-    ) {
-
-        Encounter encounter =
-                encounterService.getAccessibleById(
-                        encounterId
-                );
-
-        Long appointmentId =
-                encounter.getAppointmentId();
-
-        return (appointmentId == null
-                ? java.util.Optional.<Invoice>empty()
-                : invoiceRepository.findByAppointmentId(
-                        appointmentId
-                ))
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Lần khám này chưa có hóa đơn"
-                        )
-                );
-    }
-
-    // ============================================================
-    // GET INVOICE ITEMS
-    // ============================================================
-
-    @Transactional(readOnly = true)
-    public List<InvoiceItem> getInvoiceItems(
-            Long invoiceId
-    ) {
-
-        getInvoiceById(invoiceId);
-
-        return invoiceItemRepository.findByInvoiceId(
-                invoiceId
-        );
-    }
-
-    // ============================================================
-    // GET MY INVOICES
-    // ============================================================
-
-    @Transactional(readOnly = true)
-    public List<Invoice> getMyInvoices() {
-
-        if (!isPatient()) {
-            throw new ForbiddenException(
-                    "Chỉ bệnh nhân mới được sử dụng chức năng này"
-            );
-        }
-
-        Long currentPatientId =
-                authorizationService.getCurrentPatientId();
-
-        return invoiceRepository.findByPatientId(
-                currentPatientId
-        );
-    }
-
-    // ============================================================
-    // GET INVOICES BY PATIENT
-    // ============================================================
-
-    @Transactional(readOnly = true)
-    public List<Invoice> getInvoicesByPatient(
-            Long patientId
-    ) {
-
-        if (!isPatient()) {
-            throw new IllegalArgumentException(
-                    "Chỉ bệnh nhân mới được sử dụng chức năng này"
-            );
-        }
-
-        Long currentPatientId =
-                authorizationService.getCurrentPatientId();
-
-        if (!currentPatientId.equals(patientId)) {
-            throw new IllegalArgumentException(
-                    "Bạn không có quyền xem hóa đơn của bệnh nhân khác"
-            );
-        }
-
-        return invoiceRepository.findByPatientId(
-                currentPatientId
-        );
-    }
-
-    // ============================================================
-    // GET ALL INVOICES - ADMIN
-    // ============================================================
-
-    @Transactional(readOnly = true)
-    public List<Invoice> getAllInvoices() {
-
-        return invoiceRepository.findAll();
-    }
-
-    // ============================================================
-    // MARK AS PAID
-    // ============================================================
-
     @Transactional
-    public Invoice markAsPaid(
-            Long invoiceId
-    ) {
+    public InvoiceDTO create(Long encounterId, List<InvoiceLineRequest> lines, BigDecimal discountAmount) {
+        Encounter encounter = encounterService.getById(encounterId);
+        policy.assertDoctorOwns(encounter);
 
-        Invoice invoice =
-                getInvoiceById(invoiceId);
+        BigDecimal discount = discountOf(discountAmount);
+        Map<Long, Integer> quantities = quantitiesOf(lines);
+        Map<Long, MedicalService> services = activeServices(quantities.keySet());
 
-        if ("VOID".equalsIgnoreCase(
-                invoice.getStatus()
-        )) {
-
-            throw new IllegalArgumentException(
-                    "Không thể thanh toán hóa đơn đã VOID"
-            );
+        Long appointmentId = encounter.getAppointmentId();
+        if (appointmentId == null) {
+            throw new ConflictException("Lần khám này không gắn với lịch hẹn nên không lập được hóa đơn!");
+        }
+        if (invoiceRepository.existsByAppointmentId(appointmentId)) {
+            throw new ConflictException(ALREADY_INVOICED);
         }
 
-        if ("PAID".equalsIgnoreCase(
-                invoice.getStatus()
-        )) {
+        List<InvoiceItem> items = new ArrayList<>();
+        BigDecimal subtotal = BigDecimal.ZERO.setScale(2);
+        for (Map.Entry<Long, Integer> line : quantities.entrySet()) {
+            MedicalService service = services.get(line.getKey());
+            BigDecimal unitPrice = money(service.getPrice());
+            BigDecimal lineTotal = money(unitPrice.multiply(BigDecimal.valueOf(line.getValue())));
+            InvoiceItem item = new InvoiceItem();
+            item.setServiceId(service.getId());
+            item.setDescription(service.getName());
+            item.setQuantity(BigDecimal.valueOf(line.getValue()));
+            item.setUnitPrice(unitPrice);
+            item.setLineTotal(lineTotal);
+            items.add(item);
+            subtotal = subtotal.add(lineTotal);
+        }
+        if (discount.compareTo(subtotal) > 0) {
+            throw new FieldValidationException("discountAmount", "Giảm giá không được lớn hơn tạm tính");
+        }
+        BigDecimal total = subtotal.subtract(discount);
+        if (total.compareTo(MAX_TOTAL) > 0) {
+            throw new FieldValidationException("items", "Tổng giá trị hóa đơn vượt quá giới hạn cho phép");
+        }
 
+        LocalDateTime now = LocalDateTime.now();
+        Invoice invoice = new Invoice();
+        invoice.setInvoiceCode(ReferenceCodes.next("INV", now.toLocalDate(), invoiceRepository::existsByInvoiceCode));
+        invoice.setPatientId(medicalRecordService.findById(encounter.getMedicalRecordId()).getPatientId());
+        invoice.setAppointmentId(appointmentId);
+        invoice.setSubtotal(subtotal);
+        invoice.setDiscountAmount(discount);
+        invoice.setTotalAmount(total);
+        invoice.setStatus(UNPAID);
+        invoice.setIssuedAt(now);
+        try {
+            invoice = invoiceRepository.saveAndFlush(invoice);
+        } catch (DataIntegrityViolationException e) {
+            // UNIQUE(appointment_id): một yêu cầu khác vừa lập hóa đơn cho cùng lần khám
+            throw new ConflictException(ALREADY_INVOICED);
+        }
+        for (InvoiceItem item : items) {
+            item.setInvoiceId(invoice.getId());
+        }
+        List<InvoiceItem> saved = itemRepository.saveAll(items);
+
+        auditLogService.recordInCurrentTransaction(AuditEvent.of(AuditActions.INVOICE_CREATE,
+                AuditActions.ENTITY_INVOICES, invoice.getId())
+                .with("encounterId", encounterId)
+                .with("totalAmount", total.toPlainString()));
+        return InvoiceDTO.from(invoice, patientNameOf(invoice.getPatientId()), encounterId,
+                saved.stream().map(InvoiceItemDTO::from).toList());
+    }
+
+    // ================= Đọc =================
+
+    /** Hóa đơn của một lần khám: bệnh nhân chủ hoặc bác sĩ phụ trách (Admin → 403); chưa lập → 404. */
+    @Transactional(readOnly = true)
+    public InvoiceDTO getByEncounter(Long encounterId) {
+        Encounter encounter = encounterService.getById(encounterId);
+        policy.assertCanRead(encounter);
+        Invoice invoice = (encounter.getAppointmentId() == null
+                ? Optional.<Invoice>empty()
+                : invoiceRepository.findByAppointmentId(encounter.getAppointmentId()))
+                .orElseThrow(() -> new ResourceNotFoundException("Lần khám này chưa có hóa đơn"));
+        return toDTO(invoice, encounterId);
+    }
+
+    /** Chi tiết hóa đơn: bệnh nhân chủ, bác sĩ phụ trách lần khám hoặc Admin. */
+    @Transactional(readOnly = true)
+    public InvoiceDTO get(Long invoiceId) {
+        Invoice invoice = readable(invoiceId);
+        return toDTO(invoice, encounterIdOf(invoice));
+    }
+
+    @Transactional(readOnly = true)
+    public List<InvoiceItemDTO> listItems(Long invoiceId) {
+        readable(invoiceId);
+        return itemsOf(invoiceId);
+    }
+
+    /** Hóa đơn của bệnh nhân đang đăng nhập, mới nhất trước; lọc theo trạng thái và ngày lập. */
+    @Transactional(readOnly = true)
+    public PageResponse<InvoiceSummaryDTO> listMine(String status, LocalDate from, LocalDate to, int page,
+            int size) {
+        currentUserService.requireRole("PATIENT");
+        Long patientId = currentActorService.requireCurrentPatientId();
+        DateRanges.requireOrdered(from, to);
+        Specification<Invoice> filter = filter(statusOf(status), from, to, null)
+                .and((root, query, cb) -> cb.equal(root.get("patientId"), patientId));
+        Page<Invoice> result = invoiceRepository.findAll(filter, PageRequests.of(page, size, NEWEST_FIRST));
+        return PageResponse.from(result, InvoiceSummaryDTO::from);
+    }
+
+    /** Mọi hóa đơn cho Admin; {@code keyword} khớp mã hóa đơn, tên hoặc mã bệnh nhân. */
+    @Transactional(readOnly = true)
+    public PageResponse<AdminInvoiceDTO> listForAdmin(String status, LocalDate from, LocalDate to, String keyword,
+            int page, int size) {
+        currentUserService.requireRole("ADMIN");
+        DateRanges.requireOrdered(from, to);
+        Page<Invoice> result = invoiceRepository.findAll(filter(statusOf(status), from, to, keyword),
+                PageRequests.of(page, size, NEWEST_FIRST));
+        // Tra bệnh nhân theo lô: một truy vấn cho cả trang
+        Map<Long, Patient> patients = new HashMap<>();
+        patientRepository.findAllById(result.getContent().stream().map(Invoice::getPatientId).toList())
+                .forEach(patient -> patients.put(patient.getId(), patient));
+        return PageResponse.from(result, invoice -> AdminInvoiceDTO.from(invoice,
+                patients.get(invoice.getPatientId())));
+    }
+
+    // ================= Thu và hủy (Admin) =================
+
+    /** Ghi nhận đã thu. Chỉ từ {@code UNPAID}; đã thu, đã hủy hoặc thua một yêu cầu đồng thời → 409. */
+    @Transactional
+    public AdminInvoiceDTO collect(Long invoiceId) {
+        currentUserService.requireRole("ADMIN");
+        if (invoiceRepository.markPaid(invoiceId, LocalDateTime.now()) == 0) {
+            throw notChangeable(invoiceId, "thu");
+        }
+        return afterTransition(invoiceId, AuditActions.INVOICE_COLLECT);
+    }
+
+    /** Hủy hóa đơn chưa thu, bắt buộc có lý do. Đã thu, đã hủy hoặc thua một yêu cầu đồng thời → 409. */
+    @Transactional
+    public AdminInvoiceDTO voidInvoice(Long invoiceId, String reason) {
+        currentUserService.requireRole("ADMIN");
+        if (reason == null || reason.isBlank()) {
+            throw new FieldValidationException("reason", "Phải nhập lý do hủy hóa đơn");
+        }
+        String trimmed = reason.trim();
+        if (trimmed.length() > MAX_VOID_REASON) {
+            throw new FieldValidationException("reason", "Lý do hủy tối đa " + MAX_VOID_REASON + " ký tự");
+        }
+        if (invoiceRepository.markVoid(invoiceId, trimmed, LocalDateTime.now()) == 0) {
+            throw notChangeable(invoiceId, "hủy");
+        }
+        return afterTransition(invoiceId, AuditActions.INVOICE_VOID);
+    }
+
+    // ================= Chi tiết =================
+
+    private AdminInvoiceDTO afterTransition(Long invoiceId, String action) {
+        Invoice invoice = find(invoiceId);
+        auditLogService.recordInCurrentTransaction(AuditEvent.of(action, AuditActions.ENTITY_INVOICES, invoiceId)
+                .with("totalAmount", invoice.getTotalAmount().toPlainString()));
+        return AdminInvoiceDTO.from(invoice, patientRepository.findById(invoice.getPatientId()).orElse(null));
+    }
+
+    /** Không cập nhật được dòng nào: hóa đơn không tồn tại (404) hoặc không còn ở trạng thái chưa thu (409). */
+    private RuntimeException notChangeable(Long invoiceId, String action) {
+        Invoice invoice = find(invoiceId);
+        String state = PAID.equals(invoice.getStatus()) ? "đã thu" : VOID.equals(invoice.getStatus()) ? "đã hủy"
+                : "vừa được người khác xử lý";
+        return new ConflictException("Không thể " + action + " hóa đơn " + invoice.getInvoiceCode() + " vì hóa đơn "
+                + state + ". Chỉ hóa đơn chưa thu mới " + action + " được!");
+    }
+
+    private Invoice find(Long invoiceId) {
+        return invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hóa đơn!"));
+    }
+
+    /** Hóa đơn mà người gọi được đọc; người không liên quan → 403 kèm audit {@code ACCESS_DENIED}. */
+    private Invoice readable(Long invoiceId) {
+        Invoice invoice = find(invoiceId);
+        CurrentUser user = currentUserService.requireCurrentUser();
+        if (user.hasRole("ADMIN")) {
             return invoice;
         }
-
-        invoice.setStatus("PAID");
-
-        invoice.setPaidAt(
-                LocalDateTime.now()
-        );
-
-        return invoiceRepository.save(
-                invoice
-        );
+        boolean owner = user.hasRole("PATIENT") && currentActorService.findCurrentPatientId()
+                .map(patientId -> patientId.equals(invoice.getPatientId())).orElse(false);
+        if (owner) {
+            return invoice;
+        }
+        boolean attendingDoctor = user.hasRole("DOCTOR") && invoice.getAppointmentId() != null
+                && currentActorService.findCurrentDoctorId()
+                        .flatMap(doctorId -> encounterRepository.findByAppointmentId(invoice.getAppointmentId())
+                                .map(encounter -> doctorId.equals(encounter.getDoctorId())))
+                        .orElse(false);
+        if (attendingDoctor) {
+            return invoice;
+        }
+        throw policy.deny(AuditActions.ENTITY_INVOICES, invoiceId, "Không phải bệnh nhân chủ hóa đơn hay bác sĩ phụ trách");
     }
 
-    // ============================================================
-    // VOID INVOICE
-    // ============================================================
-
-    @Transactional
-    public Invoice voidInvoice(
-            Long invoiceId
-    ) {
-
-        Invoice invoice =
-                getInvoiceById(invoiceId);
-
-        if ("PAID".equalsIgnoreCase(
-                invoice.getStatus()
-        )) {
-
-            throw new IllegalArgumentException(
-                    "Không thể VOID hóa đơn đã thanh toán"
-            );
-        }
-
-        invoice.setStatus("VOID");
-
-        return invoiceRepository.save(
-                invoice
-        );
+    private InvoiceDTO toDTO(Invoice invoice, Long encounterId) {
+        return InvoiceDTO.from(invoice, patientNameOf(invoice.getPatientId()), encounterId,
+                itemsOf(invoice.getId()));
     }
 
-    // ============================================================
-    // INVOICE AUTHORIZATION
-    // ============================================================
+    private List<InvoiceItemDTO> itemsOf(Long invoiceId) {
+        return itemRepository.findByInvoiceIdOrderByIdAsc(invoiceId).stream().map(InvoiceItemDTO::from).toList();
+    }
 
-    private void assertInvoiceAccess(
-            Invoice invoice
-    ) {
-
-        if (invoice == null) {
-            throw new IllegalArgumentException(
-                    "Invoice không tồn tại"
-            );
+    private Long encounterIdOf(Invoice invoice) {
+        if (invoice.getAppointmentId() == null) {
+            return null;
         }
+        return encounterRepository.findByAppointmentId(invoice.getAppointmentId()).map(Encounter::getId).orElse(null);
+    }
 
-        // --------------------------------------------------------
-        // PATIENT
-        // --------------------------------------------------------
+    private String patientNameOf(Long patientId) {
+        return patientRepository.findById(patientId).map(Patient::getFullName).orElse(null);
+    }
 
-        if (isPatient()) {
-
-            Long currentPatientId =
-                    authorizationService.getCurrentPatientId();
-
-            if (!currentPatientId.equals(
-                    invoice.getPatientId()
-            )) {
-
-                throw new ForbiddenException(
-                        "Bạn không có quyền truy cập hóa đơn này"
-                );
+    /** Dịch vụ của các dòng, tra theo lô. Không tồn tại → 404; đã ngừng sử dụng → 400 ở trường {@code serviceId}. */
+    private Map<Long, MedicalService> activeServices(Set<Long> serviceIds) {
+        Map<Long, MedicalService> services = new HashMap<>();
+        serviceRepository.findAllById(serviceIds).forEach(service -> services.put(service.getId(), service));
+        for (Long serviceId : serviceIds) {
+            MedicalService service = services.get(serviceId);
+            if (service == null) {
+                throw new ResourceNotFoundException("Không tìm thấy dịch vụ với ID: " + serviceId);
             }
-
-            return;
-        }
-
-        // --------------------------------------------------------
-        // DOCTOR
-        // --------------------------------------------------------
-
-        if (isDoctor()) {
-
-            Long appointmentId =
-                    invoice.getAppointmentId();
-
-            if (appointmentId == null) {
-                throw new IllegalArgumentException(
-                        "Hóa đơn này không gắn với appointment"
-                );
+            if (!CatalogRules.isActive(service.getStatus())) {
+                throw new FieldValidationException("serviceId",
+                        "Dịch vụ \"" + service.getName() + "\" đã ngừng sử dụng");
             }
-
-            Encounter encounter =
-                    encounterRepository
-                            .findByAppointmentId(
-                                    appointmentId
-                            )
-                            .orElseThrow(() ->
-                                    new IllegalArgumentException(
-                                            "Không tìm thấy encounter của hóa đơn"
-                                    )
-                            );
-
-            authorizationService.assertDoctorOwnsEncounter(
-                    encounter
-            );
-
-            return;
         }
-
-        throw new ForbiddenException(
-                "Bạn không có quyền truy cập hóa đơn này"
-        );
+        return services;
     }
 
-    // ============================================================
-    // ROLE HELPERS
-    // ============================================================
-
-    private boolean isPatient() {
-
-        Authentication authentication =
-                SecurityContextHolder
-                        .getContext()
-                        .getAuthentication();
-
-        return authentication != null
-                && authentication.getAuthorities()
-                .stream()
-                .anyMatch(authority ->
-                        "ROLE_PATIENT".equals(
-                                authority.getAuthority()
-                        )
-                );
+    /** Kiểm tra các dòng và trả {dịch vụ → số lượng} theo đúng thứ tự client gửi. */
+    private static Map<Long, Integer> quantitiesOf(List<InvoiceLineRequest> lines) {
+        if (lines == null || lines.isEmpty()) {
+            throw new FieldValidationException("items", "Hóa đơn phải có ít nhất một dịch vụ");
+        }
+        if (lines.size() > MAX_LINES) {
+            throw new FieldValidationException("items", "Hóa đơn tối đa " + MAX_LINES + " dòng");
+        }
+        Map<Long, Integer> quantities = new java.util.LinkedHashMap<>();
+        Set<Long> seen = new HashSet<>();
+        for (InvoiceLineRequest line : lines) {
+            if (line == null || line.serviceId() == null) {
+                throw new FieldValidationException("serviceId", "Mỗi dòng hóa đơn phải chọn một dịch vụ trong danh mục");
+            }
+            if (!seen.add(line.serviceId())) {
+                throw new FieldValidationException("serviceId", "Một dịch vụ chỉ được xuất hiện một lần trong hóa đơn");
+            }
+            quantities.put(line.serviceId(), quantityOf(line.quantity()));
+        }
+        return quantities;
     }
 
-    private boolean isDoctor() {
-
-        Authentication authentication =
-                SecurityContextHolder
-                        .getContext()
-                        .getAuthentication();
-
-        return authentication != null
-                && authentication.getAuthorities()
-                .stream()
-                .anyMatch(authority ->
-                        "ROLE_DOCTOR".equals(
-                                authority.getAuthority()
-                        )
-                );
+    private static int quantityOf(BigDecimal quantity) {
+        if (quantity == null || quantity.signum() <= 0) {
+            throw new FieldValidationException("quantity", "Số lượng phải lớn hơn 0");
+        }
+        if (quantity.stripTrailingZeros().scale() > 0) {
+            throw new FieldValidationException("quantity", "Số lượng phải là số nguyên");
+        }
+        if (quantity.compareTo(BigDecimal.valueOf(MAX_QUANTITY)) > 0) {
+            throw new FieldValidationException("quantity", "Số lượng tối đa " + MAX_QUANTITY);
+        }
+        return quantity.intValueExact();
     }
 
-    // ============================================================
-    // GENERATE INVOICE CODE
-    // ============================================================
+    private static BigDecimal discountOf(BigDecimal discountAmount) {
+        if (discountAmount == null) {
+            return BigDecimal.ZERO.setScale(2);
+        }
+        if (discountAmount.signum() < 0) {
+            throw new FieldValidationException("discountAmount", "Giảm giá không được âm");
+        }
+        if (discountAmount.stripTrailingZeros().scale() > 2) {
+            throw new FieldValidationException("discountAmount", "Giảm giá chỉ có tối đa hai chữ số thập phân");
+        }
+        return money(discountAmount);
+    }
 
-    private String generateInvoiceCode() {
+    private static BigDecimal money(BigDecimal value) {
+        return value.setScale(2, RoundingMode.HALF_UP);
+    }
 
-        String code;
+    private static String statusOf(String status) {
+        if (status == null || status.isBlank()) {
+            return null;
+        }
+        String normalized = status.trim().toUpperCase(Locale.ROOT);
+        if (!UNPAID.equals(normalized) && !PAID.equals(normalized) && !VOID.equals(normalized)) {
+            throw new FieldValidationException("status", "Trạng thái hóa đơn phải là UNPAID, PAID hoặc VOID");
+        }
+        return normalized;
+    }
 
-        do {
-            code =
-                    "INV-"
-                            + UUID.randomUUID()
-                            .toString()
-                            .substring(0, 8)
-                            .toUpperCase();
-
-        } while (
-                invoiceRepository
-                        .existsByInvoiceCode(code)
-        );
-
-        return code;
+    /** Lọc theo trạng thái, ngày lập (tính trọn hai đầu) và từ khóa (mã hóa đơn, tên hoặc mã bệnh nhân). */
+    private static Specification<Invoice> filter(String status, LocalDate from, LocalDate to, String keyword) {
+        return (root, query, cb) -> {
+            List<Predicate> all = new ArrayList<>();
+            if (status != null) {
+                all.add(cb.equal(root.get("status"), status));
+            }
+            if (from != null) {
+                all.add(cb.greaterThanOrEqualTo(root.get("issuedAt"), from.atStartOfDay()));
+            }
+            if (to != null) {
+                all.add(cb.lessThan(root.get("issuedAt"), to.plusDays(1).atStartOfDay()));
+            }
+            if (!SearchTerms.isBlank(keyword)) {
+                String pattern = SearchTerms.toLikePattern(keyword);
+                Subquery<Long> matchingPatients = query.subquery(Long.class);
+                Root<Patient> patient = matchingPatients.from(Patient.class);
+                matchingPatients.select(patient.get("id")).where(cb.or(
+                        cb.like(cb.lower(patient.get("fullName")), pattern, SearchTerms.ESCAPE),
+                        cb.like(cb.lower(patient.get("patientCode")), pattern, SearchTerms.ESCAPE)));
+                all.add(cb.or(
+                        cb.like(cb.lower(root.get("invoiceCode")), pattern, SearchTerms.ESCAPE),
+                        root.get("patientId").in(matchingPatients)));
+            }
+            return cb.and(all.toArray(Predicate[]::new));
+        };
     }
 }

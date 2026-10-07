@@ -1,5 +1,7 @@
 package com.phenikaa.cse702051.medbook.controller;
 
+import java.net.URI;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -9,7 +11,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -43,7 +44,8 @@ public class AttachmentController {
     @PostMapping(value = "/encounters/{id}/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<AttachmentDTO> upload(@PathVariable Long id, @RequestParam("file") MultipartFile file)
             throws IOException {
-        return ResponseEntity.status(HttpStatus.CREATED).body(attachmentService.upload(id, file));
+        AttachmentDTO created = attachmentService.upload(id, file);
+        return ResponseEntity.created(URI.create("/api/v1/attachments/" + created.id() + "/download")).body(created);
     }
 
     @GetMapping("/encounters/{id}/attachments")

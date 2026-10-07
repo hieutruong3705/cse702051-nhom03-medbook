@@ -4,47 +4,49 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.phenikaa.cse702051.medbook.dto.AppointmentSlotDTO;
-import com.phenikaa.cse702051.medbook.model.Doctor;
+import com.phenikaa.cse702051.medbook.dto.PageResponse;
+import com.phenikaa.cse702051.medbook.dto.doctor.DoctorPublicDTO;
 import com.phenikaa.cse702051.medbook.service.AppointmentSlotService;
 import com.phenikaa.cse702051.medbook.service.DoctorService;
 
-import lombok.RequiredArgsConstructor;
-
+/**
+ * Bác sĩ trên trang công khai (YCCN-08, 09, 25): không cần đăng nhập, chỉ bác sĩ đang hoạt động, không lộ trường
+ * nội bộ. Quản trị hồ sơ bác sĩ nằm ở {@link AdminDoctorController}.
+ */
 @RestController
 @RequestMapping("/api/v1/doctors")
-@RequiredArgsConstructor
 public class DoctorController {
 
     private final DoctorService doctorService;
     private final AppointmentSlotService slotService;
 
-    // YCCN 08, 25: Xem danh sách bác sĩ công khai
-    @GetMapping
-    public ResponseEntity<List<Doctor>> getDoctors(
-            @RequestParam(required = false) Long specialtyId) {
-        if (specialtyId != null) {
-            return ResponseEntity.ok(doctorService.getDoctorsBySpecialty(specialtyId));
-        }
-        return ResponseEntity.ok(doctorService.getAllActiveDoctors());
+    public DoctorController(DoctorService doctorService, AppointmentSlotService slotService) {
+        this.doctorService = doctorService;
+        this.slotService = slotService;
     }
 
-    // Chi tiết bác sĩ
+    /** Tìm bác sĩ theo tên hoặc tên chuyên khoa. {@code sort}: {@code fullName} (mặc định) hoặc {@code id}. */
+    @GetMapping
+    public PageResponse<DoctorPublicDTO> search(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long specialtyId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String sort) {
+        return doctorService.searchActive(keyword, specialtyId, page, size, sort);
+    }
+
     @GetMapping("/{id}")
-    public ResponseEntity<Doctor> getDoctorById(@PathVariable Long id) {
-        return ResponseEntity.ok(doctorService.getDoctorById(id));
+    public DoctorPublicDTO get(@PathVariable Long id) {
+        return doctorService.getActive(id);
     }
 
     // YCCN 09, 10: Slot còn trống của bác sĩ trong một ngày (công khai, theo hợp đồng API mục 7.3)
@@ -53,24 +55,5 @@ public class DoctorController {
             @PathVariable Long id,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return ResponseEntity.ok(slotService.getAvailableSlots(id, date));
-    }
-
-    // YCCN 20: Tạo hồ sơ bác sĩ (Admin)
-    @PostMapping("/admin")
-    public ResponseEntity<Doctor> createDoctor(@RequestBody Doctor doctor) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(doctorService.createDoctorProfile(doctor));
-    }
-
-    // YCCN 20: Sửa hồ sơ bác sĩ (Admin)
-    @PutMapping("/admin/{id}")
-    public ResponseEntity<Doctor> updateDoctor(@PathVariable Long id, @RequestBody Doctor doctor) {
-        return ResponseEntity.ok(doctorService.updateDoctorProfile(id, doctor));
-    }
-
-    // Admin ngừng hoạt động hồ sơ
-    @DeleteMapping("/admin/{id}")
-    public ResponseEntity<Void> deactivateDoctor(@PathVariable Long id) {
-        doctorService.deactivateDoctor(id);
-        return ResponseEntity.noContent().build();
     }
 }

@@ -1,146 +1,72 @@
 package com.phenikaa.cse702051.medbook.controller;
 
-import com.phenikaa.cse702051.medbook.model.Invoice;
-import com.phenikaa.cse702051.medbook.model.InvoiceItem;
-import com.phenikaa.cse702051.medbook.service.InvoiceService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.phenikaa.cse702051.medbook.dto.PageResponse;
+import com.phenikaa.cse702051.medbook.dto.invoice.InvoiceDTO;
+import com.phenikaa.cse702051.medbook.dto.invoice.InvoiceItemDTO;
+import com.phenikaa.cse702051.medbook.dto.invoice.InvoiceLineRequest;
+import com.phenikaa.cse702051.medbook.dto.invoice.InvoiceSummaryDTO;
+import com.phenikaa.cse702051.medbook.service.InvoiceService;
+
+/**
+ * Hóa đơn của lần khám (YCCN-22) cho bác sĩ phụ trách và bệnh nhân. Lần khám và bệnh nhân luôn lấy từ đường dẫn
+ * hoặc JWT; đơn giá không bao giờ nhận từ client. Thu và hủy nằm ở {@link AdminInvoiceController}.
+ */
 @RestController
 @RequestMapping("/api/v1")
 public class InvoiceController {
 
     private final InvoiceService invoiceService;
 
-    public InvoiceController(
-            InvoiceService invoiceService
-    ) {
+    public InvoiceController(InvoiceService invoiceService) {
         this.invoiceService = invoiceService;
     }
 
-    /**
-     * Tạo hóa đơn cho encounter.
-     *
-     * POST /api/encounters/{id}/invoice
-     */
-    @PostMapping("/encounters/{id}/invoice")
-    public ResponseEntity<Invoice> createInvoice(
-            @PathVariable Long id,
-            @RequestParam(
-                    required = false,
-                    defaultValue = "0"
-            ) BigDecimal discountAmount,
-            @RequestBody List<InvoiceItem> items
-    ) {
-        Invoice invoice =
-                invoiceService.createInvoice(
-                        id,
-                        items,
-                        discountAmount
-                );
-
-        return ResponseEntity.ok(invoice);
+    /** Bác sĩ phụ trách lập hóa đơn: body là mảng dòng {@code {serviceId, quantity}}. Đã có hóa đơn → 409. */
+    @PostMapping("/encounters/{encounterId}/invoice")
+    public InvoiceDTO create(
+            @PathVariable Long encounterId,
+            @RequestParam(required = false, defaultValue = "0") BigDecimal discountAmount,
+            @RequestBody List<InvoiceLineRequest> lines) {
+        return invoiceService.create(encounterId, lines, discountAmount);
     }
 
-    /**
-     * Xem hóa đơn của một lần khám (bệnh nhân chủ lần khám hoặc bác sĩ phụ trách).
-     * Chưa lập hóa đơn → 404.
-     *
-     * GET /api/encounters/{id}/invoice
-     */
-    @GetMapping("/encounters/{id}/invoice")
-    public ResponseEntity<Invoice> getInvoiceByEncounter(
-            @PathVariable Long id
-    ) {
-        return ResponseEntity.ok(
-                invoiceService.getByEncounter(id)
-        );
+    /** Hóa đơn của một lần khám (bệnh nhân chủ hoặc bác sĩ phụ trách). Chưa lập → 404. */
+    @GetMapping("/encounters/{encounterId}/invoice")
+    public InvoiceDTO getByEncounter(@PathVariable Long encounterId) {
+        return invoiceService.getByEncounter(encounterId);
     }
 
-    /**
-     * Lấy hóa đơn của bệnh nhân đang đăng nhập.
-     *
-     * GET /api/invoices/me
-     *
-     * Không nhận patientId từ request.
-     */
+    /** Hóa đơn của bệnh nhân đang đăng nhập, mới nhất trước. */
     @GetMapping("/invoices/me")
-    public ResponseEntity<List<Invoice>> getMyInvoices() {
-
-        return ResponseEntity.ok(
-                invoiceService.getMyInvoices()
-        );
+    public PageResponse<InvoiceSummaryDTO> mine(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return invoiceService.listMine(status, from, to, page, size);
     }
 
-    /**
-     * Xem chi tiết hóa đơn.
-     *
-     * GET /api/invoices/{id}
-     */
-    @GetMapping("/invoices/{id}")
-    public ResponseEntity<Invoice> getInvoice(
-            @PathVariable Long id
-    ) {
-        return ResponseEntity.ok(
-                invoiceService.getInvoiceById(id)
-        );
+    @GetMapping("/invoices/{id:\\d+}")
+    public InvoiceDTO get(@PathVariable Long id) {
+        return invoiceService.get(id);
     }
 
-    /**
-     * Xem các dòng của hóa đơn.
-     *
-     * GET /api/invoices/{id}/items
-     */
-    @GetMapping("/invoices/{id}/items")
-    public ResponseEntity<List<InvoiceItem>> getInvoiceItems(
-            @PathVariable Long id
-    ) {
-        return ResponseEntity.ok(
-                invoiceService.getInvoiceItems(id)
-        );
-    }
-
-    /**
-     * Admin xem toàn bộ hóa đơn.
-     *
-     * GET /api/admin/invoices
-     */
-    @GetMapping("/admin/invoices")
-    public ResponseEntity<List<Invoice>> getAllInvoices() {
-
-        return ResponseEntity.ok(
-                invoiceService.getAllInvoices()
-        );
-    }
-
-    /**
-     * Đánh dấu hóa đơn đã thanh toán.
-     *
-     * PUT /api/invoices/{id}/pay
-     */
-    @PutMapping("/invoices/{id}/pay")
-    public ResponseEntity<Invoice> markAsPaid(
-            @PathVariable Long id
-    ) {
-        return ResponseEntity.ok(
-                invoiceService.markAsPaid(id)
-        );
-    }
-
-    /**
-     * Hủy hóa đơn.
-     *
-     * PUT /api/invoices/{id}/void
-     */
-    @PutMapping("/invoices/{id}/void")
-    public ResponseEntity<Invoice> voidInvoice(
-            @PathVariable Long id
-    ) {
-        return ResponseEntity.ok(
-                invoiceService.voidInvoice(id)
-        );
+    @GetMapping("/invoices/{id:\\d+}/items")
+    public List<InvoiceItemDTO> items(@PathVariable Long id) {
+        return invoiceService.listItems(id);
     }
 }

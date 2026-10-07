@@ -1,88 +1,60 @@
 package com.phenikaa.cse702051.medbook.controller;
 
-import com.phenikaa.cse702051.medbook.model.PrescriptionItem;
-import com.phenikaa.cse702051.medbook.service.PrescriptionItemService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.phenikaa.cse702051.medbook.dto.prescription.PrescriptionItemDTO;
+import com.phenikaa.cse702051.medbook.dto.prescription.PrescriptionItemRequest;
+import com.phenikaa.cse702051.medbook.service.PrescriptionItemService;
+
+/**
+ * Dòng thuốc của đơn thuốc (YCCN-18). Đơn lấy từ đường dẫn; quyền và khóa theo trạng thái lần khám nằm ở
+ * {@link PrescriptionItemService}. Không có tra cứu dòng thuốc theo tên: việc đó từng làm lộ đơn giữa các bệnh
+ * nhân và giao diện không dùng. Mã dòng thuốc trên đường dẫn chỉ nhận chữ số nên đường dẫn tra cứu cũ trả 404.
+ */
 @RestController
 @RequestMapping("/api/v1")
 public class PrescriptionItemController {
 
     private final PrescriptionItemService prescriptionItemService;
 
-    public PrescriptionItemController(
-            PrescriptionItemService prescriptionItemService
-    ) {
+    public PrescriptionItemController(PrescriptionItemService prescriptionItemService) {
         this.prescriptionItemService = prescriptionItemService;
     }
 
-    // Thêm thuốc vào đơn thuốc
-    // POST /api/prescriptions/{id}/items
-    @PostMapping("/prescriptions/{id}/items")
-    public ResponseEntity<PrescriptionItem> createItem(
-            @PathVariable Long id,
-            @RequestBody PrescriptionItem item
-    ) {
-        return ResponseEntity.ok(
-                prescriptionItemService.create(id, item)
-        );
+    @PostMapping("/prescriptions/{prescriptionId}/items")
+    public PrescriptionItemDTO create(@PathVariable Long prescriptionId,
+            @RequestBody PrescriptionItemRequest request) {
+        return prescriptionItemService.create(prescriptionId, request);
     }
 
-    // Xem danh sách thuốc trong đơn
-    // GET /api/prescriptions/{id}/items
-    @GetMapping("/prescriptions/{id}/items")
-    public ResponseEntity<List<PrescriptionItem>> getItems(
-            @PathVariable Long id
-    ) {
-        return ResponseEntity.ok(
-                prescriptionItemService.getByPrescriptionId(id)
-        );
+    @GetMapping("/prescriptions/{prescriptionId}/items")
+    public List<PrescriptionItemDTO> listByPrescription(@PathVariable Long prescriptionId) {
+        return prescriptionItemService.listByPrescription(prescriptionId);
     }
 
-    // Xem chi tiết một thuốc trong đơn
-    // GET /api/prescription-items/{id}
-    @GetMapping("/prescription-items/{id}")
-    public ResponseEntity<PrescriptionItem> getItem(
-            @PathVariable Long id
-    ) {
-        return ResponseEntity.ok(
-                prescriptionItemService.getById(id)
-        );
+    @GetMapping("/prescription-items/{id:\\d+}")
+    public PrescriptionItemDTO get(@PathVariable Long id) {
+        return prescriptionItemService.get(id);
     }
 
-    // Sửa thuốc trong đơn
-    // PUT /api/prescription-items/{id}
-    @PutMapping("/prescription-items/{id}")
-    public ResponseEntity<PrescriptionItem> updateItem(
-            @PathVariable Long id,
-            @RequestBody PrescriptionItem item
-    ) {
-        return ResponseEntity.ok(
-                prescriptionItemService.update(id, item)
-        );
+    @PutMapping("/prescription-items/{id:\\d+}")
+    public PrescriptionItemDTO update(@PathVariable Long id, @RequestBody PrescriptionItemRequest request) {
+        return prescriptionItemService.update(id, request);
     }
 
-    // Xóa thuốc khỏi đơn
-    // DELETE /api/prescription-items/{id}
-    @DeleteMapping("/prescription-items/{id}")
-    public ResponseEntity<Void> deleteItem(
-            @PathVariable Long id
-    ) {
+    @DeleteMapping("/prescription-items/{id:\\d+}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
         prescriptionItemService.delete(id);
         return ResponseEntity.noContent().build();
-    }
-
-    // Tìm thuốc theo tên
-    // GET /api/prescription-items/search?medicineName=...
-    @GetMapping("/prescription-items/search")
-    public ResponseEntity<List<PrescriptionItem>> searchByMedicineName(
-            @RequestParam String medicineName
-    ) {
-        return ResponseEntity.ok(
-                prescriptionItemService.searchByMedicineName(medicineName)
-        );
     }
 }

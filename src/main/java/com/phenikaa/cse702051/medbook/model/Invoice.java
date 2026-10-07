@@ -39,6 +39,14 @@ public class Invoice {
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
+    /** Thời điểm hóa đơn bị hủy; {@code null} khi chưa hủy. */
+    @Column(name = "voided_at")
+    private LocalDateTime voidedAt;
+
+    /** Lý do hủy do Admin nhập khi hủy hóa đơn. */
+    @Column(name = "void_reason", length = 255)
+    private String voidReason;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -58,6 +66,22 @@ public class Invoice {
     }
 
     public Invoice() {
+    }
+
+    public LocalDateTime getVoidedAt() {
+        return voidedAt;
+    }
+
+    public void setVoidedAt(LocalDateTime voidedAt) {
+        this.voidedAt = voidedAt;
+    }
+
+    public String getVoidReason() {
+        return voidReason;
+    }
+
+    public void setVoidReason(String voidReason) {
+        this.voidReason = voidReason;
     }
 
     public Long getId() {

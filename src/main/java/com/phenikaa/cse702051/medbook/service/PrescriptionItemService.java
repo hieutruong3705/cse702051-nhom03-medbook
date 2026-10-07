@@ -1,326 +1,212 @@
 package com.phenikaa.cse702051.medbook.service;
 
-import com.phenikaa.cse702051.medbook.exception.ForbiddenException;
-import com.phenikaa.cse702051.medbook.exception.ResourceNotFoundException;
-import com.phenikaa.cse702051.medbook.exception.UnauthorizedException;
-import com.phenikaa.cse702051.medbook.model.Prescription;
-import com.phenikaa.cse702051.medbook.model.PrescriptionItem;
-import com.phenikaa.cse702051.medbook.repository.PrescriptionItemRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.phenikaa.cse702051.medbook.dto.prescription.PrescriptionItemDTO;
+import com.phenikaa.cse702051.medbook.dto.prescription.PrescriptionItemRequest;
+import com.phenikaa.cse702051.medbook.exception.FieldValidationException;
+import com.phenikaa.cse702051.medbook.exception.ResourceNotFoundException;
+import com.phenikaa.cse702051.medbook.model.Medicine;
+import com.phenikaa.cse702051.medbook.model.Prescription;
+import com.phenikaa.cse702051.medbook.model.PrescriptionItem;
+import com.phenikaa.cse702051.medbook.repository.PrescriptionItemRepository;
+
+/**
+ * Dòng thuốc của đơn thuốc (YCCN-18). Quyền và khóa theo trạng thái lần khám dùng chung với
+ * {@link PrescriptionService}: ghi chỉ dành cho bác sĩ phụ trách khi lần khám còn OPEN.
+ *
+ * <p>Thuốc lấy từ danh mục khi có {@code medicineId}: thuốc phải đang hoạt động và tên được chép vào dòng thuốc
+ * tại thời điểm kê, nên đổi tên hay ngừng dùng thuốc sau này không làm đổi đơn cũ. Không có {@code medicineId}
+ * thì là thuốc ngoài danh mục và bắt buộc có tên. Một thuốc trong danh mục không được kê lặp trong cùng một đơn;
+ * mỗi đơn tối đa {@value #MAX_ITEMS} dòng.
+ */
 @Service
 public class PrescriptionItemService {
 
-    private final PrescriptionItemRepository prescriptionItemRepository;
+    static final int MAX_ITEMS = 30;
+    private static final int MAX_NAME = 200;
+    private static final int MAX_DOSAGE = 100;
+    private static final int MAX_FREQUENCY = 100;
+    private static final int MAX_INSTRUCTIONS = 500;
+    private static final int MAX_QUANTITY = 999;
+    private static final int MAX_DURATION_DAYS = 365;
+
+    private final PrescriptionItemRepository itemRepository;
     private final PrescriptionService prescriptionService;
+    private final MedicineService medicineService;
 
     public PrescriptionItemService(
-            PrescriptionItemRepository prescriptionItemRepository,
-            PrescriptionService prescriptionService
-    ) {
-        this.prescriptionItemRepository = prescriptionItemRepository;
+            PrescriptionItemRepository itemRepository,
+            PrescriptionService prescriptionService,
+            MedicineService medicineService) {
+        this.itemRepository = itemRepository;
         this.prescriptionService = prescriptionService;
+        this.medicineService = medicineService;
     }
 
-    /**
-     * Tạo prescription item.
-     * Chỉ doctor phụ trách encounter của prescription mới được thêm thuốc.
-     */
+    // ================= Ghi =================
+
     @Transactional
-    public PrescriptionItem create(
-            Long prescriptionId,
-            PrescriptionItem item
-    ) {
-        if (prescriptionId == null || prescriptionId <= 0) {
-            throw new IllegalArgumentException(
-                    "Prescription ID không hợp lệ"
-            );
-        }
+    public PrescriptionItemDTO create(Long prescriptionId, PrescriptionItemRequest request) {
+        Prescription prescription = prescriptionService.getForEdit(prescriptionId);
 
-        if (item == null) {
-            throw new IllegalArgumentException(
-                    "Prescription item không được để trống"
-            );
-        }
-
-        /*
-         * Thêm thuốc là thao tác GHI: chỉ bác sĩ phụ trách lần khám, và lần khám phải còn OPEN
-         * (bệnh nhân/bác sĩ khác → 403, đã hoàn thành → 409).
-         */
-        Prescription prescription =
-                prescriptionService.getForEdit(prescriptionId);
-
-        /*
-         * Dòng thuốc luôn là bản ghi MỚI: không cho client truyền id (ghi đè dòng của đơn khác)
-         * hay prescriptionId khác.
-         */
-        item.setId(null);
+        PrescriptionItem item = new PrescriptionItem();
         item.setPrescriptionId(prescription.getId());
+        applyMedicine(item, request.medicineId(), request.medicineName(), true);
+        item.setQuantity(BigDecimal.valueOf(quantityOf(request.quantity())));
+        item.setDurationDays(durationOf(request.durationDays()));
+        item.setDosage(textOf("dosage", "Liều dùng", request.dosage(), MAX_DOSAGE));
+        item.setFrequency(textOf("frequency", "Tần suất", request.frequency(), MAX_FREQUENCY));
+        item.setInstructions(textOf("instructions", "Hướng dẫn sử dụng", request.instructions(), MAX_INSTRUCTIONS));
 
-        if (item.getMedicineName() == null
-                || item.getMedicineName().trim().isEmpty()) {
-
-            throw new IllegalArgumentException(
-                    "Tên thuốc không được để trống"
-            );
+        if (item.getMedicineId() != null
+                && itemRepository.existsByPrescriptionIdAndMedicineId(prescriptionId, item.getMedicineId())) {
+            throw new FieldValidationException("medicineId", "Thuốc này đã có trong đơn");
         }
-
-        if (item.getQuantity() == null
-                || item.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
-
-            throw new IllegalArgumentException(
-                    "Số lượng thuốc phải lớn hơn 0"
-            );
+        if (itemRepository.countByPrescriptionId(prescriptionId) >= MAX_ITEMS) {
+            throw new FieldValidationException("items", "Mỗi đơn thuốc tối đa " + MAX_ITEMS + " dòng thuốc");
         }
-
-        if (item.getDurationDays() != null
-                && item.getDurationDays() <= 0) {
-
-            throw new IllegalArgumentException(
-                    "Số ngày sử dụng phải lớn hơn 0"
-            );
-        }
-
-        item.setMedicineName(
-                item.getMedicineName().trim()
-        );
-
-        if (item.getCreatedAt() == null) {
-            item.setCreatedAt(LocalDateTime.now());
-        }
-
-        return prescriptionItemRepository.save(item);
+        item.setCreatedAt(LocalDateTime.now());
+        item = itemRepository.saveAndFlush(item);
+        prescriptionService.auditWrite(prescription, "ITEM_ADDED", item.getId());
+        return PrescriptionItemDTO.from(item);
     }
 
-    /**
-     * Lấy prescription item theo ID.
-     *
-     * PrescriptionService.getById() sẽ kiểm tra:
-     * - Patient: chỉ xem dữ liệu của mình.
-     * - Doctor: chỉ xem encounter mình phụ trách.
-     */
+    @Transactional
+    public PrescriptionItemDTO update(Long id, PrescriptionItemRequest request) {
+        PrescriptionItem item = find(id);
+        Prescription prescription = prescriptionService.getForEdit(item.getPrescriptionId());
+
+        if (request.medicineId() != null || request.medicineName() != null) {
+            applyMedicine(item, request.medicineId(), request.medicineName(), false);
+            if (item.getMedicineId() != null && itemRepository.existsByPrescriptionIdAndMedicineIdAndIdNot(
+                    item.getPrescriptionId(), item.getMedicineId(), id)) {
+                throw new FieldValidationException("medicineId", "Thuốc này đã có trong đơn");
+            }
+        }
+        if (request.quantity() != null) {
+            item.setQuantity(BigDecimal.valueOf(quantityOf(request.quantity())));
+        }
+        if (request.durationDays() != null) {
+            item.setDurationDays(durationOf(request.durationDays()));
+        }
+        if (request.dosage() != null) {
+            item.setDosage(textOf("dosage", "Liều dùng", request.dosage(), MAX_DOSAGE));
+        }
+        if (request.frequency() != null) {
+            item.setFrequency(textOf("frequency", "Tần suất", request.frequency(), MAX_FREQUENCY));
+        }
+        if (request.instructions() != null) {
+            item.setInstructions(textOf("instructions", "Hướng dẫn sử dụng", request.instructions(),
+                    MAX_INSTRUCTIONS));
+        }
+        item = itemRepository.saveAndFlush(item);
+        prescriptionService.auditWrite(prescription, "ITEM_UPDATED", item.getId());
+        return PrescriptionItemDTO.from(item);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        PrescriptionItem item = find(id);
+        Prescription prescription = prescriptionService.getForEdit(item.getPrescriptionId());
+        itemRepository.delete(item);
+        prescriptionService.auditWrite(prescription, "ITEM_REMOVED", id);
+    }
+
+    // ================= Đọc =================
+
     @Transactional(readOnly = true)
-    public PrescriptionItem getById(Long id) {
-
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException(
-                    "Prescription item ID không hợp lệ"
-            );
-        }
-
-        PrescriptionItem item =
-                prescriptionItemRepository.findById(id)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Không tìm thấy prescription item với ID: "
-                                                + id
-                                )
-                        );
-
-        prescriptionService.getById(
-                item.getPrescriptionId()
-        );
-
-        return item;
-    }
-
-    /**
-     * Dòng thuốc mà người gọi được phép thay đổi: bác sĩ phụ trách và lần khám còn OPEN.
-     */
-    private PrescriptionItem getForEdit(Long id) {
-
-        PrescriptionItem item =
-                prescriptionItemRepository.findById(id)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Không tìm thấy prescription item với ID: "
-                                                + id
-                                )
-                        );
-
-        prescriptionService.getForEdit(
-                item.getPrescriptionId()
-        );
-
-        return item;
-    }
-
-    /**
-     * Lấy danh sách item của prescription.
-     *
-     * Patient chỉ được xem prescription thuộc encounter của mình.
-     * Doctor chỉ được xem prescription thuộc encounter mình phụ trách.
-     */
-    @Transactional(readOnly = true)
-    public List<PrescriptionItem> getByPrescriptionId(
-            Long prescriptionId
-    ) {
-        if (prescriptionId == null || prescriptionId <= 0) {
-            throw new IllegalArgumentException(
-                    "Prescription ID không hợp lệ"
-            );
-        }
-
-        prescriptionService.getById(prescriptionId);
-
-        return prescriptionItemRepository.findByPrescriptionId(
-                prescriptionId
-        );
-    }
-
-    /**
-     * Tìm kiếm thuốc theo tên.
-     *
-     * Đây là chức năng tìm kiếm dữ liệu prescription item,
-     * không dùng để truy cập trực tiếp dữ liệu ngoài quyền.
-     *
-     * Cố ý KHÔNG bọc giao dịch: {@link #canRead(Long)} bắt ngoại lệ từ việc kiểm quyền, và nếu
-     * ngoại lệ đó đi qua ranh giới giao dịch chung thì giao dịch bị đánh dấu rollback-only (→ 500).
-     * Mỗi lần kiểm quyền chạy giao dịch riêng nên ngoại lệ chỉ ảnh hưởng chính nó.
-     */
-    public List<PrescriptionItem> searchByMedicineName(
-            String medicineName
-    ) {
-        if (medicineName == null
-                || medicineName.trim().isEmpty()) {
-
-            throw new IllegalArgumentException(
-                    "Tên thuốc tìm kiếm không được để trống"
-            );
-        }
-
-        assertAuthenticated();
-
-        // Chỉ trả những dòng thuộc đơn thuốc mà người gọi được phép đọc (không lộ dữ liệu giữa các bệnh nhân).
-        return prescriptionItemRepository
-                .findByMedicineNameContainingIgnoreCase(
-                        medicineName.trim()
-                )
-                .stream()
-                .filter(found -> canRead(found.getPrescriptionId()))
+    public List<PrescriptionItemDTO> listByPrescription(Long prescriptionId) {
+        Prescription prescription = prescriptionService.getReadable(prescriptionId);
+        prescriptionService.auditView(prescription.getEncounterId(), 1);
+        return itemRepository.findByPrescriptionIdOrderByIdAsc(prescriptionId).stream()
+                .map(PrescriptionItemDTO::from)
                 .toList();
     }
 
-    private boolean canRead(Long prescriptionId) {
+    @Transactional(readOnly = true)
+    public PrescriptionItemDTO get(Long id) {
+        PrescriptionItem item = find(id);
+        Prescription prescription = prescriptionService.getReadable(item.getPrescriptionId());
+        prescriptionService.auditView(prescription.getEncounterId(), 1);
+        return PrescriptionItemDTO.from(item);
+    }
 
-        try {
-            prescriptionService.getById(prescriptionId);
-            return true;
-        } catch (ForbiddenException | ResourceNotFoundException e) {
-            return false;
-        }
+    // ================= Chi tiết =================
+
+    private PrescriptionItem find(Long id) {
+        return itemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy dòng thuốc!"));
     }
 
     /**
-     * Cập nhật prescription item.
-     * Chỉ doctor mới được sửa item.
+     * Gán thuốc cho dòng: từ danh mục (chép tên tại thời điểm kê) hoặc thuốc ngoài danh mục theo tên nhập tay.
+     *
+     * @param creating khi tạo mới, thiếu cả {@code medicineId} lẫn tên thuốc là lỗi
      */
-    @Transactional
-    public PrescriptionItem update(
-            Long id,
-            PrescriptionItem request
-    ) {
-        if (request == null) {
-            throw new IllegalArgumentException(
-                    "Dữ liệu prescription item không được để trống"
-            );
+    private void applyMedicine(PrescriptionItem item, Long medicineId, String medicineName, boolean creating) {
+        if (medicineId != null) {
+            Medicine medicine = medicineService.requireActive(medicineId);
+            item.setMedicineId(medicine.getId());
+            item.setMedicineName(medicine.getName());
+            return;
         }
-
-        // Sửa là thao tác GHI: bác sĩ phụ trách và lần khám còn OPEN (nếu không → 403/409)
-        PrescriptionItem item = getForEdit(id);
-
-        if (request.getMedicineName() != null) {
-
-            if (request.getMedicineName().trim().isEmpty()) {
-                throw new IllegalArgumentException(
-                        "Tên thuốc không được để trống"
-                );
+        if (medicineName == null || medicineName.isBlank()) {
+            if (creating || medicineName != null) {
+                throw new FieldValidationException("medicineName", "Tên thuốc không được để trống");
             }
-
-            item.setMedicineName(
-                    request.getMedicineName().trim()
-            );
+            return;
         }
-
-        if (request.getDosage() != null) {
-            item.setDosage(request.getDosage());
+        String name = medicineName.trim();
+        if (name.length() > MAX_NAME) {
+            throw new FieldValidationException("medicineName", "Tên thuốc tối đa " + MAX_NAME + " ký tự");
         }
-
-        if (request.getFrequency() != null) {
-            item.setFrequency(request.getFrequency());
-        }
-
-        if (request.getDurationDays() != null) {
-
-            if (request.getDurationDays() <= 0) {
-                throw new IllegalArgumentException(
-                        "Số ngày sử dụng phải lớn hơn 0"
-                );
-            }
-
-            item.setDurationDays(
-                    request.getDurationDays()
-            );
-        }
-
-        if (request.getQuantity() != null) {
-
-            if (request.getQuantity()
-                    .compareTo(BigDecimal.ZERO) <= 0) {
-
-                throw new IllegalArgumentException(
-                        "Số lượng thuốc phải lớn hơn 0"
-                );
-            }
-
-            item.setQuantity(
-                    request.getQuantity()
-            );
-        }
-
-        if (request.getInstructions() != null) {
-            item.setInstructions(
-                    request.getInstructions()
-            );
-        }
-
-        return prescriptionItemRepository.save(item);
+        item.setMedicineId(null);
+        item.setMedicineName(name);
     }
 
-    /**
-     * Xóa prescription item.
-     * Chỉ doctor mới được xóa.
-     */
-    @Transactional
-    public void delete(Long id) {
-
-        PrescriptionItem item = getForEdit(id);
-
-        prescriptionItemRepository.delete(item);
+    private static int quantityOf(BigDecimal quantity) {
+        if (quantity == null || quantity.signum() <= 0) {
+            throw new FieldValidationException("quantity", "Số lượng thuốc phải lớn hơn 0");
+        }
+        if (quantity.stripTrailingZeros().scale() > 0) {
+            throw new FieldValidationException("quantity", "Số lượng thuốc phải là số nguyên");
+        }
+        if (quantity.compareTo(BigDecimal.valueOf(MAX_QUANTITY)) > 0) {
+            throw new FieldValidationException("quantity", "Số lượng thuốc tối đa " + MAX_QUANTITY);
+        }
+        return quantity.intValueExact();
     }
 
-    /**
-     * Kiểm tra đã đăng nhập.
-     */
-    private void assertAuthenticated() {
-
-        var authentication =
-                org.springframework.security.core.context
-                        .SecurityContextHolder
-                        .getContext()
-                        .getAuthentication();
-
-        if (authentication == null
-                || !authentication.isAuthenticated()) {
-
-            throw new UnauthorizedException(
-                    "Người dùng chưa đăng nhập"
-            );
+    private static Integer durationOf(BigDecimal durationDays) {
+        if (durationDays == null) {
+            return null;
         }
+        if (durationDays.signum() <= 0) {
+            throw new FieldValidationException("durationDays", "Số ngày sử dụng phải lớn hơn 0");
+        }
+        if (durationDays.stripTrailingZeros().scale() > 0) {
+            throw new FieldValidationException("durationDays", "Số ngày sử dụng phải là số nguyên");
+        }
+        if (durationDays.compareTo(BigDecimal.valueOf(MAX_DURATION_DAYS)) > 0) {
+            throw new FieldValidationException("durationDays", "Số ngày sử dụng tối đa " + MAX_DURATION_DAYS + " ngày");
+        }
+        return durationDays.intValueExact();
+    }
+
+    private static String textOf(String field, String label, String value, int max) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (trimmed.length() > max) {
+            throw new FieldValidationException(field, label + " tối đa " + max + " ký tự");
+        }
+        return trimmed;
     }
 }
