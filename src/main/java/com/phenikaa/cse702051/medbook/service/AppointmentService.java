@@ -21,6 +21,7 @@ import com.phenikaa.cse702051.medbook.dto.PageResponse;
 import com.phenikaa.cse702051.medbook.event.AppointmentBookedEvent;
 import com.phenikaa.cse702051.medbook.event.AppointmentCancelledEvent;
 import com.phenikaa.cse702051.medbook.event.AppointmentRescheduledEvent;
+import com.phenikaa.cse702051.medbook.exception.UnprocessableEntityException;
 import com.phenikaa.cse702051.medbook.exception.ConflictException;
 import com.phenikaa.cse702051.medbook.exception.FieldValidationException;
 import com.phenikaa.cse702051.medbook.exception.ForbiddenException;
@@ -238,7 +239,8 @@ public class AppointmentService {
 
         Sort.Direction direction = "asc".equalsIgnoreCase(order) ? Sort.Direction.ASC : Sort.Direction.DESC;
         PageRequest pageable = PageRequest.of(Math.max(page, 0), clampSize(size),
-                Sort.by(direction, "slot.slotDate").and(Sort.by(direction, "slot.startTime")));
+                Sort.by(direction, "slot.slotDate").and(Sort.by(direction, "slot.startTime"))
+                        .and(Sort.by(direction, "id"))); // khóa chính: hai lịch cùng giờ không lặp/sót giữa các trang
 
         Page<Appointment> result = appointmentRepository.findAll(spec, pageable);
         return new PageResponse<>(mapper.toDTOs(result.getContent()), result.getNumber(), result.getSize(),
@@ -287,7 +289,7 @@ public class AppointmentService {
             throw new ForbiddenException("Bác sĩ không phụ trách lịch khám này!");
         }
         if (!appointment.getStatus().canTransitionTo(target)) {
-            throw new ConflictException("Không thể chuyển lịch khám từ " + appointment.getStatus()
+            throw new UnprocessableEntityException("Không thể chuyển lịch khám từ " + appointment.getStatus()
                     + " sang " + target + ". Thứ tự hợp lệ: BOOKED → IN_PROGRESS → COMPLETED.");
         }
         appointment.setStatus(target);
@@ -305,7 +307,7 @@ public class AppointmentService {
     /** Bệnh nhân chỉ hủy/đổi được lịch BOOKED và còn đủ {@code cancel-before-hours} trước giờ khám. */
     private void assertChangeableByPatient(Appointment appointment, String action) {
         if (appointment.getStatus() != AppointmentStatus.BOOKED) {
-            throw new ConflictException("Chỉ có thể " + action + " lịch hẹn ở trạng thái BOOKED (hiện tại: "
+            throw new UnprocessableEntityException("Chỉ có thể " + action + " lịch hẹn ở trạng thái BOOKED (hiện tại: "
                     + appointment.getStatus() + ")!");
         }
         LocalDateTime start = LocalDateTime.of(appointment.getSlot().getSlotDate(), appointment.getSlot().getStartTime());

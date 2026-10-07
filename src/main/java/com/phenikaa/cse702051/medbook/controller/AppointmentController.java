@@ -1,9 +1,10 @@
 package com.phenikaa.cse702051.medbook.controller;
 
+import java.net.URI;
+
 import java.time.LocalDate;
 
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -15,14 +16,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.phenikaa.cse702051.medbook.dto.AppointmentDTO;
-import com.phenikaa.cse702051.medbook.dto.AppointmentStatisticsDTO;
 import com.phenikaa.cse702051.medbook.dto.BookAppointmentRequest;
 import com.phenikaa.cse702051.medbook.dto.CancelAppointmentRequest;
 import com.phenikaa.cse702051.medbook.dto.PageResponse;
 import com.phenikaa.cse702051.medbook.dto.RescheduleAppointmentRequest;
 import com.phenikaa.cse702051.medbook.dto.UpdateAppointmentStatusRequest;
 import com.phenikaa.cse702051.medbook.model.AppointmentStatus;
-import com.phenikaa.cse702051.medbook.service.AppointmentReportService;
 import com.phenikaa.cse702051.medbook.service.AppointmentService;
 
 import jakarta.validation.Valid;
@@ -38,13 +37,12 @@ import lombok.RequiredArgsConstructor;
 public class AppointmentController {
 
     private final AppointmentService appointmentService;
-    private final AppointmentReportService reportService;
 
     /** YCCN-10, 11: bệnh nhân đặt lịch. Slot đã bị người khác đặt → 409. */
     @PostMapping
     public ResponseEntity<AppointmentDTO> book(@Valid @RequestBody BookAppointmentRequest request) {
         AppointmentDTO appointment = appointmentService.book(request.slotId(), request.serviceId(), request.notes());
-        return ResponseEntity.status(HttpStatus.CREATED).body(appointment);
+        return ResponseEntity.created(URI.create("/api/v1/appointments/" + appointment.id())).body(appointment);
     }
 
     /** Lịch của người đang đăng nhập: bác sĩ → lịch khám của mình; bệnh nhân → lịch của mình. */
@@ -87,21 +85,5 @@ public class AppointmentController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateAppointmentStatusRequest request) {
         return appointmentService.updateStatus(id, request.status());
-    }
-
-    // ---- Báo cáo (tạm thời giữ ở đây; sẽ chuyển sang /admin/reports/appointments) ----
-
-    /** @deprecated thay bằng {@code GET /admin/reports/appointments}. */
-    @Deprecated
-    @GetMapping("/admin/reports")
-    public ResponseEntity<AppointmentStatisticsDTO> getOverallReport() {
-        return ResponseEntity.ok(reportService.getOverallStatistics());
-    }
-
-    /** @deprecated thay bằng {@code GET /admin/reports/appointments?doctorId=}. */
-    @Deprecated
-    @GetMapping("/admin/reports/doctor/{doctorId}")
-    public ResponseEntity<AppointmentStatisticsDTO> getDoctorReport(@PathVariable Long doctorId) {
-        return ResponseEntity.ok(reportService.getStatisticsByDoctor(doctorId));
     }
 }
