@@ -1,1 +1,0 @@
-import{T as e,V as t}from"./useApi-BPuI6ZR9-T3r2UDoe.js";import n from"./DoctorOverviewView-CNytROLT.js";var r={__name:`DoctorDashboard`,setup(r){return(r,i)=>(t(),e(n))}};export{r as default};
