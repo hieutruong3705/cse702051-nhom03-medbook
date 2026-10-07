@@ -63,8 +63,8 @@ public class AppointmentConcurrencyTest {
 
         AtomicInteger successCount = new AtomicInteger(0);
         AtomicInteger conflictCount = new AtomicInteger(0);
+        AtomicInteger unexpectedErrorCount = new AtomicInteger(0);
         AtomicBoolean slotTaken = new AtomicBoolean(false);
-
         // Mô phỏng hành vi khóa lạc quan (Optimistic Lock) của CSDL
         when(slotRepository.findById(slotId)).thenAnswer(invocation -> {
             AppointmentSlot s = AppointmentSlot.builder()
@@ -108,8 +108,10 @@ public class AppointmentConcurrencyTest {
                     }
                 } catch (InterruptedException ex) {
                     Thread.currentThread().interrupt();
-                } catch (Exception ignored) {
-                } finally {
+                } catch (Exception ex) {
+    unexpectedErrorCount.incrementAndGet();
+    ex.printStackTrace();
+}finally {
                     doneLatch.countDown();
                 }
             });
@@ -120,7 +122,13 @@ public class AppointmentConcurrencyTest {
         executorService.shutdown();
 
         // Tiêu chí nghiệm thu Dev 3
-        assertEquals(1, successCount.get(), "Chỉ duy nhất 1 yêu cầu đặt lịch được thành công!");
-        assertEquals(99, conflictCount.get(), "Chính xác 99 yêu cầu xung đột phải trả về mã 409 Conflict!");
+    assertEquals(1, successCount.get(),
+        "Chỉ duy nhất 1 yêu cầu đặt lịch được thành công!");
+
+assertEquals(99, conflictCount.get(),
+        "Chính xác 99 yêu cầu xung đột phải trả về mã 409 Conflict!");
+
+assertEquals(0, unexpectedErrorCount.get(),
+        "Không được có exception ngoài dự kiến trong test concurrency!");
     }
 }
