@@ -1,10 +1,8 @@
-﻿# MedBook — Hệ thống quản lý bệnh án và đặt lịch khám bệnh
+# MedBook — Hệ thống quản lý bệnh án và đặt lịch khám bệnh
 
-Hướng dẫn cài đặt ban đầu — Buổi thực hành 01.
+Đồ án học phần CSE702051 — Thiết kế web nâng cao · Nhóm 03 · Đề tài DT03.
 
-Kế hoạch phát triển: [Phân công backend cho 2 dev và các nhánh feature](docs/PHAN_CONG_BACKEND_2_DEV.md).
-
-Quy định chung: [Quy ước mã nguồn, dữ liệu và lỗi API](docs/QUY_UOC_MA_NGUON.md).
+Tài liệu này đủ để một người chưa biết dự án dựng và chạy được hệ thống trên máy sạch trong khoảng 30 phút.
 
 ## 1. Thông tin dự án
 
@@ -13,119 +11,169 @@ Quy định chung: [Quy ước mã nguồn, dữ liệu và lỗi API](docs/QUY_
 | Học phần | CSE702051 — Thiết kế web nâng cao |
 | Đơn vị | Khoa Hệ thống thông tin — Trường Công nghệ thông tin — Đại học Phenikaa |
 | Nhóm | Nhóm 03 |
-| Đề tài | Quản lý bệnh án và đặt lịch khám bệnh (DT03 trong danh mục) |
-| Lớp học phần | Chưa bổ sung |
-| Nhóm trưởng và thành viên | Chưa bổ sung |
+| Đề tài | Quản lý bệnh án và đặt lịch khám bệnh (DT03) |
 | Repository | https://github.com/hieutruong3705/cse702051-nhom03-medbook |
-| URL trực tuyến | Chưa bổ sung URL sau khi triển khai |
+| Lớp học phần, thành viên, URL trực tuyến | Nhóm trưởng bổ sung |
 
-## 2. Giới thiệu và phạm vi hiện tại
+Dữ liệu trong đồ án là dữ liệu mô phỏng phục vụ học tập.
 
-MedBook hướng tới hỗ trợ quản lý bệnh án và đặt lịch khám. Dự án định hướng tổ chức backend theo ba tầng Controller — Service — Repository và cung cấp API RESTful.
+## 2. Chức năng
 
-Phạm vi dự kiến gồm ba vai trò:
+Ba vai trò, mỗi vai trò chỉ thấy đúng phần việc của mình (kiểm quyền ở phía máy chủ, không chỉ ẩn nút):
 
-- **Bệnh nhân:** đặt lịch khám, theo dõi lịch hẹn, xem bệnh án và đơn thuốc của mình.
-- **Bác sĩ:** quản lý lịch khám, ghi nhận lượt khám, cập nhật bệnh án và kê đơn.
-- **Quản trị viên:** quản lý tài khoản, danh mục, điều phối lịch hẹn và xem báo cáo.
+- **Khách:** xem bác sĩ, chuyên khoa, dịch vụ và giờ trống của bác sĩ.
+- **Bệnh nhân:** đăng ký, đặt lịch, đổi lịch, hủy lịch; xem bệnh án, đơn thuốc, hóa đơn và thông báo của mình.
+- **Bác sĩ:** quản lý ca làm việc, giờ nghỉ, ngày nghỉ (hệ thống tự sinh giờ trống); khám bệnh, ghi bệnh án, kê đơn, tải tệp đính kèm, lập hóa đơn; xem bệnh nhân mình phụ trách.
+- **Quản trị viên:** quản lý tài khoản (tạo, khóa, đổi vai trò), hồ sơ bác sĩ, danh mục (chuyên khoa, dịch vụ, thuốc); theo dõi lịch hẹn; thu và hủy hóa đơn; ba báo cáo có biểu đồ và xuất CSV (lịch khám, doanh thu, dịch vụ khám); tra cứu nhật ký hệ thống. Quản trị viên không xem được nội dung bệnh án.
 
-Ở phiên bản hiện tại, ứng dụng mới có trang chào **hello word** tại đường dẫn `/`. Kết nối database đang tạm tắt để kiểm tra khởi động và triển khai trang chào. Các chức năng nghiệp vụ, JWT và tài liệu Swagger chưa được triển khai.
+## 3. Công nghệ
 
-Dữ liệu sử dụng trong đồ án là dữ liệu mô phỏng phục vụ mục đích học tập.
-
-## 3. Công nghệ và phiên bản cấu hình
-
-| Thành phần | Phiên bản / cách sử dụng |
+| Thành phần | Phiên bản / cách dùng |
 |---|---|
-| Java | JDK 21; Docker runtime dùng JRE 21 |
-| Spring Boot | 4.1.1 theo `pom.xml` |
-| Maven Wrapper | 3.9.16 theo `.mvn/wrapper/maven-wrapper.properties` |
-| Maven trong Docker | Nhánh 3.9 theo image `maven:3.9-eclipse-temurin-21-alpine` |
-| Frontend | HTML và CSS thuần, được Spring Boot phục vụ |
-| Truy cập dữ liệu | Spring Data JPA / Hibernate đã khai báo phụ thuộc; kết nối đang tắt |
-| MySQL | 8.0 trong Docker Compose; chưa cần cho trang chào |
-| Bảo mật | Spring Security; hiện cho phép truy cập trang chào không đăng nhập |
-| Đóng gói | Docker và Docker Compose v2 |
-| Quản lý mã nguồn | Git và GitHub |
+| Backend | Java 21, Spring Boot 4.1.1 (Web, Security, Data JPA, Validation), JWT |
+| Cơ sở dữ liệu | H2 trong bộ nhớ khi phát triển; MySQL 8 khi chạy Docker hoặc triển khai, lược đồ do Flyway quản lý |
+| Giao diện | Vue 3, Vite, Pinia, Tailwind CSS; bản build nằm sẵn trong `src/main/resources/static` |
+| Kiểm thử | JUnit 5 + MockMvc (backend), Vitest (giao diện), Playwright (đầu-cuối) |
+| Đóng gói | Docker (ba giai đoạn: Node → Maven → JRE) và Docker Compose v2 |
 
-Bảng trên phản ánh cấu hình dự án. Nhóm cần ghi lại kết quả kiểm chứng phiên bản thực tế trên máy từng thành viên khi nghiệm thu buổi 1.
+Kiến trúc backend ba tầng Controller → Service → Repository; controller chỉ nhận yêu cầu và gọi một service; mọi lỗi trả về cùng một dạng `ApiError` (`timestamp, status, error, code, message, path, details`).
 
-## 4. Chuẩn bị môi trường
+## 4. Chạy nhanh ở chế độ phát triển (không cần Docker, không cần MySQL)
 
-Để chạy bằng Docker, máy cần có Git, Docker Engine và Docker Compose v2. Trên Windows có thể sử dụng Docker Desktop với WSL2; mở Docker Desktop và chờ engine sẵn sàng trước khi chạy lệnh.
+Yêu cầu: Git và JDK 21. Maven được tải tự động qua `mvnw`.
 
-Không cần cài riêng Java, Maven hoặc MySQL trên máy nếu chạy bằng Docker. Lần build đầu cần Internet để tải image và thư viện.
-
-Kiểm tra trong terminal:
-
-```shell
- git --version
- docker --version
- docker compose version
- docker info
-```
-
-Kết quả mong đợi: các lệnh hiển thị phiên bản; `docker info` kết nối được Docker Engine. Cổng `8080` trên máy phải còn trống.
-
-## 5. Chạy trang chào
-
-### Bước 1. Lấy mã nguồn
-
-```shell
+```powershell
 git clone https://github.com/hieutruong3705/cse702051-nhom03-medbook.git
 cd cse702051-nhom03-medbook
+.\mvnw.cmd spring-boot:run          # Linux, macOS: ./mvnw spring-boot:run
 ```
 
-Nếu đã có mã nguồn, mở terminal tại thư mục chứa `Dockerfile`, `docker-compose.yml` và `pom.xml`; không cần clone lại.
+Chờ dòng `Started MedbookApplication`, rồi mở **http://localhost:8080/**. Ứng dụng dùng CSDL H2 trong bộ nhớ, tự tạo bảng và nạp dữ liệu mẫu (`src/main/resources/data-h2.sql`); tắt ứng dụng là mất dữ liệu.
 
-### Bước 2. Build và khởi động
+Nếu cổng 8080 đang bị chương trình khác dùng, chọn cổng khác:
 
-```shell
-docker compose up -d --build app
-docker compose ps
+```powershell
+$env:PORT = '8089'; .\mvnw.cmd spring-boot:run      # Linux, macOS: PORT=8089 ./mvnw spring-boot:run
+```
+
+### Tài khoản demo
+
+| Tên đăng nhập | Vai trò | Mật khẩu |
+|---|---|---|
+| `admin1` | Quản trị viên | `MedBook@2026` |
+| `doctor1`, `doctor2` | Bác sĩ | `MedBook@2026` |
+| `patient1`, `patient2` | Bệnh nhân | `MedBook@2026` |
+
+Có thể đăng nhập bằng email (`admin1@medbook.local`, …). Các tài khoản này chỉ có ở chế độ phát triển và khi bật `MEDBOOK_SEED_DEMO=true` trên Docker; **không bao giờ** có ở hồ sơ `prod`.
+
+## 5. Chạy bằng Docker Compose (MySQL 8)
+
+Yêu cầu: Docker Engine và Docker Compose v2 (trên Windows: Docker Desktop đã khởi động xong).
+
+```powershell
+Copy-Item .env.example .env         # Linux, macOS: cp .env.example .env
+# Mở .env, đặt MYSQL_ROOT_PASSWORD và JWT_SECRET (chuỗi ngẫu nhiên từ 32 ký tự)
+docker compose up -d --build
+docker compose ps                   # cột STATUS của app phải là "healthy"
 docker compose logs --tail=100 app
 ```
 
-Chờ nhật ký xuất hiện `Started MedbookApplication`, sau đó mở **http://localhost:8080/**.
+Mở **http://localhost:8080/**. Lần build đầu cần Internet và mất vài phút.
 
-Kết quả mong đợi: trang hiển thị tên **MedBook** và dòng **hello word**. Trang chào không yêu cầu đăng nhập hoặc database. Hiện chưa có tài khoản kiểm thử nghiệp vụ.
+- Thiếu `MYSQL_ROOT_PASSWORD` hoặc `JWT_SECRET` thì compose dừng và nêu tên biến còn thiếu. Ứng dụng cũng từ chối khởi động nếu `JWT_SECRET` ngắn hơn 32 byte hoặc vẫn là giá trị mẫu.
+- Lược đồ do **Flyway** tạo (`src/main/resources/db/migration`), Hibernate chỉ kiểm tra (`ddl-auto: validate`).
+- `MEDBOOK_SEED_DEMO=true` (mặc định trong `.env.example`): nạp tài khoản demo ở mục 4 **một lần** khi CSDL còn trống.
+- phpMyAdmin (tùy chọn): `docker compose --profile database up -d`, mở http://localhost:8081/.
+- Dừng: `docker compose down`. **Không dùng `down -v`**: tùy chọn `-v` xóa volume `db_data` (toàn bộ CSDL) và `uploads` (tệp đính kèm).
 
-### Bước 3. Dừng ứng dụng
+Đã có volume `db_data` dựng từ bản cũ (trước khi có Flyway)? Giữ nguyên mật khẩu cũ trong `.env` rồi `docker compose up -d --build`: Flyway coi lược đồ hiện có là bản V1 và chỉ chạy các migration cộng thêm, dữ liệu được giữ nguyên.
 
-```shell
-docker compose down
+## 6. Biến môi trường
+
+| Biến | Dùng ở | Ý nghĩa |
+|---|---|---|
+| `PORT` | mọi nơi | Cổng ứng dụng, mặc định 8080 |
+| `SPRING_PROFILES_ACTIVE` | mọi nơi | Bỏ trống: phát triển (H2). `docker`, `prod`: MySQL + Flyway. `online`, `v4mysql`: môi trường nghiệm thu đang có |
+| `JWT_SECRET` | `docker`, `prod`, `online` | **Bắt buộc.** Khóa ký token, từ 32 byte. Ở chế độ phát triển có thể bỏ trống: ứng dụng tự sinh khóa ngẫu nhiên cho mỗi lần chạy, nên phiên đăng nhập mất hiệu lực khi khởi động lại |
+| `JWT_EXPIRATION` | mọi nơi | Thời hạn access token (ms), mặc định 900000 |
+| `MYSQL_ROOT_PASSWORD`, `MYSQL_DATABASE` | compose | Mật khẩu và tên CSDL của container MySQL |
+| `MEDBOOK_DB_URL`, `MEDBOOK_DB_USER`, `MEDBOOK_DB_PASSWORD` | `prod`, `online`, `v4mysql` | Kết nối MySQL bên ngoài |
+| `MEDBOOK_UPLOAD_DIR` | `docker`, `prod` | Thư mục lưu tệp đính kèm (ngoài thư mục phục vụ web) |
+| `MEDBOOK_CORS_ALLOWED_ORIGINS` | `docker`, `prod` | Nguồn được phép gọi API từ trình duyệt, cách nhau bằng dấu phẩy |
+| `MEDBOOK_SEED_DEMO` | `docker` | `true`: nạp dữ liệu demo khi CSDL trống. Bị bỏ qua ở `prod` |
+| `MEDBOOK_OPENAPI_ENABLED` | mọi nơi | `true`: mở `/swagger-ui.html` và `/v3/api-docs`. Mặc định tắt |
+| `APP_PORT`, `DB_PORT`, `PMA_PORT` | compose | Cổng trên máy chủ (8080, 3307, 8081) |
+
+Không đưa tệp `.env` lên Git (đã có trong `.gitignore`).
+
+## 7. Kiểm thử
+
+```powershell
+.\mvnw.cmd test                      # toàn bộ test backend (khoảng 4 phút)
+.\mvnw.cmd test "-Dtest=FlywayMigrationTest"      # chạy một lớp test
+
+cd frontend
+npm ci
+npx vitest run                       # test giao diện
 ```
 
-Lệnh này dừng và gỡ container của dự án, giữ lại volume dữ liệu. Khi sửa mã nguồn, chạy lại lệnh build ở bước 2 để cập nhật ứng dụng.
+Kiểm thử đầu-cuối bằng Playwright chạy trên ứng dụng thật (cần ứng dụng đang chạy ở chế độ phát triển, ví dụ cổng 8089, và Microsoft Edge có sẵn trên Windows):
 
-## 6. Cấu hình và cổng kết nối
+```powershell
+$env:PORT = '8089'; .\mvnw.cmd spring-boot:run     # cửa sổ thứ nhất
+cd frontend; npm run e2e                           # cửa sổ thứ hai (đổi địa chỉ bằng E2E_BASE_URL)
+```
 
-| Thành phần | Địa chỉ / cấu hình | Trạng thái hiện tại |
-|---|---|---|
-| Website cục bộ | `http://localhost:8080/` | Chạy khi container `app` khởi động thành công |
-| Cổng ứng dụng | Biến `PORT`, mặc định `8080` | Đọc trong `application.yaml` |
-| MySQL từ máy cá nhân | `localhost:3307` | Tạm tắt |
-| MySQL từ container ứng dụng | `db:3306` | Tạm tắt |
-| phpMyAdmin | `http://localhost:8081/` | Tạm tắt |
+Bộ đầu-cuối gồm ba tệp trong `frontend/e2e`: `core-flow.e2e.js` (bác sĩ mở ca, hai bệnh nhân tranh một khung giờ, đặt lịch chỉ bằng bàn phím, khám, kê đơn, tệp đính kèm, hóa đơn, thu tiền, phiên bị thu hồi), `medbook.e2e.js` (trang công khai, phân quyền, quản trị, màn hình hẹp 360 px) và `accessibility.e2e.js` (quét WCAG 2.1 mức A, AA bằng axe trên 29 trang).
 
-Ứng dụng đang loại trừ `DataSourceAutoConfiguration` và đặt `spring.sql.init.mode: never`. Docker Compose đưa MySQL và phpMyAdmin vào profile `database`, nên chúng không khởi động mặc định. Bật container database riêng cũng chưa làm ứng dụng tự kết nối lại; cấu hình ứng dụng cần được khôi phục khi bắt đầu phát triển nghiệp vụ dữ liệu.
+Kiểm chứng lược đồ trên MySQL thật (cần Docker; tự dựng một MySQL tạm, không đụng tới container đang chạy):
 
-Phiên bản trang chào không cần khai báo các biến `DB_*`. Dockerfile đóng gói và chạy file JAR; ứng dụng nhận cổng từ biến `PORT` nếu môi trường triển khai cung cấp.
+```powershell
+.\scripts\verify-mysql-schema.ps1
+```
 
-## 7. Xử lý lỗi ban đầu
+Đo hiệu năng với hơn 5.000 bản ghi (không nằm trong `mvnw test` thường), kết quả ghi ra `target/performance-report.md`:
 
-| Hiện tượng | Cách kiểm tra và xử lý |
+```powershell
+.\mvnw.cmd test "-Dmedbook.test.excludedGroups=" "-Dgroups=perf"
+```
+
+## 8. Phát triển giao diện
+
+```powershell
+cd frontend
+npm ci
+npm run dev        # http://localhost:5173, tự chuyển /api sang backend ở cổng 8080
+npm run build      # ghi bản build vào src/main/resources/static (bản backend phục vụ)
+```
+
+Sau khi sửa giao diện phải `npm run build` rồi chạy lại backend thì bản ở cổng 8080 mới đổi. Ảnh Docker tự build giao diện nên không cần bước này.
+
+## 9. Cơ sở dữ liệu
+
+| Việc | Cách làm |
 |---|---|
+| Thêm thay đổi lược đồ | Thêm tệp `V3__mo_ta.sql` (hoặc lớp Java) vào `src/main/resources/db/migration`; chỉ cộng thêm, không sửa migration đã phát hành |
+| Nâng cấp CSDL đang chạy với Flyway tắt (hồ sơ `online`, `v4mysql`) | Chạy `scripts/cx-additive-schema.mysql.sql` (chạy lại nhiều lần được) **trước khi** triển khai bản ứng dụng mới |
+| Sao lưu | `.\scripts\backup-db.ps1` → tệp `.sql` trong thư mục `backups/` |
+| Kiểm chứng phục hồi | `.\scripts\restore-db.ps1 -File <tệp .sql>`: nạp vào một CSDL trống mới rồi đối chiếu số dòng từng bảng |
+| Ràng buộc bất biến | `CHECK`, `UNIQUE`, khóa ngoại trong migration; ví dụ giờ kết thúc phải sau giờ bắt đầu, mỗi slot chỉ có một lịch đang giữ chỗ |
+
+## 10. Tài liệu API
+
+Kiểm tra nhanh trạng thái hệ thống (không cần đăng nhập): `GET /api/v1/health`. Mỗi phản hồi có tiêu đề `X-Request-Id`; thân lỗi mang cùng mã đó ở trường `requestId` để đối chiếu với log của máy chủ. Yêu cầu tạo mới trả `201` kèm tiêu đề `Location`.
+
+Đặt `MEDBOOK_OPENAPI_ENABLED=true` rồi mở `/swagger-ui.html`. Bản xuất tĩnh `docs/openapi.json` được sinh lại mỗi lần chạy `OpenApiExportTest`. Mọi đường dẫn nằm dưới `/api/v1`; trừ đăng nhập, đăng ký và các danh mục công khai, yêu cầu phải kèm `Authorization: Bearer <access token>`.
+
+## 11. Xử lý sự cố
+
+| Hiện tượng | Cách xử lý |
+|---|---|
+| `Port 8080 was already in use` | Chạy với cổng khác: `$env:PORT = '8089'`, hoặc đặt `APP_PORT` trong `.env` khi dùng Docker |
+| Compose báo thiếu `JWT_SECRET` hoặc `MYSQL_ROOT_PASSWORD` | Chưa tạo `.env` từ `.env.example`, hoặc chưa điền hai biến đó |
+| Ứng dụng dừng với `JWT_SECRET đang là giá trị mẫu` | Thay bằng chuỗi ngẫu nhiên riêng, từ 32 ký tự |
+| `Access denied for user 'root'` sau khi đổi mật khẩu trong `.env` | Volume `db_data` đã được tạo với mật khẩu cũ: dùng lại mật khẩu cũ |
+| Đăng nhập nhận mã 429 | Một địa chỉ IP đăng nhập sai quá 5 lần trong một phút; chờ hết thời gian ghi trong thông báo |
+| Đăng nhập nhận `ACCOUNT_LOCKED` | Tài khoản sai mật khẩu 5 lần liên tiếp (tự mở sau 15 phút) hoặc bị Quản trị viên khóa |
+| Giao diện vẫn là bản cũ | Chạy `npm run build` trong `frontend` rồi khởi động lại backend; với Docker: `docker compose up -d --build` |
 | Không kết nối được Docker Engine | Mở Docker Desktop, chờ engine sẵn sàng rồi chạy lại `docker info` |
-| Cổng 8080 đã được sử dụng | Dừng phiên MedBook đang chạy trong IDE hoặc terminal trước khi chạy container |
-| Trình duyệt không truy cập được | Kiểm tra `docker compose ps` và `docker compose logs --tail=100 app`; chờ ứng dụng khởi động xong |
-| Trang hiển thị nội dung cũ | Chạy lại `docker compose up -d --build app`, sau đó tải lại trình duyệt |
-| Vẫn báo lỗi MySQL | Kiểm tra đang chạy bản build mới và cấu hình tạm tắt database còn trong `application.yaml` |
-
-## 8. Thông tin cần bổ sung cho hồ sơ buổi 1
-
-- Mã lớp học phần, danh sách thành viên, nhóm trưởng và phân công V1–V5.
-- Kết quả kiểm chứng phiên bản môi trường của từng thành viên.
-- URL trang chào trực tuyến qua HTTPS và ảnh minh chứng triển khai.
-- Bằng chứng giảng viên có quyền đọc repository.
-- Bằng chứng kết nối CSDL trực tuyến khi hoàn thành hạng mục database của buổi 1. Bản trang chào không database hiện tại mới phục vụ chạy thử.
