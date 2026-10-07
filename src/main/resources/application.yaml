@@ -1,9 +1,11 @@
+# Cấu hình mặc định = chế độ phát triển: H2 trong bộ nhớ, tự tạo bảng, nạp dữ liệu mẫu data-h2.sql.
+# Các môi trường khác chọn bằng SPRING_PROFILES_ACTIVE: docker, prod (MySQL + Flyway), online, v4mysql (nghiệm thu).
 spring:
   application:
     name: medbook
 
   datasource:
-    url: jdbc:h2:mem:medbook_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:mem:medbook_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -21,24 +23,48 @@ spring:
   sql:
     init:
       mode: always
-      data-locations: classpath:data.sql
+      platform: h2
+      # Chỉ H2 nạp tệp này (có lệnh RESTART WITH của H2). MySQL dùng Flyway và db/seed/demo-seed.sql.
+      data-locations: classpath:data-h2.sql
 
   flyway:
     enabled: false
 
 server:
   port: ${PORT:8080}
+  error:
+    # Không bao giờ đưa stack trace, tên ngoại lệ hay thông điệp nội bộ vào phản hồi lỗi.
+    include-stacktrace: never
+    include-exception: false
+    include-message: never
+    include-binding-errors: never
 
 logging:
+  # Mỗi dòng log mang mã của yêu cầu (X-Request-Id) để đối chiếu với trường requestId trong thân lỗi.
+  pattern:
+    level: "%5p [%X{requestId:-}]"
   level:
     org.hibernate.SQL: DEBUG
 
-# JWT Configuration
+# JWT: khóa ký lấy từ biến môi trường JWT_SECRET. Để trống ở máy phát triển thì ứng dụng tự sinh khóa ngẫu nhiên
+# cho mỗi lần chạy (xem JwtSecretProvider). Hồ sơ docker, prod, online bắt buộc đặt JWT_SECRET.
 jwt:
-  secret: ${JWT_SECRET:MedBookSecretKey2024VeryLongSecureKeyForHS256AlgorithmAtLeast256Bits!!}
+  secret: ${JWT_SECRET:}
   expiration-ms: ${JWT_EXPIRATION:900000}
 
-# File upload limit (10MB)
+# Giới hạn tệp tải lên (10MB)
 spring.servlet.multipart:
   max-file-size: 10MB
   max-request-size: 10MB
+
+# Tài liệu OpenAPI: mặc định tắt. Bật bằng MEDBOOK_OPENAPI_ENABLED=true (xem /v3/api-docs và /swagger-ui.html).
+medbook:
+  openapi:
+    enabled: ${MEDBOOK_OPENAPI_ENABLED:false}
+
+springdoc:
+  api-docs:
+    enabled: ${medbook.openapi.enabled}
+  swagger-ui:
+    enabled: ${medbook.openapi.enabled}
+  paths-to-match: /api/v1/**

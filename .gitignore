@@ -40,3 +40,12 @@ build/
 
 # Local verification output
 *.log
+
+# Bản sao lưu CSDL (chứa dữ liệu bệnh nhân) và tệp đính kèm tải lên khi chạy tại máy
+backups/
+uploads/
+
+# Phụ thuộc và kết quả chạy thử của giao diện
+node_modules/
+frontend/test-results/
+frontend/playwright-report/
