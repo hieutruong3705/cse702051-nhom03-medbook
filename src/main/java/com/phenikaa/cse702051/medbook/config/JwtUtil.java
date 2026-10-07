@@ -43,10 +43,10 @@ public class JwtUtil {
     private final long expirationMs;
 
     public JwtUtil(
-            @Value("${jwt.secret}") String secret,
+            JwtSecretProvider secret,
             @Value("${jwt.expiration-ms:3600000}") long expirationMs) {
         if (expirationMs <= 0) throw new IllegalArgumentException("Access token lifetime must be positive");
-        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.key = Keys.hmacShaKeyFor(secret.value().getBytes(StandardCharsets.UTF_8));
         this.expirationMs = expirationMs;
     }
 

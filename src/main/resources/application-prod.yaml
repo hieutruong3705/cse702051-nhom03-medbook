@@ -1,0 +1,58 @@
+# Hồ sơ prod: máy chủ thật sau reverse proxy HTTPS. Không có giá trị mặc định cho bất kỳ bí mật hay địa chỉ nào:
+# thiếu biến môi trường thì ứng dụng không khởi động và báo tên biến còn thiếu. Không bao giờ nạp dữ liệu demo.
+spring:
+  datasource:
+    url: ${MEDBOOK_DB_URL}
+    username: ${MEDBOOK_DB_USER}
+    password: ${MEDBOOK_DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: ${MEDBOOK_DB_POOL_SIZE:10}
+
+  jpa:
+    # false: Flyway phải chạy TRƯỚC khi Hibernate kiểm tra lược đồ. (Bản mặc định đặt true để H2 nạp data-h2.sql
+    # sau khi Hibernate tạo bảng; để nguyên true thì Hibernate validate trước Flyway và báo thiếu bảng.)
+    defer-datasource-initialization: false
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.MySQLDialect
+        jdbc.time_zone: UTC
+
+  sql:
+    init:
+      mode: never
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 1
+
+  devtools:
+    restart:
+      enabled: false
+
+server:
+  # Nhận biết HTTPS và IP thật qua X-Forwarded-* của reverse proxy (cần cho HSTS và giới hạn tần suất theo IP).
+  forward-headers-strategy: framework
+
+jwt:
+  secret: ${JWT_SECRET}
+
+medbook:
+  trust-proxy: true
+  upload-dir: ${MEDBOOK_UPLOAD_DIR}
+  cors:
+    allowed-origins: ${MEDBOOK_CORS_ALLOWED_ORIGINS}
+  seed:
+    demo: false
+  openapi:
+    enabled: false
+
+logging:
+  level:
+    org.hibernate.SQL: WARN

@@ -14,11 +14,11 @@ INSERT INTO specialties (id, code, name, description, status, created_at, update
 
 -- Users
 INSERT INTO users (id, username, password_hash, full_name, email, phone, status, created_at, updated_at) VALUES
-(1, 'admin1', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Admin', 'admin1@medbook.local', '0901234567', 'ACTIVE', NOW(), NOW()),
-(2, 'doctor1', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Bac si Lan', 'doctor1@medbook.local', '0912345678', 'ACTIVE', NOW(), NOW()),
-(3, 'doctor2', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Bac si Huy', 'doctor2@medbook.local', '0923456789', 'ACTIVE', NOW(), NOW()),
-(4, 'patient1', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Nguyen Minh An', 'patient1@medbook.local', '0934567890', 'ACTIVE', NOW(), NOW()),
-(5, 'patient2', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Tran Gia Binh', 'patient2@medbook.local', '0945678901', 'ACTIVE', NOW(), NOW());
+(1, 'admin1', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Lê Quản Trị', 'admin1@medbook.local', '0901234567', 'ACTIVE', NOW(), NOW()),
+(2, 'doctor1', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Bác sĩ Lan', 'doctor1@medbook.local', '0912345678', 'ACTIVE', NOW(), NOW()),
+(3, 'doctor2', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Bác sĩ Huy', 'doctor2@medbook.local', '0923456789', 'ACTIVE', NOW(), NOW()),
+(4, 'patient1', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Nguyễn Minh An', 'patient1@medbook.local', '0934567890', 'ACTIVE', NOW(), NOW()),
+(5, 'patient2', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Trần Gia Bình', 'patient2@medbook.local', '0945678901', 'ACTIVE', NOW(), NOW());
 
 -- User Roles
 INSERT INTO user_roles (user_id, role_id, created_at) VALUES
@@ -30,13 +30,13 @@ INSERT INTO user_roles (user_id, role_id, created_at) VALUES
 
 -- Doctors
 INSERT INTO doctors (id, user_id, specialty_id, full_name, phone, license_number, bio, is_active, created_at, updated_at) VALUES
-(1, 2, 1, 'Bac si Lan', '0912345678', 'CCHN-0001', 'Bác sĩ chuyên khoa Nội tổng quát', TRUE, NOW(), NOW()),
-(2, 3, 2, 'Bac si Huy', '0923456789', 'CCHN-0002', 'Bác sĩ chuyên khoa Nhi khoa', TRUE, NOW(), NOW());
+(1, 2, 1, 'Bác sĩ Lan', '0912345678', 'CCHN-0001', 'Bác sĩ chuyên khoa Nội tổng quát', TRUE, NOW(), NOW()),
+(2, 3, 2, 'Bác sĩ Huy', '0923456789', 'CCHN-0002', 'Bác sĩ chuyên khoa Nhi khoa', TRUE, NOW(), NOW());
 
 -- Patients
 INSERT INTO patients (id, user_id, patient_code, full_name, date_of_birth, gender_code, phone, email, address, emergency_contact_name, emergency_contact_phone, blood_type, allergies, status, created_at, updated_at) VALUES
-(1, 4, 'BN000001', 'Nguyen Minh An', '1990-01-01', 'MALE', '0934567890', 'patient1@medbook.local', 'Hà Nội', 'Người thân 1', '0956789012', 'O', 'Không', 'ACTIVE', NOW(), NOW()),
-(2, 5, 'BN000002', 'Tran Gia Binh', '1985-05-15', 'MALE', '0945678901', 'patient2@medbook.local', 'Hà Nội', 'Người thân 2', '0967890123', 'A', 'Phấn hoa', 'ACTIVE', NOW(), NOW());
+(1, 4, 'BN000001', 'Nguyễn Minh An', '1990-01-01', 'MALE', '0934567890', 'patient1@medbook.local', 'Hà Nội', 'Người thân 1', '0956789012', 'O', 'Không', 'ACTIVE', NOW(), NOW()),
+(2, 5, 'BN000002', 'Trần Gia Bình', '1985-05-15', 'MALE', '0945678901', 'patient2@medbook.local', 'Hà Nội', 'Người thân 2', '0967890123', 'A', 'Phấn hoa', 'ACTIVE', NOW(), NOW());
 
 -- Medical Services
 INSERT INTO services (id, code, name, description, duration_minutes, price, status, created_at, updated_at) VALUES
@@ -71,7 +71,7 @@ INSERT INTO appointment_slots (id, doctor_id, slot_date, start_time, end_time, i
 
 -- Bộ đếm IDENTITY của H2 không tự tăng khi chèn ID cố định ở trên, nên INSERT tiếp theo
 -- (đăng ký, đặt lịch, ...) sẽ đụng khóa chính. Đặt lại bộ đếm sau phần seed.
--- Chỉ chạy trên H2 (profile docker/MySQL không nạp data.sql; MySQL tự tăng AUTO_INCREMENT).
+-- Chỉ chạy trên H2 (profile docker/MySQL không nạp data-h2.sql; MySQL tự tăng AUTO_INCREMENT).
 ALTER TABLE roles ALTER COLUMN id RESTART WITH 1000;
 ALTER TABLE users ALTER COLUMN id RESTART WITH 1000;
 ALTER TABLE specialties ALTER COLUMN id RESTART WITH 1000;
@@ -83,8 +83,8 @@ ALTER TABLE appointment_slots ALTER COLUMN id RESTART WITH 1000;
 
 -- Ca làm việc mẫu khớp với slot seed (hôm nay) và 3 ngày kế tiếp, để khi chạy demo luôn có giờ trống còn
 -- đặt được (slot của hôm nay có thể đã qua giờ). Đặt SAU các lệnh RESTART nên id tự sinh bắt đầu từ 1000.
-INSERT INTO doctor_schedules (doctor_id, work_date, start_time, end_time, created_at, updated_at)
-SELECT s.doctor_id, DATEADD('DAY', d.n, CURDATE()), s.start_time, s.end_time, NOW(), NOW()
+INSERT INTO doctor_schedules (doctor_id, work_date, start_time, end_time, slot_minutes, created_at, updated_at)
+SELECT s.doctor_id, DATEADD('DAY', d.n, CURDATE()), s.start_time, s.end_time, 30, NOW(), NOW()
 FROM (SELECT 1 AS doctor_id, TIME '08:00:00' AS start_time, TIME '10:30:00' AS end_time
       UNION ALL SELECT 1, TIME '14:00:00', TIME '15:30:00'
       UNION ALL SELECT 2, TIME '08:00:00', TIME '09:30:00'
