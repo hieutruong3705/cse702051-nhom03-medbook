@@ -56,6 +56,8 @@ Nếu cổng 8080 đang bị chương trình khác dùng, chọn cổng khác:
 $env:PORT = '8089'; .\mvnw.cmd spring-boot:run      # Linux, macOS: PORT=8089 ./mvnw spring-boot:run
 ```
 
+Muốn trang báo cáo của quản trị viên có sẵn số liệu và biểu đồ ở chế độ này, đặt thêm `$env:MEDBOOK_SEED_ACTIVITY = 'true'` trước khi chạy (xem mục 6).
+
 ### Tài khoản demo
 
 | Tên đăng nhập | Vai trò | Mật khẩu |
@@ -82,7 +84,7 @@ Mở **http://localhost:8080/**. Lần build đầu cần Internet và mất và
 
 - Thiếu `MYSQL_ROOT_PASSWORD` hoặc `JWT_SECRET` thì compose dừng và nêu tên biến còn thiếu. Ứng dụng cũng từ chối khởi động nếu `JWT_SECRET` ngắn hơn 32 byte hoặc vẫn là giá trị mẫu.
 - Lược đồ do **Flyway** tạo (`src/main/resources/db/migration`), Hibernate chỉ kiểm tra (`ddl-auto: validate`).
-- `MEDBOOK_SEED_DEMO=true` (mặc định trong `.env.example`): nạp tài khoản demo ở mục 4 **một lần** khi CSDL còn trống.
+- `MEDBOOK_SEED_DEMO=true` (mặc định trong `.env.example`): nạp tài khoản demo ở mục 4 **một lần** khi CSDL còn trống. Kèm theo đó là lịch khám, lần khám và hóa đơn mẫu của 28 ngày gần nhất cho các tài khoản demo, để trang **Quản trị → Báo cáo** có số liệu và biểu đồ ngay; phần này chỉ nạp khi CSDL chưa có lịch hẹn hay hóa đơn nào, tắt riêng bằng `MEDBOOK_SEED_ACTIVITY=false`.
 - phpMyAdmin (tùy chọn): `docker compose --profile database up -d`, mở http://localhost:8081/.
 - Dừng: `docker compose down`. **Không dùng `down -v`**: tùy chọn `-v` xóa volume `db_data` (toàn bộ CSDL) và `uploads` (tệp đính kèm).
 
@@ -101,6 +103,7 @@ Mở **http://localhost:8080/**. Lần build đầu cần Internet và mất và
 | `MEDBOOK_UPLOAD_DIR` | `docker`, `prod` | Thư mục lưu tệp đính kèm (ngoài thư mục phục vụ web) |
 | `MEDBOOK_CORS_ALLOWED_ORIGINS` | `docker`, `prod` | Nguồn được phép gọi API từ trình duyệt, cách nhau bằng dấu phẩy |
 | `MEDBOOK_SEED_DEMO` | `docker` | `true`: nạp dữ liệu demo khi CSDL trống. Bị bỏ qua ở `prod` |
+| `MEDBOOK_SEED_ACTIVITY` | mọi nơi trừ `prod` | `true`: nạp lịch khám và hóa đơn mẫu 28 ngày gần nhất cho báo cáo khi CSDL chưa có hoạt động. Không đặt thì đi theo `MEDBOOK_SEED_DEMO` |
 | `MEDBOOK_OPENAPI_ENABLED` | mọi nơi | `true`: mở `/swagger-ui.html` và `/v3/api-docs`. Mặc định tắt |
 | `APP_PORT`, `DB_PORT`, `PMA_PORT` | compose | Cổng trên máy chủ (8080, 3307, 8081) |
 
