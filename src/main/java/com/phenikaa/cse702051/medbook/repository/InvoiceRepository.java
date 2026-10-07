@@ -78,4 +78,15 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long>, JpaSpec
             """)
     List<Object[]> sumByMonthAndStatus(@Param("from") LocalDateTime from,
             @Param("toExclusive") LocalDateTime toExclusive);
+
+    /** Mỗi dòng: {@code [Integer năm, String trạng thái, Long số hóa đơn, BigDecimal tổng tiền]}. */
+    @Query("""
+            select year(i.issuedAt), i.status, count(i), coalesce(sum(i.totalAmount), 0)
+            from Invoice i
+            where i.issuedAt >= :from and i.issuedAt < :toExclusive
+            group by year(i.issuedAt), i.status
+            order by year(i.issuedAt)
+            """)
+    List<Object[]> sumByYearAndStatus(@Param("from") LocalDateTime from,
+            @Param("toExclusive") LocalDateTime toExclusive);
 }

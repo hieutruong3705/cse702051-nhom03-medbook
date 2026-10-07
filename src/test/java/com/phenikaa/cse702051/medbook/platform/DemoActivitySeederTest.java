@@ -74,6 +74,16 @@ class DemoActivitySeederTest extends AbstractApiTest {
         assertEquals(summary.booked(), added(appointments, appointmentsBefore, "booked"));
         assertEquals(DemoActivitySeeder.DAYS, appointments.get("groups").size(), "ngày nào trong kỳ cũng có lịch");
 
+        JsonNode byMonth = report("appointments" + RANGE + "&groupBy=MONTH");
+        assertEquals(1, byMonth.get("groups").size());
+        assertEquals("1995-02", byMonth.get("groups").get(0).get("key").asText());
+        assertEquals("02/1995", byMonth.get("groups").get(0).get("label").asText());
+        assertEquals(appointments.get("total").asLong(), byMonth.get("groups").get(0).get("total").asLong());
+        JsonNode byYear = report("appointments" + RANGE + "&groupBy=YEAR");
+        assertEquals(1, byYear.get("groups").size());
+        assertEquals("1995", byYear.get("groups").get(0).get("label").asText());
+        assertEquals(appointments.get("completed").asLong(), byYear.get("groups").get(0).get("completed").asLong());
+
         JsonNode revenue = report("revenue" + RANGE + "&groupBy=DAY");
         assertEquals(summary.collectedAmount(),
                 money(revenue.get("collectedAmount")).subtract(money(revenueBefore.get("collectedAmount"))));

@@ -27,8 +27,8 @@ import com.phenikaa.cse702051.medbook.util.DateRanges;
 import com.phenikaa.cse702051.medbook.util.DateRanges.DateRange;
 
 /**
- * Báo cáo lịch khám cho Admin (YCCN-22): số lịch theo trạng thái và tỷ lệ hủy, gộp theo ngày, bác sĩ hoặc chuyên
- * khoa; xuất CSV. Mốc thời gian là ngày khám. Tổng hợp chạy ở CSDL: mỗi báo cáo dùng đúng một truy vấn
+ * Báo cáo lịch khám cho Admin (YCCN-22): số lịch theo trạng thái và tỷ lệ hủy, gộp theo ngày, tháng, năm, bác sĩ hoặc
+ * chuyên khoa; xuất CSV. Mốc thời gian là ngày khám. Tổng hợp chạy ở CSDL: mỗi báo cáo dùng đúng một truy vấn
  * {@code group by}, tổng chung được cộng từ chính các nhóm nên luôn khớp.
  */
 @Service
@@ -36,6 +36,8 @@ public class AppointmentReportService {
 
     public static final String GROUP_NONE = "NONE";
     public static final String GROUP_DAY = "DAY";
+    public static final String GROUP_MONTH = "MONTH";
+    public static final String GROUP_YEAR = "YEAR";
     public static final String GROUP_DOCTOR = "DOCTOR";
     public static final String GROUP_SPECIALTY = "SPECIALTY";
 
@@ -62,7 +64,8 @@ public class AppointmentReportService {
     }
 
     /**
-     * @param groupBy {@code NONE} (mặc định), {@code DAY}, {@code DOCTOR} hoặc {@code SPECIALTY}; giá trị khác → 400
+     * @param groupBy {@code NONE} (mặc định), {@code DAY}, {@code MONTH}, {@code YEAR}, {@code DOCTOR} hoặc
+     *                {@code SPECIALTY}; giá trị khác → 400
      */
     @Transactional(readOnly = true)
     public AppointmentReportDTO report(LocalDate from, LocalDate to, Long doctorId, Long specialtyId,
@@ -79,6 +82,24 @@ public class AppointmentReportService {
                         specialtyId)) {
                     LocalDate day = (LocalDate) row[0];
                     groups.computeIfAbsent(day.toString(), key -> new GroupCounts(DAY_LABEL.format(day)))
+                            .counts.add((AppointmentStatus) row[1], (Long) row[2]);
+                }
+            }
+            case GROUP_MONTH -> {
+                for (Object[] row : reportRepository.countByMonthAndStatus(range.from(), range.to(), doctorId,
+                        specialtyId)) {
+                    int year = ((Number) row[0]).intValue();
+                    int month = ((Number) row[1]).intValue();
+                    groups.computeIfAbsent("%04d-%02d".formatted(year, month),
+                            key -> new GroupCounts("%02d/%04d".formatted(month, year)))
+                            .counts.add((AppointmentStatus) row[2], (Long) row[3]);
+                }
+            }
+            case GROUP_YEAR -> {
+                for (Object[] row : reportRepository.countByYearAndStatus(range.from(), range.to(), doctorId,
+                        specialtyId)) {
+                    String year = "%04d".formatted(((Number) row[0]).intValue());
+                    groups.computeIfAbsent(year, GroupCounts::new)
                             .counts.add((AppointmentStatus) row[1], (Long) row[2]);
                 }
             }
@@ -164,9 +185,9 @@ public class AppointmentReportService {
         }
         String normalized = groupBy.trim().toUpperCase(Locale.ROOT);
         return switch (normalized) {
-            case GROUP_NONE, GROUP_DAY, GROUP_DOCTOR, GROUP_SPECIALTY -> normalized;
+            case GROUP_NONE, GROUP_DAY, GROUP_MONTH, GROUP_YEAR, GROUP_DOCTOR, GROUP_SPECIALTY -> normalized;
             default -> throw new FieldValidationException("groupBy",
-                    "Chỉ nhóm được theo NONE, DAY, DOCTOR hoặc SPECIALTY");
+                    "Chỉ nhóm được theo NONE, DAY, MONTH, YEAR, DOCTOR hoặc SPECIALTY");
         };
     }
 
