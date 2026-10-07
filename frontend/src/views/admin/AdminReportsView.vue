@@ -58,10 +58,10 @@
         </div>
         <p v-if="errors.revenue" class="mt-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800" role="alert">{{ errors.revenue }}</p>
         <template v-else>
-          <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-4">
+          <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
             <div v-for="item in revenueCards" :key="item.label" class="rounded-md bg-slate-50 p-3">
               <dt class="text-slate-500">{{ item.label }}</dt>
-              <dd class="mt-1 text-xl font-bold text-slate-950">{{ item.value }}</dd>
+              <dd class="mt-1 whitespace-nowrap text-xl font-bold text-slate-950">{{ item.value }}</dd>
             </div>
           </dl>
           <p class="mt-2 text-xs text-slate-500">Giá trị lập hóa đơn = Đã thu + Chưa thu. Hóa đơn đã hủy chỉ được đếm, không cộng tiền.</p>
