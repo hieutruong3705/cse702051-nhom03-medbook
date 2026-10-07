@@ -1,0 +1,8 @@
+# MedBook - khai báo cho trình thu thập dữ liệu.
+# Giao diện là ứng dụng một trang dùng định tuyến sau dấu # (ví dụ /#/doctors), nên với trình thu thập chỉ có
+# một địa chỉ là trang gốc. API không dành cho công cụ tìm kiếm.
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: /sitemap.xml

@@ -1,6 +1,17 @@
 import { config } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { afterEach, beforeEach } from 'vitest'
+import { afterEach, beforeEach, vi } from 'vitest'
+
+// Layout của bệnh nhân và bác sĩ có chuông thông báo tự hỏi số chưa đọc khi hiển thị. Mặc định mọi test dùng bản
+// giả dưới đây để không test nào gọi mạng thật; test về thông báo tự khai báo vi.mock riêng để kiểm tra chi tiết.
+vi.mock('@/api/notifications', () => ({
+  notificationsApi: {
+    mine: vi.fn().mockResolvedValue({ content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }),
+    unreadCount: vi.fn().mockResolvedValue({ count: 0 }),
+    markRead: vi.fn().mockResolvedValue({}),
+    markAllRead: vi.fn().mockResolvedValue({})
+  }
+}))
 
 config.global.stubs = {
   RouterLink: {
