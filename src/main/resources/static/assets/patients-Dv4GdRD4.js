@@ -1,1 +1,0 @@
-import{r as e}from"./auth-CH9HB6ui.js";var t={me:()=>e.get(`/patients/me`).then(e=>e.data),updateMe:t=>e.put(`/patients/me`,t).then(e=>e.data),list:(t={})=>e.get(`/patients`,{params:t}).then(e=>e.data),get:t=>e.get(`/patients/${t}`).then(e=>e.data)};export{t};

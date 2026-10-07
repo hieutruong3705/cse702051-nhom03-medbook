@@ -1,1 +1,0 @@
-import{r as e}from"./auth-CH9HB6ui.js";var t=t=>({list:(n={})=>e.get(t,{params:n}).then(e=>e.data),create:n=>e.post(`/admin${t}`,n).then(e=>e.data),update:(n,r)=>e.put(`/admin${t}/${n}`,r).then(e=>e.data),remove:n=>e.delete(`/admin${t}/${n}`)}),n={specialties:t(`/specialties`),services:t(`/medical-services`),medicines:t(`/medicines`)};export{n as t};
