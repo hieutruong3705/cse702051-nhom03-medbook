@@ -49,6 +49,7 @@ services:
       MEDBOOK_UPLOAD_DIR: /app/uploads
       MEDBOOK_CORS_ALLOWED_ORIGINS: ${MEDBOOK_CORS_ALLOWED_ORIGINS:-http://localhost:8080}
       MEDBOOK_SEED_DEMO: ${MEDBOOK_SEED_DEMO:-false}
+      MEDBOOK_SEED_ACTIVITY: ${MEDBOOK_SEED_ACTIVITY:-${MEDBOOK_SEED_DEMO:-false}}
       MEDBOOK_OPENAPI_ENABLED: ${MEDBOOK_OPENAPI_ENABLED:-false}
     volumes:
       - uploads:/app/uploads
