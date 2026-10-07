@@ -25,11 +25,11 @@ public record CreateScheduleRequest(
 
         @NotNull(message = "Phải nhập số phút mỗi slot")
         @Min(value = 5, message = "Mỗi slot tối thiểu 5 phút")
-        @Max(value = 240, message = "Mỗi slot tối đa 240 phút")
+        @Max(value = 120, message = "Mỗi slot tối đa 120 phút")
         Integer slotMinutes,
 
         @Valid
-        @Size(max = 20, message = "Tối đa 20 giờ nghỉ mỗi ca")
+        @Size(max = 10, message = "Tối đa 10 giờ nghỉ mỗi ca")
         List<BreakInput> breaks
 ) {
 
