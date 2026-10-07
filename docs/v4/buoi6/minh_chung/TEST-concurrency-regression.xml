@@ -1,0 +1,170 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.phenikaa.cse702051.medbook.appointment.AppointmentConcurrencyTest" time="24.159" tests="4" errors="0" skipped="0" failures="0" flakes="0">
+  <testcase name="databaseRejectsTwoActiveAppointmentsOnSameSlot" classname="com.phenikaa.cse702051.medbook.appointment.AppointmentConcurrencyTest" time="0.904">
+    <system-out>21:31:16.517 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.phenikaa.cse702051.medbook.appointment.AppointmentConcurrencyTest]: AppointmentConcurrencyTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+21:31:16.696 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.phenikaa.cse702051.medbook.MedbookApplication for test class com.phenikaa.cse702051.medbook.appointment.AppointmentConcurrencyTest
+21:31:16.804 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.phenikaa.cse702051.medbook.appointment.AppointmentConcurrencyTest]: AppointmentConcurrencyTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+21:31:16.805 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.phenikaa.cse702051.medbook.support.AbstractApiTest]: AbstractApiTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+21:31:16.810 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.phenikaa.cse702051.medbook.MedbookApplication for test class com.phenikaa.cse702051.medbook.appointment.AppointmentConcurrencyTest
+21:31:17.054 [main] INFO org.springframework.boot.devtools.restart.RestartApplicationListener -- Restart disabled due to context in which it is running
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.1)
+
+2026-10-03T21:31:17.493+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : Starting AppointmentConcurrencyTest using Java 21.0.12.1 with PID 30344 (started by manhn in C:\Users\manhn\Downloads\webadv\tmp\cx02-evidence)
+2026-10-03T21:31:17.495+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : No active profile set, falling back to 1 default profile: "default"
+2026-10-03T21:31:26.702+07:00  INFO 30344 --- [medbook] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-10-03T21:31:26.881+07:00  INFO 30344 --- [medbook] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 165 ms. Found 25 JPA repository interfaces.
+2026-10-03T21:31:27.979+07:00  INFO 30344 --- [medbook] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-10-03T21:31:28.078+07:00  INFO 30344 --- [medbook] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.4.5.Final
+2026-10-03T21:31:28.756+07:00  INFO 30344 --- [medbook] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-10-03T21:31:28.796+07:00  INFO 30344 --- [medbook] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-10-03T21:31:28.995+07:00  INFO 30344 --- [medbook] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:medbook_test_d1eedbd2-23fa-4a85-90fe-056395a0dfe0 user=SA
+2026-10-03T21:31:28.997+07:00  INFO 30344 --- [medbook] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-10-03T21:31:29.024+07:00  WARN 30344 --- [medbook] [           main] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-10-03T21:31:29.053+07:00  INFO 30344 --- [medbook] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:h2:mem:medbook_test_d1eedbd2-23fa-4a85-90fe-056395a0dfe0]
+	Database driver: H2 JDBC Driver
+	Database dialect: H2Dialect
+	Database version: 2.4.240
+	Default catalog/schema: MEDBOOK_TEST_D1EEDBD2-23FA-4A85-90FE-056395A0DFE0/PUBLIC
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: 100
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-10-03T21:31:30.836+07:00  INFO 30344 --- [medbook] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-10-03T21:31:31.431+07:00  INFO 30344 --- [medbook] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-10-03T21:31:31.590+07:00  INFO 30344 --- [medbook] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-10-03T21:31:35.382+07:00  WARN 30344 --- [medbook] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-10-03T21:31:35.599+07:00  INFO 30344 --- [medbook] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2026-10-03T21:31:35.963+07:00  INFO 30344 --- [medbook] [           main] o.s.b.w.a.WelcomePageHandlerMapping      : Adding welcome page: class path resource [static/index.html]
+2026-10-03T21:31:36.622+07:00  INFO 30344 --- [medbook] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-03T21:31:36.624+07:00  INFO 30344 --- [medbook] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-03T21:31:36.638+07:00  INFO 30344 --- [medbook] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 14 ms
+2026-10-03T21:31:36.789+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : Started AppointmentConcurrencyTest in 19.746 seconds (process running for 21.36)
+2026-10-03T21:31:37.531+07:00  WARN 30344 --- [medbook] [           main] org.hibernate.orm.jdbc.error             : HHH000247: ErrorCode: 23505, SQLState: 23505
+2026-10-03T21:31:37.532+07:00  WARN 30344 --- [medbook] [           main] org.hibernate.orm.jdbc.error             : Unique index or primary key violation: "PUBLIC.UK3E5UIU9NDKLRCY7LFBC9I3C INDEX PUBLIC.UK3E5UIU9NDKLRCY7LFBC9I3C_INDEX_E ON PUBLIC.APPOINTMENTS(ACTIVE_SLOT_ID NULLS FIRST) VALUES ( /* 1 */ CAST(1039 AS BIGINT) )"; SQL statement:
+insert into appointments (active_slot_id,cancel_reason,cancelled_at,created_at,doctor_id,notes,patient_id,reminder_24h_sent_at,reminder_2h_sent_at,service_id,slot_id,status,updated_at,id) values (?,?,?,?,?,?,?,?,?,?,?,?,?,default) [23505-240]
+</system-out>
+    <system-err>Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\Users\manhn\Downloads\webadv\tmp\cx01-maven-cache\repository\net\bytebuddy\byte-buddy-agent\1.18.11\byte-buddy-agent-1.18.11.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+</system-err>
+  </testcase>
+  <testcase name="hundredConcurrentBookingsOnlyOneSucceeds" classname="com.phenikaa.cse702051.medbook.appointment.AppointmentConcurrencyTest" time="2.264">
+    <system-out>2026-10-03T21:31:39.963+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=1 slot=1040 status=409
+2026-10-03T21:31:39.964+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=2 slot=1040 status=409
+2026-10-03T21:31:39.964+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=3 slot=1040 status=409
+2026-10-03T21:31:39.964+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=4 slot=1040 status=409
+2026-10-03T21:31:39.964+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=5 slot=1040 status=409
+2026-10-03T21:31:39.964+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=6 slot=1040 status=409
+2026-10-03T21:31:39.964+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=7 slot=1040 status=409
+2026-10-03T21:31:39.965+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=8 slot=1040 status=409
+2026-10-03T21:31:39.965+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=9 slot=1040 status=409
+2026-10-03T21:31:39.965+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=10 slot=1040 status=409
+2026-10-03T21:31:39.965+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=11 slot=1040 status=409
+2026-10-03T21:31:39.965+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=12 slot=1040 status=409
+2026-10-03T21:31:39.965+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=13 slot=1040 status=409
+2026-10-03T21:31:39.965+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=14 slot=1040 status=409
+2026-10-03T21:31:39.965+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=15 slot=1040 status=409
+2026-10-03T21:31:39.966+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=16 slot=1040 status=409
+2026-10-03T21:31:39.966+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=17 slot=1040 status=409
+2026-10-03T21:31:39.966+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=18 slot=1040 status=409
+2026-10-03T21:31:39.966+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=19 slot=1040 status=409
+2026-10-03T21:31:39.966+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=20 slot=1040 status=409
+2026-10-03T21:31:39.966+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=21 slot=1040 status=409
+2026-10-03T21:31:39.967+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=22 slot=1040 status=409
+2026-10-03T21:31:39.967+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=23 slot=1040 status=409
+2026-10-03T21:31:39.967+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=24 slot=1040 status=409
+2026-10-03T21:31:39.967+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=25 slot=1040 status=409
+2026-10-03T21:31:39.967+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=26 slot=1040 status=409
+2026-10-03T21:31:39.967+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=27 slot=1040 status=409
+2026-10-03T21:31:39.967+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=28 slot=1040 status=409
+2026-10-03T21:31:39.967+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=29 slot=1040 status=409
+2026-10-03T21:31:39.967+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=30 slot=1040 status=409
+2026-10-03T21:31:39.967+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=31 slot=1040 status=409
+2026-10-03T21:31:39.968+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=32 slot=1040 status=409
+2026-10-03T21:31:39.968+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=33 slot=1040 status=409
+2026-10-03T21:31:39.969+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=34 slot=1040 status=409
+2026-10-03T21:31:39.969+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=35 slot=1040 status=409
+2026-10-03T21:31:39.969+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=36 slot=1040 status=409
+2026-10-03T21:31:39.969+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=37 slot=1040 status=409
+2026-10-03T21:31:39.969+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=38 slot=1040 status=409
+2026-10-03T21:31:39.969+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=39 slot=1040 status=409
+2026-10-03T21:31:39.969+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=40 slot=1040 status=409
+2026-10-03T21:31:39.969+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=41 slot=1040 status=409
+2026-10-03T21:31:39.969+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=42 slot=1040 status=409
+2026-10-03T21:31:39.970+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=43 slot=1040 status=409
+2026-10-03T21:31:39.970+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=44 slot=1040 status=409
+2026-10-03T21:31:39.970+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=45 slot=1040 status=409
+2026-10-03T21:31:39.970+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=46 slot=1040 status=409
+2026-10-03T21:31:39.970+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=47 slot=1040 status=409
+2026-10-03T21:31:39.970+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=48 slot=1040 status=409
+2026-10-03T21:31:39.970+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=49 slot=1040 status=409
+2026-10-03T21:31:39.971+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=50 slot=1040 status=409
+2026-10-03T21:31:39.971+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=51 slot=1040 status=409
+2026-10-03T21:31:39.971+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=52 slot=1040 status=409
+2026-10-03T21:31:39.971+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=53 slot=1040 status=409
+2026-10-03T21:31:39.971+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=54 slot=1040 status=409
+2026-10-03T21:31:39.971+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=55 slot=1040 status=409
+2026-10-03T21:31:39.971+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=56 slot=1040 status=409
+2026-10-03T21:31:39.971+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=57 slot=1040 status=409
+2026-10-03T21:31:39.971+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=58 slot=1040 status=409
+2026-10-03T21:31:39.973+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=59 slot=1040 status=409
+2026-10-03T21:31:39.973+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=60 slot=1040 status=409
+2026-10-03T21:31:39.973+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=61 slot=1040 status=409
+2026-10-03T21:31:39.973+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=62 slot=1040 status=409
+2026-10-03T21:31:39.973+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=63 slot=1040 status=409
+2026-10-03T21:31:39.973+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=64 slot=1040 status=409
+2026-10-03T21:31:39.973+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=65 slot=1040 status=409
+2026-10-03T21:31:39.974+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=66 slot=1040 status=409
+2026-10-03T21:31:39.974+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=67 slot=1040 status=409
+2026-10-03T21:31:39.974+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=68 slot=1040 status=409
+2026-10-03T21:31:39.974+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=69 slot=1040 status=409
+2026-10-03T21:31:39.974+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=70 slot=1040 status=409
+2026-10-03T21:31:39.974+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=71 slot=1040 status=409
+2026-10-03T21:31:39.974+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=72 slot=1040 status=409
+2026-10-03T21:31:39.974+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=73 slot=1040 status=409
+2026-10-03T21:31:39.974+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=74 slot=1040 status=409
+2026-10-03T21:31:39.974+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=75 slot=1040 status=409
+2026-10-03T21:31:39.975+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=76 slot=1040 status=409
+2026-10-03T21:31:39.975+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=77 slot=1040 status=409
+2026-10-03T21:31:39.976+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=78 slot=1040 status=409
+2026-10-03T21:31:39.976+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=79 slot=1040 status=409
+2026-10-03T21:31:39.976+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=80 slot=1040 status=201
+2026-10-03T21:31:39.976+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=81 slot=1040 status=409
+2026-10-03T21:31:39.976+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=82 slot=1040 status=409
+2026-10-03T21:31:39.976+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=83 slot=1040 status=409
+2026-10-03T21:31:39.977+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=84 slot=1040 status=409
+2026-10-03T21:31:39.977+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=85 slot=1040 status=409
+2026-10-03T21:31:39.977+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=86 slot=1040 status=409
+2026-10-03T21:31:39.977+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=87 slot=1040 status=409
+2026-10-03T21:31:39.977+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=88 slot=1040 status=409
+2026-10-03T21:31:39.978+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=89 slot=1040 status=409
+2026-10-03T21:31:39.978+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=90 slot=1040 status=409
+2026-10-03T21:31:39.978+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=91 slot=1040 status=409
+2026-10-03T21:31:39.978+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=92 slot=1040 status=409
+2026-10-03T21:31:39.978+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=93 slot=1040 status=409
+2026-10-03T21:31:39.978+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=94 slot=1040 status=409
+2026-10-03T21:31:39.978+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=95 slot=1040 status=409
+2026-10-03T21:31:39.978+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=96 slot=1040 status=409
+2026-10-03T21:31:39.979+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=97 slot=1040 status=409
+2026-10-03T21:31:39.979+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=98 slot=1040 status=409
+2026-10-03T21:31:39.979+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=99 slot=1040 status=409
+2026-10-03T21:31:39.979+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_REQUEST request=100 slot=1040 status=409
+2026-10-03T21:31:39.984+07:00  INFO 30344 --- [medbook] [           main] c.p.c.m.a.AppointmentConcurrencyTest     : V4_RESULT requests=100 created=1 conflict=99 serverErrors=0 activeAppointments=1 slotStatus=BOOKED
+</system-out>
+  </testcase>
+  <testcase name="manySlotsEachWithContention" classname="com.phenikaa.cse702051.medbook.appointment.AppointmentConcurrencyTest" time="0.23" />
+  <testcase name="rescheduleRacesWithNewBooking" classname="com.phenikaa.cse702051.medbook.appointment.AppointmentConcurrencyTest" time="0.176" />
+</testsuite>
