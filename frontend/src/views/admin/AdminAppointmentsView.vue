@@ -6,7 +6,7 @@
       <form class="grid gap-3 rounded-md border border-slate-200 bg-white p-4 md:grid-cols-5" @submit.prevent="reload">
         <BaseDatePicker id="admin-appointment-from" v-model="filters.from" label="Từ ngày" />
         <BaseDatePicker id="admin-appointment-to" v-model="filters.to" label="Đến ngày" />
-        <BaseInput id="admin-appointment-doctor" v-model="filters.doctorId" label="ID bác sĩ" inputmode="numeric" />
+        <BaseInput id="admin-appointment-doctor" v-model="filters.doctorId" label="Mã bác sĩ" type="number" />
         <BaseSelect id="admin-appointment-status" v-model="filters.status" label="Trạng thái" :options="statusOptions" />
         <BaseButton type="submit" variant="secondary" class="self-end">
           <i class="fa-solid fa-filter" aria-hidden="true"></i>
@@ -39,6 +39,7 @@ import { appointmentsApi } from '@/api/appointments'
 import { usePagination } from '@/composables/usePagination'
 import { apiErrorMessage } from '@/utils/apiErrorMessage'
 import { formatDate, formatTime } from '@/utils/formatters'
+import { cleanParams } from '@/utils/params'
 import { appointmentStatus } from '@/utils/statusLabels'
 
 const statusOptions = [
@@ -82,8 +83,8 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const response = await appointmentsApi.listAdmin({ ...filters, page: page.value, size: size.value })
-    rows.value = response.content ?? response.items ?? response
+    const response = await appointmentsApi.listAdmin(cleanParams({ ...filters, page: page.value, size: size.value }))
+    rows.value = response?.content ?? []
     setPageResponse(response)
   } catch (err) {
     error.value = apiErrorMessage(err)
