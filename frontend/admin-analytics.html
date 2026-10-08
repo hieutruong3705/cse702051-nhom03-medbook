@@ -149,7 +149,7 @@
     <div class="report-card">
       <div>
         <h3>2. Tỷ lệ Trạng thái Lịch hẹn</h3>
-        <p>Aggregate: <code>COUNT(*)</code> phân loại theo <code>status</code></p>
+        <p>Aggregate: <code>COUNT(*)</code> phân loại theo <code>status</code> (Chuẩn 100%)</p>
         <div class="chart-container"><canvas id="chartStatus"></canvas></div>
       </div>
       <button onclick="exportReport('status')" class="btn btn-excel"><i class="fa-solid fa-file-excel"></i> Xuất Tệp Trạng thái (.xlsx)</button>
@@ -178,7 +178,7 @@
         <button onclick="document.getElementById('secureFileInput').click()" class="btn btn-primary" style="margin: 0 auto;">
           <i class="fa-solid fa-cloud-arrow-up"></i> Tải lên Hồ sơ / Bệnh án
         </button>
-        <p style="font-size: 11px; color:#94a3b8; margin-top: 8px;">Tiêu chuẩn: Giới hạn $\le$ 5MB. Kiểm tra Magic Bytes thực (PNG/JPG/PDF). Mã hóa đổi tên UUID & Lưu ngoài Web Root (<code>/var/medbook/uploads/</code>).</p>
+        <p style="font-size: 11px; color:#94a3b8; margin-top: 8px;">Tiêu chuẩn: Giới hạn &le; 5MB. Kiểm tra Magic Bytes thực (PNG/JPG/PDF). Mã hóa đổi tên UUID & Lưu ngoài Web Root (<code>/var/medbook/uploads/</code>).</p>
       </div>
       <div id="uploadStatus" class="file-status"></div>
     </div>
@@ -219,6 +219,27 @@
       { time: '11:10:45', user: 'System Admin', action: 'ROLE_CHANGE', detail: 'Thay đổi quyền tài khoản người dùng thành DOCTOR', badge: 'badge-role' }
     ];
 
+    /**
+     * Thuật toán cân bằng phần trăm chính xác tuyệt đối (Tổng đúng 100.0%)
+     * Tránh triệt để sai số dôi 100,1% hoặc 101% do làm tròn từng phần
+     */
+    function calculateExact100Percentages(values) {
+      const total = values.reduce((sum, val) => sum + val, 0);
+      if (total === 0) return values.map(() => '0.0%');
+
+      let accumulatedFormatted = 0;
+      return values.map((val, idx) => {
+        if (idx === values.length - 1) {
+          // Phần tử cuối cùng nhận giá trị còn lại để tổng luôn vừa khít 100.0%
+          const finalVal = (100 - accumulatedFormatted).toFixed(1);
+          return `${finalVal}%`;
+        }
+        const percentVal = parseFloat(((val / total) * 100).toFixed(1));
+        accumulatedFormatted += percentVal;
+        return `${percentVal.toFixed(1)}%`;
+      });
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       // 1. Đọc session đăng nhập động từ giao diện chính
       const rawUserData = localStorage.getItem('user_info') || JSON.stringify({
@@ -252,7 +273,19 @@
       chart2 = new Chart(ctx2, {
         type: 'doughnut',
         data: { labels: [], datasets: [{ data: [], backgroundColor: ['#10b981', '#f59e0b', '#ef4444'] }] },
-        options: { responsive: true, maintainAspectRatio: false }
+        options: { 
+          responsive: true, 
+          maintainAspectRatio: false,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return ` ${context.label}`;
+                }
+              }
+            }
+          }
+        }
       });
 
       const ctx3 = document.getElementById('chartRevenue').getContext('2d');
@@ -285,9 +318,14 @@
         const result = await response.json();
         const data = result.data;
 
-        // Cập nhật dữ liệu thực từ API vào 03 biểu đồ
+        // Xử lý nhãn phần trăm cân bằng 100% cho biểu đồ trạng thái
+        const rawStatusCounts = data.statusStats.map(i => i.count || i.percentage);
+        const statusPercents = calculateExact100Percentages(rawStatusCounts);
+        const formattedStatusLabels = data.statusStats.map((i, idx) => `${i.statusName} (${statusPercents[idx]})`);
+
+        // Cập nhật dữ liệu từ API
         updateChartData(chart1, data.visitStats.map(i => i.monthName), data.visitStats.map(i => i.totalVisits));
-        updateChartData(chart2, data.statusStats.map(i => i.statusName), data.statusStats.map(i => i.percentage));
+        updateChartData(chart2, formattedStatusLabels, rawStatusCounts);
         updateChartData(chart3, data.revenueStats.map(i => i.specialty), data.revenueStats.map(i => i.totalAmount));
 
         addAuditLog('QUERY_FILTER', `Thực thi truy vấn dữ liệu từ API (${from} đến ${to})`, 'badge-login');
@@ -295,9 +333,18 @@
       } catch (error) {
         console.warn('Lưu ý API chưa phản hồi, tự động dùng dữ liệu chuẩn hóa đại diện (Fallback Mode):', error.message);
         
-        // Cơ chế tự phục hồi (Fallback): Khi chưa bật server Backend, tự render dữ liệu chuẩn mẫu để tránh trắng trang
+        // Dữ liệu mẫu chuẩn hóa
+        const fallbackStatusValues = [65, 25, 10]; // Hoàn thành, Đang chờ, Đã hủy
+        const fallbackPercents = calculateExact100Percentages(fallbackStatusValues);
+        const fallbackStatusLabels = [
+          `Hoàn thành (${fallbackPercents[0]})`, 
+          `Đang chờ (${fallbackPercents[1]})`, 
+          `Đã hủy (${fallbackPercents[2]})`
+        ];
+
+        // Cơ chế tự phục hồi (Fallback): Tự render dữ liệu chuẩn mẫu để tránh trắng trang
         updateChartData(chart1, ['Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10'], [120, 190, 150, 250]);
-        updateChartData(chart2, ['Hoàn thành', 'Đang chờ', 'Đã hủy'], [65, 25, 10]);
+        updateChartData(chart2, fallbackStatusLabels, fallbackStatusValues);
         updateChartData(chart3, ['Nhi khoa', 'Tim mạch', 'Nội khoa', 'Cấp cứu'], [150000000, 320000000, 210000000, 450000000]);
 
         addAuditLog('QUERY_FALLBACK', `Hiển thị dữ liệu trực quan chuẩn hóa cho khoảng thời gian ${from} - ${to}`, 'badge-role');
