@@ -15,7 +15,7 @@
       v-else-if="!slots.length"
       icon="fa-regular fa-clock"
       title="Không còn khung giờ trống"
-      message="Hãy thử chọn ngày khác hoặc bác sĩ khác."
+      :message="serviceId ? 'Không có khung giờ nào đủ dài cho dịch vụ đã chọn. Hãy thử ngày khác hoặc bác sĩ khác.' : 'Hãy thử chọn ngày khác hoặc bác sĩ khác.'"
     />
     <ul v-else class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4" aria-label="Khung giờ còn trống">
       <li v-for="slot in slots" :key="slot.id">
@@ -48,6 +48,8 @@ const props = defineProps({
   doctorId: { type: [Number, String], default: null },
   date: { type: String, default: '' },
   modelValue: { type: [Number, String], default: null },
+  /** Tùy chọn: dịch vụ đã chọn. Có thì chỉ hiện khung giờ đủ dài cho dịch vụ đó; bỏ trống thì hiện mọi khung giờ trống. */
+  serviceId: { type: [Number, String], default: null },
   /** Tăng giá trị này để tải lại danh sách (ví dụ sau lỗi 409 vì slot vừa bị người khác đặt). */
   refreshKey: { type: Number, default: 0 }
 })
@@ -68,7 +70,9 @@ async function load() {
   const current = ++requestId
   loading.value = true
   try {
-    const response = await slotsApi.availableByDoctor(props.doctorId, props.date)
+    const response = props.serviceId
+      ? await slotsApi.availableByDoctor(props.doctorId, props.date, props.serviceId)
+      : await slotsApi.availableByDoctor(props.doctorId, props.date)
     if (current !== requestId) return // đã có yêu cầu mới hơn (đổi bác sĩ/ngày), bỏ kết quả cũ
     slots.value = normalizeList(response).map(normalizeSlot)
     if (props.modelValue && !slots.value.some((slot) => slot.id === props.modelValue)) {
@@ -87,5 +91,5 @@ function choose(slot) {
   emit('select', slot)
 }
 
-watch(() => [props.doctorId, props.date, props.refreshKey], load, { immediate: true })
+watch(() => [props.doctorId, props.date, props.serviceId, props.refreshKey], load, { immediate: true })
 </script>

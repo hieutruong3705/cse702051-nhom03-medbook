@@ -8,6 +8,7 @@ test.describe.configure({ mode: 'serial' })
 
 const DOCTOR = 'Bác sĩ Lan' // doctor1
 const PATIENT = 'Nguyễn Minh An' // patient1
+const SERVICE = 'Khám tổng quát' // dịch vụ mẫu 30 phút, vừa với khung giờ 30 phút của ca trong kịch bản
 const FIRST_SLOT = '09:00 – 09:30'
 const SECOND_SLOT = '09:30 – 10:00'
 const DIAGNOSIS = 'Viêm họng cấp, theo dõi thêm ba ngày'
@@ -26,16 +27,23 @@ const EXE_BYTES = Buffer.concat([Buffer.from('MZ'), Buffer.alloc(256, 0x90)])
 const day = isoDay(60 + Math.floor(Math.random() * 180))
 const shared = { encounterId: null, invoiceCode: null }
 
-/** Đi các bước 1–4 của trang đặt lịch bằng chuột và dừng ở bước xác nhận. */
-async function fillBookingUntilConfirm(page, slot) {
+/** Đi các bước 1–3 của trang đặt lịch bằng chuột (dịch vụ, bác sĩ, ngày) và dừng ở bước chọn khung giờ. */
+async function fillBookingUntilSlots(page) {
   await page.goto('/#/patient/booking')
+  await page.locator('#booking-service').selectOption({ label: SERVICE })
+  await page.getByRole('button', { name: 'Tiếp tục' }).click()
   await page.getByRole('list', { name: 'Danh sách bác sĩ' }).getByRole('button', { name: new RegExp(DOCTOR) }).click()
   await page.getByRole('button', { name: 'Tiếp tục' }).click()
   await page.locator('#booking-date').fill(day)
   await page.getByRole('button', { name: 'Tiếp tục' }).click()
+  await expect(page.getByRole('heading', { name: 'Bước 4: Chọn khung giờ' })).toBeVisible()
+}
+
+/** Đi tiếp: chọn khung giờ (hệ thống giữ chỗ và hiện đồng hồ đếm ngược) rồi dừng ở bước xác nhận. */
+async function fillBookingUntilConfirm(page, slot) {
+  await fillBookingUntilSlots(page)
   await page.getByRole('button', { name: slot, exact: true }).click()
-  await page.getByRole('button', { name: 'Tiếp tục' }).click()
-  await page.locator('#booking-service').selectOption({ index: 1 })
+  await expect(page.locator('[data-test="hold-countdown"]')).toContainText('Đang giữ chỗ, còn')
   await page.getByRole('button', { name: 'Tiếp tục' }).click()
   await expect(page.getByRole('heading', { name: 'Bước 5: Xác nhận thông tin' })).toBeVisible()
 }
@@ -58,7 +66,7 @@ async function typeDate(page, input, iso) {
   throw new Error(`Không gõ được ngày ${iso} bằng bàn phím (giá trị hiện tại: ${await input.inputValue()})`)
 }
 
-test('bác sĩ mở ca; hai bệnh nhân cùng đặt một khung giờ thì người đến sau được báo và phải chọn lại', async ({ page, browser }) => {
+test('bác sĩ mở ca; khung giờ một bệnh nhân đang giữ chỗ thì người khác không thấy và không đặt được, người giữ đặt thành công', async ({ page, browser, request }) => {
   await login(page, 'doctor1')
   await page.goto('/#/doctor/schedules')
   await page.locator('#schedule-date').fill(day)
@@ -68,19 +76,31 @@ test('bác sĩ mở ca; hai bệnh nhân cùng đặt một khung giờ thì ng�
   await page.getByRole('button', { name: 'Tạo ca' }).click()
   await expect(page.getByText('Đã tạo ca làm việc')).toBeVisible()
 
+  // Người đến trước chọn khung giờ thứ hai: hệ thống giữ chỗ cho họ trong lúc họ xem lại thông tin
   const winner = await openSession(browser, 'patient2')
   const loser = await openSession(browser, 'patient1')
   await fillBookingUntilConfirm(winner.page, SECOND_SLOT)
-  await fillBookingUntilConfirm(loser.page, SECOND_SLOT)
+
+  // Người đến sau không còn thấy khung giờ đang bị giữ; khung giờ còn lại vẫn chọn được
+  await fillBookingUntilSlots(loser.page)
+  await expect(loser.page.getByRole('button', { name: FIRST_SLOT, exact: true })).toBeVisible()
+  await expect(loser.page.getByRole('button', { name: SECOND_SLOT, exact: true })).toHaveCount(0)
+
+  // Gọi thẳng API bằng phiên của người đến sau cũng không giữ và không đặt được khung giờ đó
+  const winnerAuth = { Authorization: `Bearer ${await storedToken(winner.page)}` }
+  const loserAuth = { Authorization: `Bearer ${await storedToken(loser.page)}` }
+  const mine = await (await request.get(`/api/v1/appointment-slots/available?doctorId=1&date=${day}`, { headers: winnerAuth })).json()
+  const held = mine.find((slot) => slot.heldByMe)
+  expect(held, 'người giữ thấy khung giờ của mình kèm heldByMe').toBeTruthy()
+  expect((await request.post(`/api/v1/appointment-slots/${held.id}/hold`, { headers: loserAuth })).status()).toBe(409)
+  expect((await request.post('/api/v1/appointments', { headers: loserAuth, data: { slotId: held.id, serviceId: 1 } })).status()).toBe(409)
 
   await winner.page.getByRole('button', { name: 'Xác nhận đặt lịch' }).click()
   await expect(winner.page.locator('[data-test="done"]')).toContainText('Đặt lịch thành công')
 
-  await loser.page.getByRole('button', { name: 'Xác nhận đặt lịch' }).click()
-  await expect(loser.page.locator('[data-test="conflict"]')).toBeVisible()
-  await expect(loser.page.locator('[data-test="done"]')).toHaveCount(0)
-  await expect(loser.page.getByRole('heading', { name: 'Bước 3: Chọn khung giờ' })).toBeVisible()
-  // danh sách giờ trống được tải lại: giờ vừa bị người khác đặt đã biến mất, giờ còn lại vẫn chọn được
+  // Đặt xong thì khung giờ vẫn không trở lại danh sách của người khác (tải lại trang để đi lại từ bước 1)
+  await loser.page.reload()
+  await fillBookingUntilSlots(loser.page)
   await expect(loser.page.getByRole('button', { name: FIRST_SLOT, exact: true })).toBeVisible()
   await expect(loser.page.getByRole('button', { name: SECOND_SLOT, exact: true })).toHaveCount(0)
 
@@ -100,7 +120,18 @@ test('bệnh nhân đặt lịch từ đầu đến cuối chỉ bằng bàn ph�
   await page.goto('/#/patient/booking')
   const next = page.getByRole('button', { name: 'Tiếp tục' })
 
-  // Bước 1: tìm và chọn bác sĩ
+  // Bước 1: chọn dịch vụ bằng phím mũi tên (danh mục xếp theo tên, dịch vụ 30 phút đứng thứ hai)
+  await tabTo(page, page.locator('#booking-service'))
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('ArrowDown')
+  await expect(page.getByText('Giá tham khảo:')).toBeVisible()
+  await expect(page.getByText('khoảng 30 phút')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Giờ sớm nhất còn trống' })).toBeVisible()
+  await tabTo(page, next)
+  await page.keyboard.press('Enter')
+
+  // Bước 2: tìm và chọn bác sĩ
+  await expect(page.getByRole('heading', { name: 'Bước 2: Chọn bác sĩ' })).toBeFocused()
   await tabTo(page, page.locator('#booking-doctor-search'))
   await page.keyboard.type(DOCTOR)
   await tabTo(page, page.getByRole('list', { name: 'Danh sách bác sĩ' }).getByRole('button', { name: new RegExp(DOCTOR) }))
@@ -108,32 +139,27 @@ test('bệnh nhân đặt lịch từ đầu đến cuối chỉ bằng bàn ph�
   await tabTo(page, next)
   await page.keyboard.press('Enter')
 
-  // Bước 2: gõ ngày khám
-  await expect(page.getByRole('heading', { name: 'Bước 2: Chọn ngày khám' })).toBeFocused()
+  // Bước 3: gõ ngày khám
+  await expect(page.getByRole('heading', { name: 'Bước 3: Chọn ngày khám' })).toBeFocused()
   await tabTo(page, page.locator('#booking-date'))
   await typeDate(page, page.locator('#booking-date'), day)
   await tabTo(page, next)
   await page.keyboard.press('Enter')
 
-  // Bước 3: chọn khung giờ còn trống
+  // Bước 4: chọn khung giờ còn trống; hệ thống giữ chỗ và hiện đồng hồ đếm ngược
   await tabTo(page, page.getByRole('button', { name: FIRST_SLOT, exact: true }))
   await page.keyboard.press('Enter')
+  await expect(page.locator('[data-test="hold-countdown"]')).toContainText('Đang giữ chỗ, còn')
   await tabTo(page, next)
   await page.keyboard.press('Enter')
 
-  // Bước 4: chọn dịch vụ bằng phím mũi tên, gõ ghi chú
-  await tabTo(page, page.locator('#booking-service'))
-  await page.keyboard.press('ArrowDown')
-  await expect(page.getByText('Giá tham khảo:')).toBeVisible()
-  await tabTo(page, page.locator('#booking-notes'))
-  await page.keyboard.type('Đau họng ba ngày, sốt nhẹ')
-  await tabTo(page, next)
-  await page.keyboard.press('Enter')
-
-  // Bước 5: xác nhận
+  // Bước 5: gõ ghi chú rồi xác nhận
   const summary = page.locator('[data-test="summary"]')
+  await expect(summary).toContainText(SERVICE)
   await expect(summary).toContainText(DOCTOR)
   await expect(summary).toContainText(FIRST_SLOT)
+  await tabTo(page, page.locator('#booking-notes'))
+  await page.keyboard.type('Đau họng ba ngày, sốt nhẹ')
   await tabTo(page, page.getByRole('button', { name: 'Xác nhận đặt lịch' }))
   await page.keyboard.press('Enter')
   await expect(page.locator('[data-test="done"]')).toContainText('Đặt lịch thành công')
