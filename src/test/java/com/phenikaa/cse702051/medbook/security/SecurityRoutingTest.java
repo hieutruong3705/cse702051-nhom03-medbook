@@ -29,6 +29,7 @@ class SecurityRoutingTest extends AbstractApiTest {
     private static final String PATIENT = "PATIENT";
     private static final String DOCTOR = "DOCTOR";
     private static final String ADMIN = "ADMIN";
+    private static final String RECEPTIONIST = "RECEPTIONIST";
 
     static Stream<Arguments> routeMatrix() {
         return Stream.of(
@@ -210,6 +211,35 @@ class SecurityRoutingTest extends AbstractApiTest {
                 Arguments.of(NONE, "POST", "/api/v1/auth/register", 400),
                 Arguments.of(NONE, "POST", "/api/v1/auth/logout", 401),
 
+                // --- Lễ tân: chỉ khu /reception; không vào khu quản trị, khu bác sĩ, khu bệnh nhân, dữ liệu lâm sàng ---
+                Arguments.of(NONE, "GET", "/api/v1/reception/khong-ton-tai", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/reception/khong-ton-tai", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/reception/khong-ton-tai", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/reception/khong-ton-tai", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/reception/khong-ton-tai", 404), // qua được lớp vai trò
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/admin/invoices", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/admin/users", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/admin/audit-logs", 403),
+                Arguments.of(RECEPTIONIST, "PATCH", "/api/v1/admin/invoices/1/collect", 403),
+                Arguments.of(RECEPTIONIST, "PATCH", "/api/v1/admin/invoices/1/void", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/doctor-schedules", 403),
+                Arguments.of(RECEPTIONIST, "POST", "/api/v1/appointments", 403),
+                Arguments.of(RECEPTIONIST, "PATCH", "/api/v1/appointments/1/cancel", 403),
+                Arguments.of(RECEPTIONIST, "PATCH", "/api/v1/appointments/1/status", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/appointments/me", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/patients", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/patients/me", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/patients/1/medical-records", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/medical-records/me", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/encounters", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/encounters/me", 403),
+                Arguments.of(RECEPTIONIST, "POST", "/api/v1/encounters", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/medicines", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/invoices/me", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/notifications/me", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/users/me", 200), // hồ sơ tài khoản của chính mình
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/appointment-slots/available?doctorId=1", 200), // cần để đặt hộ
+
                 // --- Route chưa khai báo: mặc định phải đăng nhập ---
                 Arguments.of(NONE, "GET", "/api/v1/khong-ton-tai", 401),
                 Arguments.of(PATIENT, "GET", "/api/v1/khong-ton-tai", 404));
@@ -227,6 +257,7 @@ class SecurityRoutingTest extends AbstractApiTest {
             case PATIENT -> request.header("Authorization", patientToken());
             case DOCTOR -> request.header("Authorization", doctorToken());
             case ADMIN -> request.header("Authorization", adminToken());
+            case RECEPTIONIST -> request.header("Authorization", receptionistToken());
             default -> {
             }
         }

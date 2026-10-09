@@ -169,6 +169,16 @@ public class ApiTestData {
         return new IsolatedPatient(user.getId(), patient.getId(), "Bearer " + token);
     }
 
+    /** Lễ tân dựng riêng cho một test (tài khoản và token), không có hồ sơ bệnh nhân hay bác sĩ. */
+    public record IsolatedReceptionist(Long userId, String token) {
+    }
+
+    /** Lễ tân hoàn toàn mới (khóa {@code key}) để test kiểm tra "người thực hiện" mà không dính tài khoản seed. */
+    public IsolatedReceptionist isolatedReceptionist(String key) {
+        User user = user("isorec_" + key, "Iso#Pass123", "RECEPTIONIST");
+        return new IsolatedReceptionist(user.getId(), "Bearer " + loginSessions.create(user.getId()).token());
+    }
+
     /** Lịch hẹn MỚI (luôn tạo bản ghi và slot riêng) giữa bác sĩ và bệnh nhân ở trạng thái cho trước. */
     public Appointment newAppointment(long doctorId, long patientId, AppointmentStatus status) {
         Doctor doctor = doctorRepository.findById(doctorId).orElseThrow();

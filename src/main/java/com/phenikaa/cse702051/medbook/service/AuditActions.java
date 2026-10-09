@@ -37,6 +37,12 @@ public final class AuditActions {
     public static final String PRESCRIPTION_CREATE = "PRESCRIPTION_CREATE";
     public static final String PRESCRIPTION_UPDATE = "PRESCRIPTION_UPDATE";
 
+    // --- Lễ tân làm hộ bệnh nhân tại quầy (người thực hiện là lễ tân, không phải bệnh nhân) ---
+    public static final String PATIENT_CREATE = "PATIENT_CREATE";
+    public static final String APPOINTMENT_BOOK_ON_BEHALF = "APPOINTMENT_BOOK_ON_BEHALF";
+    public static final String APPOINTMENT_CANCEL_ON_BEHALF = "APPOINTMENT_CANCEL_ON_BEHALF";
+    public static final String APPOINTMENT_RESCHEDULE_ON_BEHALF = "APPOINTMENT_RESCHEDULE_ON_BEHALF";
+
     // --- Quản trị: tài khoản, danh mục, bác sĩ, lịch làm việc ---
     public static final String USER_CREATE = "USER_CREATE";
     public static final String USER_UPDATE = "USER_UPDATE";

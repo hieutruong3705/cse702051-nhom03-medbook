@@ -65,6 +65,7 @@ class DevSeedTest extends AbstractApiTest {
 
         long userId = data.user("devseed_identity_check", "Iso#Pass123", "PATIENT").getId();
         assertTrue(userId >= 1000, "ID sinh sau seed phải từ 1000, nhận " + userId);
-        assertEquals(0, jdbc.queryForObject("select count(*) from users where id between 6 and 999", Long.class));
+        assertEquals(0, jdbc.queryForObject("select count(*) from users where id between 7 and 999", Long.class),
+                "seed có 6 tài khoản (id 1-6); không còn id nào khác dưới 1000");
     }
 }

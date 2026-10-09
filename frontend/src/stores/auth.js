@@ -15,10 +15,11 @@ import { configureHttp, http } from '@/api/http'
 
 const STORAGE_KEY = 'medbook.auth'
 const LEGACY_KEYS = ['token', 'user']
-const ROLE_PRIORITY = ['ADMIN', 'DOCTOR', 'PATIENT']
+const ROLE_PRIORITY = ['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'PATIENT']
 const DASHBOARDS = {
   ADMIN: '/admin/dashboard',
   DOCTOR: '/doctor/dashboard',
+  RECEPTIONIST: '/receptionist/dashboard',
   PATIENT: '/patient/dashboard'
 }
 const MAX_TIMER_MS = 2 ** 31 - 1

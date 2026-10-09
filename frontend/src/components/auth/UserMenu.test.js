@@ -31,4 +31,19 @@ describe('UserMenu', () => {
     expect(logout).toHaveBeenCalledTimes(1)
     expect(replace).toHaveBeenCalledWith({ path: '/login', query: { reason: 'logout' } })
   })
+
+  it('hiện nhãn vai trò "Lễ tân" cho tài khoản lễ tân', () => {
+    const auth = useAuthStore()
+    auth.login({
+      token: 'header.payload.signature',
+      userId: 6,
+      username: 'receptionist1',
+      fullName: 'Phạm Thu Hà',
+      roles: ['RECEPTIONIST']
+    })
+
+    const wrapper = mount(UserMenu, { props: { variant: 'dashboard' } })
+
+    expect(wrapper.get('[data-test="user-menu-authenticated"]').text()).toContain('Lễ tân')
+  })
 })

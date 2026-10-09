@@ -59,7 +59,7 @@ import jakarta.persistence.criteria.Subquery;
 @Service
 public class AdminUserService {
 
-    private static final Set<String> ROLES = Set.of("PATIENT", "DOCTOR", "ADMIN");
+    private static final Set<String> ROLES = Set.of("PATIENT", "DOCTOR", "RECEPTIONIST", "ADMIN");
     private static final Set<String> STATUSES = Set.of("ACTIVE", "LOCKED");
     private static final Set<String> SORTS = Set.of("id", "username", "createdAt");
     private static final Sort NEWEST_FIRST = Sort.by(Sort.Direction.DESC, "createdAt")
@@ -113,7 +113,7 @@ public class AdminUserService {
     public PageResponse<AdminUserDTO> list(String keyword, String role, String status, int page, int size,
             String sort) {
         currentUserService.requireRole("ADMIN");
-        String roleFilter = oneOf("role", role, ROLES, "Vai trò phải là PATIENT, DOCTOR hoặc ADMIN");
+        String roleFilter = oneOf("role", role, ROLES, "Vai trò phải là PATIENT, DOCTOR, RECEPTIONIST hoặc ADMIN");
         String statusFilter = oneOf("status", status, STATUSES, "Trạng thái phải là ACTIVE hoặc LOCKED");
         Page<User> result = userQueryRepository.findAll(matching(keyword, roleFilter, statusFilter),
                 PageRequests.of(page, size, PageRequests.parseSort(sort, SORTS, NEWEST_FIRST)));
@@ -135,7 +135,7 @@ public class AdminUserService {
         currentUserService.requireRole("ADMIN");
         String roleCode = request.role().trim().toUpperCase(Locale.ROOT);
         if (!ROLES.contains(roleCode)) {
-            throw new FieldValidationException("role", "Vai trò phải là PATIENT, DOCTOR hoặc ADMIN");
+            throw new FieldValidationException("role", "Vai trò phải là PATIENT, DOCTOR, RECEPTIONIST hoặc ADMIN");
         }
         boolean doctor = "DOCTOR".equals(roleCode);
         if (doctor && request.doctorProfile() == null) {

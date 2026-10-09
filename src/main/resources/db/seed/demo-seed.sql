@@ -2,14 +2,15 @@
 -- MedBook - dữ liệu demo cho MySQL (hồ sơ docker, khi MEDBOOK_SEED_DEMO=true và CSDL còn trống).
 -- Do DemoSeedRunner nạp, KHÔNG phải migration Flyway và không bao giờ chạy ở hồ sơ prod.
 --
--- Năm tài khoản demo dùng chung mật khẩu MedBook@2026 (băm BCrypt cost 12), giống data-h2.sql của chế độ phát
+-- Sáu tài khoản demo dùng chung mật khẩu MedBook@2026 (băm BCrypt cost 12), giống data-h2.sql của chế độ phát
 -- triển. Chỉ dùng hàm có ở cả MySQL lẫn H2 (CURDATE, TIMESTAMPADD) để bộ test chạy được tệp này.
 -- =====================================================================
 
 INSERT INTO roles (id, code, name, description, created_at) VALUES
 (1, 'PATIENT', 'Bệnh nhân', 'Người bệnh đăng ký khám', NOW()),
 (2, 'DOCTOR', 'Bác sĩ', 'Bác sĩ khám chữa bệnh', NOW()),
-(3, 'ADMIN', 'Quản trị viên', 'Quản trị hệ thống', NOW());
+(3, 'ADMIN', 'Quản trị viên', 'Quản trị hệ thống', NOW()),
+(4, 'RECEPTIONIST', 'Lễ tân', 'Nhân viên tiếp đón tại quầy', NOW());
 
 INSERT INTO specialties (id, code, name, description, status, created_at, updated_at) VALUES
 (1, 'NTQ', 'Nội tổng quát', 'Khám các bệnh lý nội khoa chung', 'ACTIVE', NOW(), NOW()),
@@ -23,14 +24,16 @@ INSERT INTO users (id, username, password_hash, full_name, email, phone, status,
 (2, 'doctor1', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Bác sĩ Lan', 'doctor1@medbook.local', '0912345678', 'ACTIVE', 0, 0, NOW(), NOW()),
 (3, 'doctor2', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Bác sĩ Huy', 'doctor2@medbook.local', '0923456789', 'ACTIVE', 0, 0, NOW(), NOW()),
 (4, 'patient1', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Nguyễn Minh An', 'patient1@medbook.local', '0934567890', 'ACTIVE', 0, 0, NOW(), NOW()),
-(5, 'patient2', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Trần Gia Bình', 'patient2@medbook.local', '0945678901', 'ACTIVE', 0, 0, NOW(), NOW());
+(5, 'patient2', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Trần Gia Bình', 'patient2@medbook.local', '0945678901', 'ACTIVE', 0, 0, NOW(), NOW()),
+(6, 'receptionist1', '$2a$12$7MBzRjriXr4ThmBO5b01rOlQFYbUFi2u00ZcWn1ntMiN59J.TnJai', 'Phạm Thu Hà', 'receptionist1@medbook.local', '0956789012', 'ACTIVE', 0, 0, NOW(), NOW());
 
 INSERT INTO user_roles (user_id, role_id, created_at) VALUES
 (1, 3, NOW()),
 (2, 2, NOW()),
 (3, 2, NOW()),
 (4, 1, NOW()),
-(5, 1, NOW());
+(5, 1, NOW()),
+(6, 4, NOW());
 
 INSERT INTO doctors (id, user_id, specialty_id, full_name, phone, license_number, bio, is_active, created_at, updated_at) VALUES
 (1, 2, 1, 'Bác sĩ Lan', '0912345678', 'CCHN-0001', 'Bác sĩ chuyên khoa Nội tổng quát', TRUE, NOW(), NOW()),

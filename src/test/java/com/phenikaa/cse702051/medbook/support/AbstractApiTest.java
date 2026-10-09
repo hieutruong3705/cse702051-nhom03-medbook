@@ -32,6 +32,7 @@ public abstract class AbstractApiTest {
     public static final long DOCTOR2_USER_ID = 3L;
     public static final long PATIENT1_USER_ID = 4L;
     public static final long PATIENT2_USER_ID = 5L;
+    public static final long RECEPTIONIST_USER_ID = 6L;
 
     @Autowired
     protected MockMvc mvc;
@@ -86,6 +87,10 @@ public abstract class AbstractApiTest {
 
     protected String patient2Token() {
         return bearer(loginSessions.create(PATIENT2_USER_ID).token());
+    }
+
+    protected String receptionistToken() {
+        return bearer(loginSessions.create(RECEPTIONIST_USER_ID).token());
     }
 
     protected static String bearer(String token) {

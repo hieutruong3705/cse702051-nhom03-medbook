@@ -99,7 +99,10 @@ describe('auth store', () => {
     expect(auth.hasRole(['ADMIN', 'PATIENT'])).toBe(false)
   })
 
-  it('dashboardPath theo vai trò ưu tiên ADMIN > DOCTOR > PATIENT', () => {
+  it('dashboardPath theo vai trò ưu tiên ADMIN > DOCTOR > RECEPTIONIST > PATIENT', () => {
+    expect(dashboardPathFor(['RECEPTIONIST'])).toBe('/receptionist/dashboard')
+    expect(dashboardPathFor(['PATIENT', 'ROLE_RECEPTIONIST'])).toBe('/receptionist/dashboard')
+    expect(dashboardPathFor(['RECEPTIONIST', 'DOCTOR'])).toBe('/doctor/dashboard')
     expect(dashboardPathFor(['PATIENT'])).toBe('/patient/dashboard')
     expect(dashboardPathFor(['PATIENT', 'DOCTOR'])).toBe('/doctor/dashboard')
     expect(dashboardPathFor(['ROLE_ADMIN', 'DOCTOR'])).toBe('/admin/dashboard')
