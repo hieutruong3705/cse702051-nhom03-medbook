@@ -41,7 +41,8 @@ public class AppointmentController {
     /** YCCN-10, 11: bệnh nhân đặt lịch. Slot đã bị người khác đặt → 409. */
     @PostMapping
     public ResponseEntity<AppointmentDTO> book(@Valid @RequestBody BookAppointmentRequest request) {
-        AppointmentDTO appointment = appointmentService.book(request.slotId(), request.serviceId(), request.notes());
+        AppointmentDTO appointment = appointmentService.book(request.slotId(), request.serviceId(), request.notes(),
+                request.holdId());
         return ResponseEntity.created(URI.create("/api/v1/appointments/" + appointment.id())).body(appointment);
     }
 
@@ -76,7 +77,7 @@ public class AppointmentController {
     public AppointmentDTO reschedule(
             @PathVariable Long id,
             @Valid @RequestBody RescheduleAppointmentRequest request) {
-        return appointmentService.reschedule(id, request.newSlotId(), request.reason());
+        return appointmentService.reschedule(id, request.newSlotId(), request.reason(), request.holdId());
     }
 
     /** YCCN-16: bác sĩ phụ trách chuyển BOOKED → IN_PROGRESS → COMPLETED. */

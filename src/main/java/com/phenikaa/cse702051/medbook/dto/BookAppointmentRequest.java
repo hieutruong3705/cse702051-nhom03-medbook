@@ -14,6 +14,9 @@ public record BookAppointmentRequest(
         Long serviceId,
 
         @Size(max = 2000, message = "Ghi chú tối đa 2000 ký tự")
-        String notes
+        String notes,
+
+        /** Tùy chọn: bản giữ chỗ nhận được khi chọn khung giờ. Đã hết hạn → 410. */
+        Long holdId
 ) {
 }

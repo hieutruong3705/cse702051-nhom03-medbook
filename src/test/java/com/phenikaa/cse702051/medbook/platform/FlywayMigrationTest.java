@@ -29,6 +29,7 @@ import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import com.phenikaa.cse702051.medbook.config.DemoSeedRunner;
 import com.phenikaa.cse702051.medbook.config.migration.V2__CxAdditiveSchema;
 import com.phenikaa.cse702051.medbook.config.migration.V3__ReceptionistRole;
+import com.phenikaa.cse702051.medbook.config.migration.V4__SlotHolds;
 
 import jakarta.persistence.Table;
 
@@ -67,7 +68,7 @@ class FlywayMigrationTest {
         return Flyway.configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
-                .javaMigrations(new V2__CxAdditiveSchema(), new V3__ReceptionistRole())
+                .javaMigrations(new V2__CxAdditiveSchema(), new V3__ReceptionistRole(), new V4__SlotHolds())
                 .baselineOnMigrate(true)
                 .baselineVersion("1")
                 .load();
@@ -93,15 +94,15 @@ class FlywayMigrationTest {
     }
 
     @Test
-    @DisplayName("AC-09.8 CSDL mới: V1, V2 và V3 chạy hết, đủ bảng cho mọi entity, đủ cột và chỉ mục mới; chạy lại không đổi gì")
+    @DisplayName("AC-09.8 CSDL mới: V1 đến V4 chạy hết, đủ bảng cho mọi entity, đủ cột và chỉ mục mới; chạy lại không đổi gì")
     void migratesAnEmptyDatabase() throws Exception {
         DataSource dataSource = newDatabase();
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
 
         MigrateResult result = flyway(dataSource).migrate();
 
-        assertEquals(3, result.migrationsExecuted);
-        assertEquals("3", result.targetSchemaVersion);
+        assertEquals(4, result.migrationsExecuted);
+        assertEquals("4", result.targetSchemaVersion);
         assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM roles", Long.class),
                 "V3 không chèn vào bảng roles rỗng: vai trò đến từ dữ liệu khởi tạo, có id tường minh");
         assertEquals(entityTables(), tables(jdbc), "mỗi entity phải có bảng do migration tạo, và ngược lại");
@@ -114,6 +115,9 @@ class FlywayMigrationTest {
         assertTrue(indexes(jdbc, "audit_logs").containsAll(
                 List.of("idx_audit_logs_created", "idx_audit_logs_action_created")));
         assertTrue(indexes(jdbc, "doctors").contains("uk_doctors_license"));
+        assertEquals(Set.of("id", "slot_id", "user_id", "expires_at", "created_at"), columns(jdbc, "slot_holds"));
+        // UNIQUE(slot_id) được kiểm bằng hành vi ở test riêng: H2 tự đặt tên chỉ mục của ràng buộc khai trong CREATE TABLE
+        assertTrue(indexes(jdbc, "slot_holds").containsAll(List.of("idx_slot_holds_expires", "idx_slot_holds_user")));
 
         assertEquals(0, flyway(dataSource).migrate().migrationsExecuted, "chạy lại không còn gì để làm");
     }
@@ -157,7 +161,7 @@ class FlywayMigrationTest {
     }
 
     @Test
-    @DisplayName("AC-09.4 CSDL đã có (chưa có lịch sử Flyway, đã có sẵn một phần thay đổi): baseline V1 rồi chỉ chạy V2 và V3, không lỗi")
+    @DisplayName("AC-09.4 CSDL đã có (chưa có lịch sử Flyway, đã có sẵn một phần thay đổi): baseline V1 rồi chỉ chạy V2, V3 và V4, không lỗi")
     void upgradesAnExistingDatabaseWithoutHistory() throws Exception {
         DataSource dataSource = newDatabase();
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
@@ -177,7 +181,7 @@ class FlywayMigrationTest {
 
         MigrateResult result = flyway(dataSource).migrate();
 
-        assertEquals(2, result.migrationsExecuted, "chỉ V2 và V3 được chạy, V1 được coi là đã có");
+        assertEquals(3, result.migrationsExecuted, "chỉ V2, V3 và V4 được chạy, V1 được coi là đã có");
         assertEquals(entityTables(), tables(jdbc));
         assertTrue(columns(jdbc, "invoices").containsAll(List.of("voided_at", "void_reason")));
         assertFalse(indexes(jdbc, "appointments").contains("idx_appointments_patient"),
@@ -240,6 +244,45 @@ class FlywayMigrationTest {
                 .withUserConfiguration(DemoSeedRunner.class)
                 .withPropertyValues("medbook.seed.demo=true")
                 .run(context -> assertTrue(context.containsBean("demoSeedRunner")));
+    }
+
+    @Test
+    @DisplayName("AC-S1.10 V4 chạy lại nhiều lần không lỗi và không đụng dữ liệu; slot_holds chỉ nhận một bản giữ cho mỗi khung giờ, gỡ khung giờ thì bản giữ đi theo")
+    void slotHoldsMigrationIsRepeatableAndEnforcesOneHoldPerSlot() throws Exception {
+        DataSource dataSource = newDatabase();
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        flyway(dataSource).migrate();
+        new DemoSeedRunner(dataSource, new ClassPathResource("db/seed/demo-seed.sql"), false).seedIfEmpty();
+        Long slotId = jdbc.queryForObject("SELECT MIN(id) FROM appointment_slots", Long.class);
+        jdbc.update("INSERT INTO slot_holds (slot_id, user_id, expires_at, created_at) VALUES (?, 4, NOW(), NOW())",
+                slotId);
+
+        for (int i = 0; i < 2; i++) {
+            try (java.sql.Connection connection = dataSource.getConnection()) {
+                new V4__SlotHolds().migrate(new org.flywaydb.core.api.migration.Context() {
+                    @Override
+                    public org.flywaydb.core.api.configuration.Configuration getConfiguration() {
+                        return null;
+                    }
+
+                    @Override
+                    public java.sql.Connection getConnection() {
+                        return connection;
+                    }
+                });
+            }
+        }
+
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM slot_holds", Long.class), "dữ liệu còn nguyên");
+        assertThrows(DataAccessException.class, () -> jdbc.update(
+                "INSERT INTO slot_holds (slot_id, user_id, expires_at, created_at) VALUES (?, 5, NOW(), NOW())", slotId),
+                "UNIQUE(slot_id): một khung giờ, một bản giữ");
+        assertThrows(DataAccessException.class, () -> jdbc.update(
+                "INSERT INTO slot_holds (slot_id, user_id, expires_at, created_at) VALUES (999999, 4, NOW(), NOW())"),
+                "khóa ngoại tới khung giờ");
+        jdbc.update("DELETE FROM appointment_slots WHERE id = ?", slotId);
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM slot_holds", Long.class),
+                "ON DELETE CASCADE: gỡ khung giờ thì bản giữ đi theo");
     }
 
     @Test

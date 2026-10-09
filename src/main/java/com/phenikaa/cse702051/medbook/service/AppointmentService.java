@@ -14,6 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.phenikaa.cse702051.medbook.dto.AppointmentDTO;
@@ -42,9 +43,12 @@ import com.phenikaa.cse702051.medbook.security.CurrentUserService;
  * <h3>Chống đặt trùng (xem docs/booking-concurrency.md)</h3>
  * <ol>
  * <li>Bệnh nhân lấy từ JWT, không nhận từ request.</li>
+ * <li>Đặt lịch và đổi lịch khóa hàng của khung giờ trước ({@code findByIdForUpdate}), rồi mới kiểm bản giữ chỗ
+ * ({@link SlotHoldService#consumeForBooking}) và trạng thái khung giờ trong chính giao dịch đó: người khác đang giữ
+ * còn hạn → 409, bản giữ gửi kèm đã hết hạn → 410.</li>
  * <li>Mỗi slot có cột {@code version} ({@code @Version}). Đặt lịch đổi slot sang BOOKED rồi
- * {@code saveAndFlush}: hai giao dịch cùng đọc version N, chỉ giao dịch đầu UPDATE thành công
- * (version N→N+1), giao dịch sau bị {@code OptimisticLockingFailure} → 409.</li>
+ * {@code saveAndFlush}: thay đổi không đi qua khóa hàng (ví dụ bác sĩ gỡ khung giờ) vẫn bị phát hiện qua
+ * version và trả 409.</li>
  * <li>Lớp bảo vệ thứ hai: {@code appointments.active_slot_id} UNIQUE (NULL khi đã hủy) nên CSDL
  * từ chối lịch thứ hai trên cùng slot đang hiệu lực, còn slot đã hủy đặt lại được.</li>
  * <li>Đổi lịch chiếm slot MỚI trước (có kiểm soát xung đột), sau đó mới nhả slot cũ, tất cả trong
@@ -68,6 +72,7 @@ public class AppointmentService {
     private final CurrentActorService currentActorService;
     private final AppointmentMapper mapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final SlotHoldService slotHoldService;
     private final long cancelBeforeHours;
 
     public AppointmentService(
@@ -78,6 +83,7 @@ public class AppointmentService {
             CurrentActorService currentActorService,
             AppointmentMapper mapper,
             ApplicationEventPublisher eventPublisher,
+            SlotHoldService slotHoldService,
             @Value("${medbook.booking.cancel-before-hours:2}") long cancelBeforeHours) {
         this.appointmentRepository = appointmentRepository;
         this.slotRepository = slotRepository;
@@ -86,17 +92,21 @@ public class AppointmentService {
         this.currentActorService = currentActorService;
         this.mapper = mapper;
         this.eventPublisher = eventPublisher;
+        this.slotHoldService = slotHoldService;
         this.cancelBeforeHours = cancelBeforeHours;
     }
 
     // ================= Đặt / hủy / đổi lịch (bệnh nhân) =================
 
-    /** YCCN-10, 11: đặt lịch. Chính xác một trong N yêu cầu đồng thời thành công, còn lại 409. */
-    @Transactional
-    public AppointmentDTO book(Long slotId, Long serviceId, String notes) {
+    /**
+     * YCCN-10, 11: đặt lịch. Chính xác một trong N yêu cầu đồng thời thành công, còn lại 409. {@code holdId} là bản
+     * giữ chỗ nhận được khi chọn khung giờ (tùy chọn); đã hết hạn → 410.
+     */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public AppointmentDTO book(Long slotId, Long serviceId, String notes, Long holdId) {
         currentUserService.requireRole("PATIENT");
         Long patientId = currentActorService.requireCurrentPatientId();
-        return mapper.toDTO(bookFor(patientId, slotId, serviceId, notes));
+        return mapper.toDTO(bookFor(patientId, slotId, serviceId, notes, holdId));
     }
 
     /** YCCN-12: bệnh nhân hủy lịch của mình, giải phóng slot. */
@@ -114,26 +124,27 @@ public class AppointmentService {
      * YCCN-13: đổi lịch sang slot trống khác, nguyên tử: chiếm slot mới trước, rồi nhả slot cũ.
      * Thất bại ở bất kỳ bước nào ⇒ rollback, lịch cũ và slot cũ giữ nguyên.
      */
-    @Transactional
-    public AppointmentDTO reschedule(Long appointmentId, Long newSlotId, String reason) {
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public AppointmentDTO reschedule(Long appointmentId, Long newSlotId, String reason, Long holdId) {
         currentUserService.requireRole("PATIENT");
         Long patientId = currentActorService.requireCurrentPatientId();
         Appointment appointment = requireOwnedByPatient(appointmentId, patientId);
 
         assertChangeableByPatient(appointment, "đổi");
-        return mapper.toDTO(moveToSlot(appointment, newSlotId,
+        return mapper.toDTO(moveToSlot(appointment, newSlotId, holdId,
                 "Khung giờ mới vừa có người khác đặt. Lịch hiện tại của bạn được giữ nguyên!"));
     }
 
     // ================= Đặt / hủy / đổi lịch hộ tại quầy (nội bộ cho module lễ tân) =================
     // Ba phương thức dưới đây KHÔNG kiểm quyền người gọi và không ghi nhật ký: người gọi (ReceptionAppointmentService)
     // đã kiểm vai trò lễ tân và tự ghi nhật ký "làm hộ". Chúng dùng đúng phần lõi của luồng bệnh nhân, nên bảo đảm
-    // đồng thời (khóa lạc quan của slot + UNIQUE active_slot_id) là một.
+    // đồng thời (khóa hàng của slot, bản giữ chỗ, @Version và UNIQUE active_slot_id) là một. Bản giữ chỗ gửi kèm
+    // phải là của chính người đang thao tác, tức lễ tân.
 
     /** Đặt lịch cho bệnh nhân {@code patientId}; người gọi đã kiểm bệnh nhân tồn tại và đang hoạt động. */
-    @Transactional
-    public Appointment bookOnBehalf(Long patientId, Long slotId, Long serviceId, String notes) {
-        return bookFor(patientId, slotId, serviceId, notes);
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public Appointment bookOnBehalf(Long patientId, Long slotId, Long serviceId, String notes, Long holdId) {
+        return bookFor(patientId, slotId, serviceId, notes, holdId);
     }
 
     /**
@@ -148,21 +159,23 @@ public class AppointmentService {
     }
 
     /** Đổi hộ một lịch BOOKED sang slot trống khác; cùng điều kiện với {@link #cancelOnBehalf}. */
-    @Transactional
-    public Appointment rescheduleOnBehalf(Long appointmentId, Long newSlotId) {
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public Appointment rescheduleOnBehalf(Long appointmentId, Long newSlotId, Long holdId) {
         Appointment appointment = findById(appointmentId);
         assertChangeableAtDesk(appointment, "đổi");
-        return moveToSlot(appointment, newSlotId,
+        return moveToSlot(appointment, newSlotId, holdId,
                 "Khung giờ mới vừa có người khác đặt. Lịch hiện tại được giữ nguyên!");
     }
 
     // ================= Phần lõi dùng chung của đặt / hủy / đổi =================
 
-    private Appointment bookFor(Long patientId, Long slotId, Long serviceId, String notes) {
+    private Appointment bookFor(Long patientId, Long slotId, Long serviceId, String notes, Long holdId) {
         MedicalService service = requireActiveService(serviceId);
-        AppointmentSlot slot = slotRepository.findById(slotId)
+        // khóa hàng của khung giờ trước, rồi mới kiểm bản giữ chỗ và trạng thái
+        AppointmentSlot slot = slotRepository.findByIdForUpdate(slotId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khung giờ khám!"));
 
+        slotHoldService.consumeForBooking(slotId, holdId);
         assertSlotBookable(slot, "Khung giờ này");
         takeSlot(slot, "Khung giờ vừa được người khác đặt. Vui lòng chọn khung giờ khác!");
 
@@ -198,13 +211,15 @@ public class AppointmentService {
         return appointment;
     }
 
-    private Appointment moveToSlot(Appointment appointment, Long newSlotId, String slotTakenMessage) {
+    private Appointment moveToSlot(Appointment appointment, Long newSlotId, Long holdId, String slotTakenMessage) {
         AppointmentSlot oldSlot = appointment.getSlot();
         if (oldSlot.getId().equals(newSlotId)) {
             throw new FieldValidationException("newSlotId", "Khung giờ mới phải khác khung giờ hiện tại");
         }
-        AppointmentSlot newSlot = slotRepository.findById(newSlotId)
+        // khóa hàng của khung giờ mới trước, rồi mới kiểm bản giữ chỗ và trạng thái
+        AppointmentSlot newSlot = slotRepository.findByIdForUpdate(newSlotId)
                 .orElseThrow(() -> new ResourceNotFoundException("Khung giờ mới không tồn tại!"));
+        slotHoldService.consumeForBooking(newSlotId, holdId);
         assertSlotBookable(newSlot, "Khung giờ mới");
 
         LocalDate oldDate = oldSlot.getSlotDate();

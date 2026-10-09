@@ -240,6 +240,18 @@ class SecurityRoutingTest extends AbstractApiTest {
                 Arguments.of(RECEPTIONIST, "GET", "/api/v1/users/me", 200), // hồ sơ tài khoản của chính mình
                 Arguments.of(RECEPTIONIST, "GET", "/api/v1/appointment-slots/available?doctorId=1", 200), // cần để đặt hộ
 
+                // --- Giữ chỗ khung giờ: chỉ người đặt lịch (bệnh nhân, lễ tân) ---
+                Arguments.of(NONE, "POST", "/api/v1/appointment-slots/999999/hold", 401),
+                Arguments.of(NONE, "DELETE", "/api/v1/appointment-slots/999999/hold", 401),
+                Arguments.of(DOCTOR, "POST", "/api/v1/appointment-slots/999999/hold", 403),
+                Arguments.of(DOCTOR, "DELETE", "/api/v1/appointment-slots/999999/hold", 403),
+                Arguments.of(ADMIN, "POST", "/api/v1/appointment-slots/999999/hold", 403),
+                Arguments.of(ADMIN, "DELETE", "/api/v1/appointment-slots/999999/hold", 403),
+                Arguments.of(PATIENT, "POST", "/api/v1/appointment-slots/999999/hold", 404), // qua được lớp vai trò
+                Arguments.of(PATIENT, "DELETE", "/api/v1/appointment-slots/999999/hold", 204),
+                Arguments.of(RECEPTIONIST, "POST", "/api/v1/appointment-slots/999999/hold", 404),
+                Arguments.of(RECEPTIONIST, "DELETE", "/api/v1/appointment-slots/999999/hold", 204),
+
                 // --- Route chưa khai báo: mặc định phải đăng nhập ---
                 Arguments.of(NONE, "GET", "/api/v1/khong-ton-tai", 401),
                 Arguments.of(PATIENT, "GET", "/api/v1/khong-ton-tai", 404));

@@ -43,6 +43,9 @@ public final class AuditActions {
     public static final String APPOINTMENT_CANCEL_ON_BEHALF = "APPOINTMENT_CANCEL_ON_BEHALF";
     public static final String APPOINTMENT_RESCHEDULE_ON_BEHALF = "APPOINTMENT_RESCHEDULE_ON_BEHALF";
 
+    // --- Giữ chỗ khung giờ trong lúc đặt lịch (người thực hiện là bệnh nhân hoặc lễ tân) ---
+    public static final String SLOT_HOLD = "SLOT_HOLD";
+
     // --- Quản trị: tài khoản, danh mục, bác sĩ, lịch làm việc ---
     public static final String USER_CREATE = "USER_CREATE";
     public static final String USER_UPDATE = "USER_UPDATE";
@@ -76,6 +79,7 @@ public final class AuditActions {
     public static final String ENTITY_ATTACHMENTS = "attachments";
     public static final String ENTITY_INVOICES = "invoices";
     public static final String ENTITY_APPOINTMENTS = "appointments";
+    public static final String ENTITY_APPOINTMENT_SLOTS = "appointment_slots";
     public static final String ENTITY_SPECIALTIES = "specialties";
     public static final String ENTITY_SERVICES = "services";
     public static final String ENTITY_MEDICINES = "medicines";
