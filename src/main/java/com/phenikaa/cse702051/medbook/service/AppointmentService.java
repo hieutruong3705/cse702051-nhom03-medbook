@@ -177,6 +177,7 @@ public class AppointmentService {
 
         slotHoldService.consumeForBooking(slotId, holdId);
         assertSlotBookable(slot, "Khung giờ này");
+        assertServiceFits(service, slot);
         takeSlot(slot, "Khung giờ vừa được người khác đặt. Vui lòng chọn khung giờ khác!");
 
         Appointment appointment = Appointment.builder()
@@ -221,6 +222,10 @@ public class AppointmentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Khung giờ mới không tồn tại!"));
         slotHoldService.consumeForBooking(newSlotId, holdId);
         assertSlotBookable(newSlot, "Khung giờ mới");
+        if (appointment.getServiceId() != null) {
+            serviceRepository.findById(appointment.getServiceId())
+                    .ifPresent(service -> assertServiceFits(service, newSlot));
+        }
 
         LocalDate oldDate = oldSlot.getSlotDate();
         var oldStart = oldSlot.getStartTime();
@@ -397,6 +402,16 @@ public class AppointmentService {
         }
         if (LocalDateTime.of(slot.getSlotDate(), slot.getStartTime()).isBefore(LocalDateTime.now())) {
             throw new ConflictException(label + " đã qua!");
+        }
+    }
+
+    /** Thời lượng dịch vụ dài hơn khung giờ → 422. Độ dài khung giờ tính từ giờ kết thúc trừ giờ bắt đầu. */
+    private static void assertServiceFits(MedicalService service, AppointmentSlot slot) {
+        long slotMinutes = Duration.between(slot.getStartTime(), slot.getEndTime()).toMinutes();
+        Integer needed = service.getDurationMinutes();
+        if (needed != null && needed > slotMinutes) {
+            throw new UnprocessableEntityException("Dịch vụ cần " + needed + " phút, khung giờ này chỉ dài "
+                    + slotMinutes + " phút");
         }
     }
 

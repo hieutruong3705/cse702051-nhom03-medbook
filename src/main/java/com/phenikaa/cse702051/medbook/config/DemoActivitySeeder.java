@@ -73,7 +73,8 @@ public class DemoActivitySeeder implements ApplicationRunner {
     private static final List<String> DOCTOR_USERNAMES = List.of("doctor1", "doctor2");
     private static final List<String> PATIENT_USERNAMES = List.of("patient1", "patient2");
     private static final LocalTime FIRST_VISIT = LocalTime.of(8, 0);
-    private static final int VISIT_MINUTES = 30;
+    /** Bằng thời lượng dịch vụ mẫu dài nhất (45 phút), để lượt khám mẫu nào cũng đủ dài cho dịch vụ của nó. */
+    private static final int VISIT_MINUTES = 45;
     private static final BigDecimal DISCOUNT = new BigDecimal("20000.00");
 
     private final boolean enabled;

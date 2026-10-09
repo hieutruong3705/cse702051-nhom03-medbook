@@ -209,12 +209,16 @@ class FlywayMigrationTest {
                 "SELECT r.code FROM user_roles ur JOIN roles r ON r.id = ur.role_id ORDER BY r.code", String.class));
         assertEquals(2, jdbc.queryForObject("SELECT COUNT(*) FROM doctors", Long.class));
         assertEquals(2, jdbc.queryForObject("SELECT COUNT(*) FROM patients", Long.class));
-        assertEquals(21, jdbc.queryForObject("SELECT COUNT(*) FROM doctor_schedules", Long.class));
-        assertEquals(70, jdbc.queryForObject("SELECT COUNT(*) FROM appointment_slots", Long.class));
-        assertEquals(70, jdbc.queryForObject("SELECT COUNT(*) FROM appointment_slots s JOIN doctor_schedules d "
+        assertEquals(28, jdbc.queryForObject("SELECT COUNT(*) FROM doctor_schedules", Long.class));
+        assertEquals(84, jdbc.queryForObject("SELECT COUNT(*) FROM appointment_slots", Long.class));
+        assertEquals(84, jdbc.queryForObject("SELECT COUNT(*) FROM appointment_slots s JOIN doctor_schedules d "
                 + "ON d.doctor_id = s.doctor_id AND d.work_date = s.slot_date AND s.start_time >= d.start_time "
                 + "AND s.end_time <= d.end_time WHERE s.slot_date > CURDATE()", Long.class),
                 "mọi giờ trống demo nằm trong một ca và ở tương lai");
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM services sv WHERE NOT EXISTS (SELECT 1 "
+                + "FROM appointment_slots s WHERE TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) "
+                + ">= sv.duration_minutes)", Long.class),
+                "AC-S2.5: dịch vụ demo nào cũng có ít nhất một khung giờ đủ dài để đặt");
         assertEquals(6, jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE password_hash LIKE '$2a$12$%'",
                 Long.class), "mật khẩu demo được lưu dạng băm BCrypt cost 12");
 
