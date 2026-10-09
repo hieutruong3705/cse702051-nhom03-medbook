@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.phenikaa.cse702051.medbook.model.Appointment;
@@ -23,33 +24,57 @@ public class InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
     private final AppointmentRepository appointmentRepository;
-   private final JpaPatientRepository patientRepository;
+    private final JpaPatientRepository patientRepository;
 
+    @Transactional
     public Invoice createInvoice(
             Long patientId,
             Long appointmentId,
             BigDecimal subtotal,
             BigDecimal discountAmount) {
 
-        Patient patient = patientRepository.findById(patientId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Không tìm thấy bệnh nhân"));
+        if (patientId == null || appointmentId == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Patient ID and appointment ID are required");
+        }
 
-        Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Không tìm thấy lịch khám"));
+        if (subtotal == null
+                || subtotal.compareTo(BigDecimal.ZERO) < 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Subtotal must not be null or negative");
+        }
 
         BigDecimal discount = discountAmount == null
                 ? BigDecimal.ZERO
                 : discountAmount;
 
-        BigDecimal total = subtotal.subtract(discount);
-
-        if (total.compareTo(BigDecimal.ZERO) < 0) {
+        if (discount.compareTo(BigDecimal.ZERO) < 0
+                || discount.compareTo(subtotal) > 0) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Tổng tiền không được âm");
+                    "Discount must be between zero and subtotal");
         }
+
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Patient not found"));
+
+        Appointment appointment = appointmentRepository
+                .findById(appointmentId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Appointment not found"));
+
+        if (!patientId.equals(appointment.getPatientId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Patient does not match the appointment");
+        }
+
+        BigDecimal total = subtotal.subtract(discount);
 
         LocalDateTime now = LocalDateTime.now();
 
