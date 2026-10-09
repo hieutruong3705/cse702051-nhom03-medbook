@@ -22,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.phenikaa.cse702051.medbook.dto.PageResponse;
 import com.phenikaa.cse702051.medbook.dto.invoice.AdminInvoiceDTO;
+import com.phenikaa.cse702051.medbook.dto.reception.ReceptionInvoiceDTO;
+import com.phenikaa.cse702051.medbook.dto.reception.ReceptionInvoiceItemDTO;
 import com.phenikaa.cse702051.medbook.dto.invoice.InvoiceDTO;
 import com.phenikaa.cse702051.medbook.dto.invoice.InvoiceItemDTO;
 import com.phenikaa.cse702051.medbook.dto.invoice.InvoiceLineRequest;
@@ -239,15 +241,46 @@ public class InvoiceService {
     public PageResponse<AdminInvoiceDTO> listForAdmin(String status, LocalDate from, LocalDate to, String keyword,
             int page, int size) {
         currentUserService.requireRole("ADMIN");
-        DateRanges.requireOrdered(from, to);
-        Page<Invoice> result = invoiceRepository.findAll(filter(statusOf(status), from, to, keyword),
-                PageRequests.of(page, size, NEWEST_FIRST));
-        // Tra bệnh nhân theo lô: một truy vấn cho cả trang
-        Map<Long, Patient> patients = new HashMap<>();
-        patientRepository.findAllById(result.getContent().stream().map(Invoice::getPatientId).toList())
-                .forEach(patient -> patients.put(patient.getId(), patient));
+        Page<Invoice> result = search(status, from, to, keyword, page, size);
+        Map<Long, Patient> patients = patientsOf(result);
         return PageResponse.from(result, invoice -> AdminInvoiceDTO.from(invoice,
                 patients.get(invoice.getPatientId())));
+    }
+
+    // ================= Quầy lễ tân: xem và thu tiền (không hủy, không lập) =================
+
+    /** Mọi hóa đơn cho lễ tân; cùng bộ lọc và thứ tự với {@link #listForAdmin}, không có lý do hủy. */
+    @Transactional(readOnly = true)
+    public PageResponse<ReceptionInvoiceDTO> listForReception(String status, LocalDate from, LocalDate to,
+            String keyword, int page, int size) {
+        currentUserService.requireRole("RECEPTIONIST");
+        Page<Invoice> result = search(status, from, to, keyword, page, size);
+        Map<Long, Patient> patients = patientsOf(result);
+        return PageResponse.from(result, invoice -> ReceptionInvoiceDTO.from(invoice,
+                patients.get(invoice.getPatientId())));
+    }
+
+    /**
+     * Các dòng của một hóa đơn cho lễ tân. Không đi qua kiểm tra "bệnh nhân chủ hoặc bác sĩ phụ trách" vì lễ tân
+     * thu tiền cho mọi bệnh nhân; dòng hóa đơn chỉ có tên dịch vụ, số lượng và tiền.
+     */
+    @Transactional(readOnly = true)
+    public List<ReceptionInvoiceItemDTO> listItemsForReception(Long invoiceId) {
+        currentUserService.requireRole("RECEPTIONIST");
+        find(invoiceId);
+        return itemRepository.findByInvoiceIdOrderByIdAsc(invoiceId).stream()
+                .map(ReceptionInvoiceItemDTO::from).toList();
+    }
+
+    /** Lễ tân ghi nhận đã thu tại quầy. Cùng quy tắc với Admin: chỉ từ {@code UNPAID}, còn lại → 409. */
+    @Transactional
+    public ReceptionInvoiceDTO collectAtDesk(Long invoiceId) {
+        currentUserService.requireRole("RECEPTIONIST");
+        if (invoiceRepository.markPaid(invoiceId, LocalDateTime.now()) == 0) {
+            throw notChangeable(invoiceId, "thu");
+        }
+        Invoice invoice = recordTransition(invoiceId, AuditActions.INVOICE_COLLECT);
+        return ReceptionInvoiceDTO.from(invoice, patientRepository.findById(invoice.getPatientId()).orElse(null));
     }
 
     // ================= Thu và hủy (Admin) =================
@@ -282,10 +315,31 @@ public class InvoiceService {
     // ================= Chi tiết =================
 
     private AdminInvoiceDTO afterTransition(Long invoiceId, String action) {
+        Invoice invoice = recordTransition(invoiceId, action);
+        return AdminInvoiceDTO.from(invoice, patientRepository.findById(invoice.getPatientId()).orElse(null));
+    }
+
+    /** Đọc lại hóa đơn sau khi đổi trạng thái và ghi nhật ký (người thực hiện lấy từ phiên hiện tại). */
+    private Invoice recordTransition(Long invoiceId, String action) {
         Invoice invoice = find(invoiceId);
         auditLogService.recordInCurrentTransaction(AuditEvent.of(action, AuditActions.ENTITY_INVOICES, invoiceId)
                 .with("totalAmount", invoice.getTotalAmount().toPlainString()));
-        return AdminInvoiceDTO.from(invoice, patientRepository.findById(invoice.getPatientId()).orElse(null));
+        return invoice;
+    }
+
+    /** Một trang hóa đơn theo bộ lọc chung của trang quản trị và quầy lễ tân, mới nhất trước. */
+    private Page<Invoice> search(String status, LocalDate from, LocalDate to, String keyword, int page, int size) {
+        DateRanges.requireOrdered(from, to);
+        return invoiceRepository.findAll(filter(statusOf(status), from, to, keyword),
+                PageRequests.of(page, size, NEWEST_FIRST));
+    }
+
+    /** Tra bệnh nhân theo lô: một truy vấn cho cả trang. */
+    private Map<Long, Patient> patientsOf(Page<Invoice> result) {
+        Map<Long, Patient> patients = new HashMap<>();
+        patientRepository.findAllById(result.getContent().stream().map(Invoice::getPatientId).toList())
+                .forEach(patient -> patients.put(patient.getId(), patient));
+        return patients;
     }
 
     /** Không cập nhật được dòng nào: hóa đơn không tồn tại (404) hoặc không còn ở trạng thái chưa thu (409). */
