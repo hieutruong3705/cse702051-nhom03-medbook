@@ -151,7 +151,7 @@ import { useToast } from '@/composables/useToast'
 import { apiErrorMessage } from '@/utils/apiErrorMessage'
 import { cleanParams, fieldErrors } from '@/utils/params'
 
-const roleLabels = { PATIENT: 'Bệnh nhân', DOCTOR: 'Bác sĩ', ADMIN: 'Quản trị viên' }
+const roleLabels = { PATIENT: 'Bệnh nhân', DOCTOR: 'Bác sĩ', RECEPTIONIST: 'Lễ tân', ADMIN: 'Quản trị viên' }
 const userStatus = { ACTIVE: 'Hoạt động', LOCKED: 'Đã khóa' }
 const roleOptions = Object.entries(roleLabels).map(([value, label]) => ({ label, value }))
 // Tài khoản chỉ có hai trạng thái: ACTIVE và LOCKED.

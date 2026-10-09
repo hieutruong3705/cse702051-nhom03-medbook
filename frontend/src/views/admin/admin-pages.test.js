@@ -131,6 +131,7 @@ function resetMocks() {
   document.body.innerHTML = ''
   mocks.usersList.mockResolvedValue(page([
     { id: 1, username: 'admin1', email: 'admin1@example.com', fullName: 'Admin Một', phone: null, status: 'ACTIVE', roles: ['ADMIN'], patientId: null, doctorId: null },
+    { id: 7, username: 'letan.mot', email: 'letan@example.com', fullName: 'Lễ tân Một', phone: '0900111222', status: 'ACTIVE', roles: ['RECEPTIONIST'], patientId: null, doctorId: null },
     { id: 9, username: 'bs.moi', email: 'bsmoi@example.com', fullName: 'Bác sĩ Mới', phone: '0911222333', status: 'ACTIVE', roles: ['DOCTOR'], patientId: null, doctorId: null },
     { id: 8, username: 'bn.khoa', email: 'khoa@example.com', fullName: 'Bệnh nhân Bị Khóa', phone: null, status: 'LOCKED', roles: ['PATIENT'], patientId: 3, doctorId: null }
   ]))
@@ -245,6 +246,34 @@ describe('trang quản trị', () => {
         username: 'newuser', password: 'MedBook@2026', fullName: 'Người dùng mới', email: 'new@example.com', phone: '', role: 'PATIENT'
       })
       expect(mocks.toastSuccess).toHaveBeenCalledWith('Đã tạo tài khoản')
+      wrapper.unmount()
+    })
+
+    it('lọc và tạo được tài khoản lễ tân, không gửi doctorProfile', async () => {
+      resetMocks()
+      const wrapper = mount(AdminUsersView, { attachTo: document.body })
+      await flushPromises()
+      expect(wrapper.text()).toContain('Lễ tân')
+
+      await wrapper.find('#admin-user-role').setValue('RECEPTIONIST')
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+      expect(mocks.usersList).toHaveBeenLastCalledWith({ role: 'RECEPTIONIST', page: 0, size: 20 })
+
+      await clickButton(wrapper, 'Tạo tài khoản')
+      typeInBody('#create-full-name', 'Lễ tân Hai')
+      typeInBody('#create-email', 'letan2@example.com')
+      typeInBody('#create-username', 'letan.hai')
+      typeInBody('#create-password', 'MedBook@2026')
+      typeInBody('#create-roles', 'RECEPTIONIST', 'change')
+      await flushPromises()
+      expect(document.querySelector('#create-doctor-specialty')).toBeNull()
+      await clickInBody('Tạo')
+
+      expect(mocks.usersCreate).toHaveBeenCalledWith({
+        username: 'letan.hai', password: 'MedBook@2026', fullName: 'Lễ tân Hai', email: 'letan2@example.com', phone: '', role: 'RECEPTIONIST'
+      })
+      expect(mocks.usersCreate.mock.lastCall[0]).not.toHaveProperty('doctorProfile')
       wrapper.unmount()
     })
 
