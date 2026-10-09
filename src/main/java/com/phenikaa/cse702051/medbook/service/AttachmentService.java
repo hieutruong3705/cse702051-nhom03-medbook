@@ -136,10 +136,19 @@ public class AttachmentService {
 
     // ================= Đọc =================
 
+    /**
+     * Kiểm quyền, ghi audit {@code ATTACHMENT_LIST} trên lần khám và trả danh sách tệp. Nhật ký chỉ ghi số lượng tệp,
+     * không ghi tên tệp (tên tệp có thể chứa thông tin lâm sàng).
+     */
     @Transactional(readOnly = true)
     public List<AttachmentDTO> listByEncounter(Long encounterId) {
         encounterService.getAccessibleById(encounterId);
-        return attachmentRepository.findByEncounterId(encounterId).stream().map(AttachmentService::toDTO).toList();
+        List<AttachmentDTO> files = attachmentRepository.findByEncounterId(encounterId).stream()
+                .map(AttachmentService::toDTO)
+                .toList();
+        auditLogService.record(AuditEvent.of(AuditActions.ATTACHMENT_LIST, AuditActions.ENTITY_ENCOUNTERS, encounterId)
+                .with("count", files.size()));
+        return files;
     }
 
     /** Kiểm quyền, ghi audit {@code ATTACHMENT_DOWNLOAD} và trả tệp để stream. */
