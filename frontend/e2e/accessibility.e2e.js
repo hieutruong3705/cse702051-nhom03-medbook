@@ -26,6 +26,14 @@ const PAGES = {
     '/#/doctor/notifications',
     '/#/doctor/profile'
   ],
+  receptionist1: [
+    '/#/receptionist/dashboard',
+    '/#/receptionist/appointments',
+    '/#/receptionist/booking',
+    '/#/receptionist/patients',
+    '/#/receptionist/invoices',
+    '/#/account/profile'
+  ],
   admin1: [
     '/#/admin/dashboard',
     '/#/admin/users',

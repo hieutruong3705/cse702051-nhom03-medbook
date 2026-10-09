@@ -24,7 +24,7 @@ Bốn vai trò, mỗi vai trò chỉ thấy đúng phần việc của mình (ki
 - **Khách:** xem bác sĩ, chuyên khoa, dịch vụ và giờ trống của bác sĩ.
 - **Bệnh nhân:** đăng ký, đặt lịch, đổi lịch, hủy lịch; xem bệnh án, đơn thuốc, hóa đơn và thông báo của mình.
 - **Bác sĩ:** quản lý ca làm việc, giờ nghỉ, ngày nghỉ (hệ thống tự sinh giờ trống); khám bệnh, ghi bệnh án, kê đơn, tải tệp đính kèm, lập hóa đơn; xem bệnh nhân mình phụ trách.
-- **Lễ tân:** vai trò hành chính tại quầy; chỉ vào khu `/receptionist`, không đọc được bệnh án, đơn thuốc, tệp đính kèm hay ghi chú lịch hẹn (các chức năng của khu này được bổ sung theo từng bước).
+- **Lễ tân:** tìm bệnh nhân và tạo hồ sơ cho người chưa có tài khoản; xem lịch hẹn của cả phòng khám; đặt, đổi, hủy lịch hộ bệnh nhân (bắt buộc ghi lý do khi đổi và hủy); xem hóa đơn và ghi nhận đã thu. Là vai trò hành chính: không đọc được bệnh án, đơn thuốc, tệp đính kèm hay ghi chú lịch hẹn; không hủy được hóa đơn.
 - **Quản trị viên:** quản lý tài khoản (tạo, khóa, đổi vai trò), hồ sơ bác sĩ, danh mục (chuyên khoa, dịch vụ, thuốc); theo dõi lịch hẹn; thu và hủy hóa đơn; ba báo cáo có biểu đồ và xuất CSV (lịch khám, doanh thu, dịch vụ khám); tra cứu nhật ký hệ thống. Quản trị viên không xem được nội dung bệnh án.
 
 ## 3. Công nghệ

@@ -243,6 +243,7 @@ test.describe('Màn hình hẹp 360 px', () => {
   const pages = {
     patient1: ['/#/patient/dashboard', '/#/patient/booking', '/#/patient/appointments', '/#/patient/notifications', '/#/patient/invoices'],
     doctor1: ['/#/doctor/dashboard', '/#/doctor/schedules', '/#/doctor/appointments', '/#/doctor/patients', '/#/doctor/notifications'],
+    receptionist1: ['/#/receptionist/dashboard', '/#/receptionist/appointments', '/#/receptionist/booking', '/#/receptionist/patients', '/#/receptionist/invoices'],
     admin1: ['/#/admin/dashboard', '/#/admin/users', '/#/admin/doctors', '/#/admin/catalog', '/#/admin/invoices', '/#/admin/reports', '/#/admin/audit-logs']
   }
 
