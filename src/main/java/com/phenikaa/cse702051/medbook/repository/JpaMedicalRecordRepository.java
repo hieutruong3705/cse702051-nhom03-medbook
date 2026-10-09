@@ -3,8 +3,8 @@ package com.phenikaa.cse702051.medbook.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.phenikaa.cse702051.medbook.model.Prescription;
+import com.phenikaa.cse702051.medbook.model.MedicalRecord;
 
 @Repository
-public interface PrescriptionRepository extends JpaRepository<Prescription, Long> {
+public interface JpaMedicalRecordRepository extends JpaRepository<MedicalRecord, Long> {
 }
