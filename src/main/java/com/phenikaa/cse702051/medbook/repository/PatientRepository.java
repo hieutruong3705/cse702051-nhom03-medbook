@@ -43,4 +43,26 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
             @Param("pattern") String pattern,
             @Param("cancelled") AppointmentStatus cancelled,
             Pageable pageable);
+
+    /**
+     * Tra cứu tại quầy lễ tân: mọi bệnh nhân, theo họ tên, mã bệnh nhân hoặc điện thoại. {@code pattern} lấy từ
+     * {@code SearchTerms.toLikePattern} (chữ thường, đã thoát ký tự đại diện bằng {@code !}).
+     */
+    @Query("""
+            select p from Patient p
+            where lower(p.fullName) like :pattern escape '!'
+               or lower(p.patientCode) like :pattern escape '!'
+               or p.phone like :pattern escape '!'
+            """)
+    Page<Patient> searchForReception(@Param("pattern") String pattern, Pageable pageable);
+
+    /** Đã có hồ sơ trùng họ tên (so chữ thường), ngày sinh và số điện thoại hay chưa. */
+    @Query("""
+            select count(p) > 0 from Patient p
+            where lower(p.fullName) = :fullName and p.dateOfBirth = :dateOfBirth and p.phone = :phone
+            """)
+    boolean existsByNameBirthAndPhone(
+            @Param("fullName") String fullName,
+            @Param("dateOfBirth") java.time.LocalDate dateOfBirth,
+            @Param("phone") String phone);
 }
