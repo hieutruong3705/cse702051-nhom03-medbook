@@ -23,6 +23,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.phenikaa.cse702051.medbook.exception.ErrorCode;
 import com.phenikaa.cse702051.medbook.security.ApiErrorWriter;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 /**
  * Ma trận phân quyền route cho toàn bộ API {@code /api/v1}. Quyền theo bản ghi
  * (bệnh nhân chỉ xem của mình, bác sĩ phụ trách...) được kiểm tra thêm ở tầng
@@ -183,6 +185,17 @@ public class SecurityConfig {
                             API + "/attachments", API + "/attachments/**",
                             API + "/invoices", API + "/invoices/**").authenticated();
 
+                    // Mọi đường /api chưa khai báo ở trên đều phải đăng nhập; tài liệu OpenAPI đang tắt cũng vậy.
+                    auth.requestMatchers("/api/**").authenticated();
+                    if (!openApiEnabled) {
+                        auth.requestMatchers("/v3/**", "/swagger-ui/**", "/swagger-ui.html").authenticated();
+                    }
+
+                    // === PUBLIC: địa chỉ trang của giao diện (/doctors, /patient/dashboard...) ===
+                    // Máy chủ chỉ trả index.html cho các địa chỉ này; dữ liệu của trang vẫn lấy qua /api và được
+                    // kiểm quyền ở đó. Đặt sau mọi luật /api để không mở nhầm một đường API nào.
+                    auth.requestMatchers(SecurityConfig::isPageRequest).permitAll();
+
                     // Mặc định: mọi route chưa khai báo đều phải đăng nhập
                     auth.anyRequest().authenticated();
                 })
@@ -201,6 +214,16 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /** Yêu cầu đọc một địa chỉ trang: phương thức GET hoặc HEAD và đoạn cuối của đường dẫn không có phần mở rộng tệp. */
+    static boolean isPageRequest(HttpServletRequest request) {
+        String method = request.getMethod();
+        if (!HttpMethod.GET.matches(method) && !HttpMethod.HEAD.matches(method)) {
+            return false;
+        }
+        String path = request.getRequestURI();
+        return path.indexOf('.', path.lastIndexOf('/') + 1) < 0;
     }
 
     @Bean

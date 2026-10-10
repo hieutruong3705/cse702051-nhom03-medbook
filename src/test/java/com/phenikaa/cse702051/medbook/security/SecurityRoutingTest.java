@@ -254,7 +254,20 @@ class SecurityRoutingTest extends AbstractApiTest {
 
                 // --- Route chưa khai báo: mặc định phải đăng nhập ---
                 Arguments.of(NONE, "GET", "/api/v1/khong-ton-tai", 401),
-                Arguments.of(PATIENT, "GET", "/api/v1/khong-ton-tai", 404));
+                Arguments.of(PATIENT, "GET", "/api/v1/khong-ton-tai", 404),
+
+                // --- Địa chỉ trang của giao diện: ai cũng đọc được (máy chủ chỉ trả index.html), ghi thì không ---
+                Arguments.of(NONE, "GET", "/doctors", 200),
+                Arguments.of(NONE, "GET", "/patient/dashboard", 200),
+                Arguments.of(NONE, "GET", "/admin/users", 200),
+                Arguments.of(PATIENT, "GET", "/admin/users", 200),
+                Arguments.of(NONE, "POST", "/admin/users", 401),
+                Arguments.of(NONE, "DELETE", "/patient/dashboard", 401),
+                // mở địa chỉ trang không mở theo đường /api cùng tên, kể cả đường chưa khai báo
+                Arguments.of(NONE, "GET", "/api/v1/admin/users", 401),
+                Arguments.of(NONE, "GET", "/api", 401),
+                Arguments.of(NONE, "GET", "/api/admin/users", 401),
+                Arguments.of(NONE, "GET", "/v3/api-docs", 401));
     }
 
     @ParameterizedTest(name = "{0} {1} {2} -> {3}")

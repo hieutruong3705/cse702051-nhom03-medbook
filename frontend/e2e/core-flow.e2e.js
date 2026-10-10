@@ -29,7 +29,7 @@ const shared = { encounterId: null, invoiceCode: null }
 
 /** Đi các bước 1–3 của trang đặt lịch bằng chuột (dịch vụ, bác sĩ, ngày) và dừng ở bước chọn khung giờ. */
 async function fillBookingUntilSlots(page) {
-  await page.goto('/#/patient/booking')
+  await page.goto('/patient/booking')
   await page.locator('#booking-service').selectOption({ label: SERVICE })
   await page.getByRole('button', { name: 'Tiếp tục' }).click()
   await page.getByRole('list', { name: 'Danh sách bác sĩ' }).getByRole('button', { name: new RegExp(DOCTOR) }).click()
@@ -68,7 +68,7 @@ async function typeDate(page, input, iso) {
 
 test('bác sĩ mở ca; khung giờ một bệnh nhân đang giữ chỗ thì người khác không thấy và không đặt được, người giữ đặt thành công', async ({ page, browser, request }) => {
   await login(page, 'doctor1')
-  await page.goto('/#/doctor/schedules')
+  await page.goto('/doctor/schedules')
   await page.locator('#schedule-date').fill(day)
   await page.locator('#schedule-start').fill('09:00')
   await page.locator('#schedule-end').fill('10:00')
@@ -109,15 +109,15 @@ test('bác sĩ mở ca; khung giờ một bệnh nhân đang giữ chỗ thì ng
 })
 
 test('bệnh nhân đặt lịch từ đầu đến cuối chỉ bằng bàn phím', async ({ page }) => {
-  await page.goto('/#/login')
+  await page.goto('/login')
   await page.locator('#login-identity').focus()
   await page.keyboard.type('patient1')
   await page.keyboard.press('Tab')
   await page.keyboard.type(PASSWORD)
   await page.keyboard.press('Enter')
-  await expect(page).toHaveURL(/#\/patient\/dashboard/)
+  await expect(page).toHaveURL(/^[^?#]*\/patient\/dashboard/)
 
-  await page.goto('/#/patient/booking')
+  await page.goto('/patient/booking')
   const next = page.getByRole('button', { name: 'Tiếp tục' })
 
   // Bước 1: chọn dịch vụ bằng phím mũi tên (danh mục xếp theo tên, dịch vụ 30 phút đứng thứ hai)
@@ -167,13 +167,13 @@ test('bệnh nhân đặt lịch từ đầu đến cuối chỉ bằng bàn ph�
   // lịch vừa đặt xuất hiện trong danh sách của bệnh nhân và bác sĩ được báo
   await tabTo(page, page.getByRole('link', { name: 'Xem chi tiết lịch hẹn' }))
   await page.keyboard.press('Enter')
-  await expect(page).toHaveURL(/#\/patient\/appointments\/\d+/)
+  await expect(page).toHaveURL(/^[^?#]*\/patient\/appointments\/\d+/)
   await expect(page.getByText('Đã đặt').first()).toBeVisible()
 })
 
 test('bác sĩ khám: lưu nháp, kê đơn, chặn tệp sai loại, đính kèm tệp, lập hóa đơn rồi hoàn thành', async ({ page }) => {
   await login(page, 'doctor1')
-  await page.goto('/#/doctor/appointments')
+  await page.goto('/doctor/appointments')
   await page.locator('#doctor-appointment-from').fill(day)
   await page.locator('#doctor-appointment-to').fill(day)
   await page.getByRole('button', { name: 'Lọc' }).click()
@@ -181,7 +181,7 @@ test('bác sĩ khám: lưu nháp, kê đơn, chặn tệp sai loại, đính kè
   await expect(row).toContainText('Đau họng ba ngày, sốt nhẹ')
   await row.getByRole('button', { name: 'Bắt đầu khám' }).click()
 
-  await expect(page).toHaveURL(/#\/doctor\/encounters\/\d+/)
+  await expect(page).toHaveURL(/^[^?#]*\/doctor\/encounters\/\d+/)
   shared.encounterId = page.url().match(/encounters\/(\d+)/)[1]
   await expect(page.locator('[data-test="encounter-summary"]')).toContainText(PATIENT)
 
@@ -255,7 +255,7 @@ test('bác sĩ khám: lưu nháp, kê đơn, chặn tệp sai loại, đính kè
 
 test('bác sĩ khác và bệnh nhân khác không xem được lần khám này', async ({ browser }) => {
   const otherDoctor = await openSession(browser, 'doctor2')
-  await otherDoctor.page.goto(`/#/doctor/encounters/${shared.encounterId}`)
+  await otherDoctor.page.goto(`/doctor/encounters/${shared.encounterId}`)
   await expect(otherDoctor.page.locator('[data-test="load-error"]')).toContainText('Bạn không phụ trách lần khám này')
   await expect(otherDoctor.page.getByText(DIAGNOSIS)).toHaveCount(0)
   const doctorToken = await storedToken(otherDoctor.page)
@@ -266,7 +266,7 @@ test('bác sĩ khác và bệnh nhân khác không xem được lần khám này
   await otherDoctor.context.close()
 
   const otherPatient = await openSession(browser, 'patient2')
-  await otherPatient.page.goto(`/#/patient/records/${shared.encounterId}`)
+  await otherPatient.page.goto(`/patient/records/${shared.encounterId}`)
   await expect(otherPatient.page.locator('[data-test="load-error"]')).toBeVisible()
   await expect(otherPatient.page.getByText(DIAGNOSIS)).toHaveCount(0)
   await otherPatient.context.close()
@@ -274,9 +274,9 @@ test('bác sĩ khác và bệnh nhân khác không xem được lần khám này
 
 test('bệnh nhân xem kết quả khám, đơn thuốc, tệp và hóa đơn của mình', async ({ page }) => {
   await login(page, 'patient1')
-  await page.goto('/#/patient/records')
+  await page.goto('/patient/records')
   await page.locator(`[data-test="encounter-link-${shared.encounterId}"]`).click()
-  await expect(page).toHaveURL(new RegExp(`#/patient/records/${shared.encounterId}$`))
+  await expect(page).toHaveURL(new RegExp(`/patient/records/${shared.encounterId}$`))
   await expect(page.getByRole('heading', { name: 'Kết quả khám' })).toBeVisible()
   await expect(page.locator('[data-test="field-diagnosis"]')).toContainText(DIAGNOSIS)
   await expect(page.locator('[data-test="prescriptions"]')).toContainText(MEDICINE)
@@ -289,13 +289,13 @@ test('bệnh nhân xem kết quả khám, đơn thuốc, tệp và hóa đơn c�
   ])
   expect(download.suggestedFilename()).toBe(RESULT_FILE)
 
-  await page.goto('/#/patient/invoices')
+  await page.goto('/patient/invoices')
   await expect(page.getByRole('row').filter({ hasText: shared.invoiceCode })).toContainText('Chưa thu')
 })
 
 test('quản trị viên ghi nhận đã thu; bệnh nhân thấy hóa đơn đã thu', async ({ page, browser }) => {
   await login(page, 'admin1')
-  await page.goto('/#/admin/invoices')
+  await page.goto('/admin/invoices')
   await page.locator('#admin-invoice-keyword').fill(shared.invoiceCode)
   await page.getByRole('button', { name: 'Lọc' }).click()
   const row = page.getByRole('row').filter({ hasText: shared.invoiceCode })
@@ -308,7 +308,7 @@ test('quản trị viên ghi nhận đã thu; bệnh nhân thấy hóa đơn đ�
   await expect(row.getByRole('button', { name: `Hủy hóa đơn ${shared.invoiceCode}` })).toBeDisabled()
 
   const patient = await openSession(browser, 'patient1')
-  await patient.page.goto('/#/patient/invoices')
+  await patient.page.goto('/patient/invoices')
   await expect(patient.page.getByRole('row').filter({ hasText: shared.invoiceCode })).toContainText('Đã thu')
   await patient.context.close()
 })
@@ -322,8 +322,8 @@ test('phiên bị thu hồi: token cũ nhận 401 và giao diện đưa người
   expect((await page.request.post('/api/v1/auth/logout', { headers })).status()).toBe(204)
   expect((await page.request.get('/api/v1/users/me', { headers })).status()).toBe(401)
 
-  await page.goto('/#/patient/appointments')
-  await expect(page).toHaveURL(/#\/login/)
+  await page.goto('/patient/appointments')
+  await expect(page).toHaveURL(/^[^?#]*\/login/)
   await expect(page.getByRole('status').filter({ hasText: 'Bạn cần đăng nhập để tiếp tục.' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Đăng xuất' })).toHaveCount(0)
 
@@ -331,6 +331,6 @@ test('phiên bị thu hồi: token cũ nhận 401 và giao diện đưa người
   await page.locator('#login-identity').fill('patient2')
   await page.locator('#login-password').fill(PASSWORD)
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
-  await expect(page).toHaveURL(/#\/patient\/appointments/)
+  await expect(page).toHaveURL(/^[^?#]*\/patient\/appointments/)
   await expect(page.getByRole('button', { name: 'Đăng xuất' })).toBeVisible()
 })

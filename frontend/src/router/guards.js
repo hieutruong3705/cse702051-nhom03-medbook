@@ -9,6 +9,7 @@ import { configureHttp } from '@/api/http'
  * - `guestOnly: true`     → chỉ dành cho khách (đăng nhập/đăng ký...); người đã đăng nhập
  *                           được chuyển về dashboard theo vai trò.
  * - `title: '...'`        → tiêu đề trang (document.title).
+ * - `description: '...'`  → mô tả riêng của trang công khai; trang có mô tả riêng được lập chỉ mục.
  */
 
 /** Chỉ chấp nhận đường dẫn nội bộ tuyệt đối; chặn open-redirect (`//evil.com`, `https://...`, `/\`). */
@@ -81,6 +82,44 @@ export function createAuthGuard(getAuth) {
   }
 }
 
+/** Mô tả dùng cho trang không khai `meta.description` (trang sau đăng nhập, trang lỗi). */
+export const DEFAULT_DESCRIPTION =
+  'MedBook: tìm bác sĩ theo chuyên khoa, đặt lịch khám trực tuyến, theo dõi lịch hẹn, bệnh án, đơn thuốc và hóa đơn của bạn.'
+
+function upsertHeadTag(doc, tagName, keyAttribute, key, valueAttribute, value) {
+  let tag = doc.head.querySelector(`${tagName}[${keyAttribute}="${key}"]`)
+  if (!tag) {
+    tag = doc.createElement(tagName)
+    tag.setAttribute(keyAttribute, key)
+    doc.head.appendChild(tag)
+  }
+  tag.setAttribute(valueAttribute, value)
+}
+
+/**
+ * Cập nhật các thẻ trong `<head>` theo trang vừa mở: tiêu đề, mô tả, thẻ Open Graph và địa chỉ chuẩn (tuyệt đối,
+ * không kèm tham số). Chỉ trang công khai có `meta.description` riêng mới được lập chỉ mục; mọi trang khác mang
+ * `noindex`.
+ */
+export function applyPageMeta(to, doc = document, origin = window.location.origin) {
+  const matched = [...(to.matched ?? [])].reverse()
+  const title = matched.find((record) => record.meta?.title)?.meta.title
+  const ownDescription = matched.find((record) => record.meta?.description)?.meta.description
+  const description = ownDescription || DEFAULT_DESCRIPTION
+  const indexable = Boolean(ownDescription) && !routeAccess(to).requiresAuth
+
+  doc.title = title ? `${title} · MedBook` : 'MedBook'
+  upsertHeadTag(doc, 'meta', 'name', 'description', 'content', description)
+  upsertHeadTag(doc, 'meta', 'property', 'og:title', 'content', doc.title)
+  upsertHeadTag(doc, 'meta', 'property', 'og:description', 'content', description)
+  upsertHeadTag(doc, 'link', 'rel', 'canonical', 'href', `${origin}${to.path}`)
+  if (indexable) {
+    doc.head.querySelector('meta[name="robots"]')?.remove()
+  } else {
+    upsertHeadTag(doc, 'meta', 'name', 'robots', 'content', 'noindex')
+  }
+}
+
 const wiredStores = new WeakSet()
 
 /**
@@ -109,10 +148,7 @@ export function installAuthGuards(router, getAuth) {
     return guard(to)
   })
 
-  router.afterEach((to) => {
-    const title = [...to.matched].reverse().find((record) => record.meta?.title)?.meta.title
-    document.title = title ? `${title} · MedBook` : 'MedBook'
-  })
+  router.afterEach((to) => applyPageMeta(to))
 
   configureHttp({
     onForbidden: (error, config) => {

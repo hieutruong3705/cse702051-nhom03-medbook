@@ -10,7 +10,7 @@ export const isoDay = (offsetDays) => {
 }
 
 export async function login(page, username) {
-  await page.goto('/#/login')
+  await page.goto('/login')
   await page.locator('#login-identity').fill(username)
   await page.locator('#login-password').fill(PASSWORD)
   await page.getByRole('button', { name: 'Đăng nhập' }).click()

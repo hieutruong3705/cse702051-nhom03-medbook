@@ -7,42 +7,42 @@ import { login } from './support'
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']
 
 const PAGES = {
-  'khách': ['/#/', '/#/login', '/#/register', '/#/forgot-password', '/#/doctors', '/#/specialties', '/#/services'],
+  'khách': ['/', '/login', '/register', '/forgot-password', '/doctors', '/specialties', '/services'],
   patient1: [
-    '/#/patient/dashboard',
-    '/#/patient/booking',
-    '/#/patient/appointments',
-    '/#/patient/records',
-    '/#/patient/invoices',
-    '/#/patient/notifications',
-    '/#/patient/profile',
-    '/#/account/change-password'
+    '/patient/dashboard',
+    '/patient/booking',
+    '/patient/appointments',
+    '/patient/records',
+    '/patient/invoices',
+    '/patient/notifications',
+    '/patient/profile',
+    '/account/change-password'
   ],
   doctor1: [
-    '/#/doctor/dashboard',
-    '/#/doctor/schedules',
-    '/#/doctor/appointments',
-    '/#/doctor/patients',
-    '/#/doctor/notifications',
-    '/#/doctor/profile'
+    '/doctor/dashboard',
+    '/doctor/schedules',
+    '/doctor/appointments',
+    '/doctor/patients',
+    '/doctor/notifications',
+    '/doctor/profile'
   ],
   receptionist1: [
-    '/#/receptionist/dashboard',
-    '/#/receptionist/appointments',
-    '/#/receptionist/booking',
-    '/#/receptionist/patients',
-    '/#/receptionist/invoices',
-    '/#/account/profile'
+    '/receptionist/dashboard',
+    '/receptionist/appointments',
+    '/receptionist/booking',
+    '/receptionist/patients',
+    '/receptionist/invoices',
+    '/account/profile'
   ],
   admin1: [
-    '/#/admin/dashboard',
-    '/#/admin/users',
-    '/#/admin/doctors',
-    '/#/admin/catalog',
-    '/#/admin/appointments',
-    '/#/admin/invoices',
-    '/#/admin/reports',
-    '/#/admin/audit-logs'
+    '/admin/dashboard',
+    '/admin/users',
+    '/admin/doctors',
+    '/admin/catalog',
+    '/admin/appointments',
+    '/admin/invoices',
+    '/admin/reports',
+    '/admin/audit-logs'
   ]
 }
 
@@ -50,7 +50,7 @@ async function violationsOf(page, route) {
   // Đổi trang trong ứng dụng một trang chạy hiệu ứng "mờ ra rồi mờ vào" và chỉ bắt đầu sau khi tải xong mã của trang
   // mới. Ghi nhớ khung nhìn đang hiện rồi đợi tới khi nó được thay bằng khung nhìn mới, nếu không axe sẽ quét trang cũ
   // hoặc quét đúng lúc trang mới còn đang mờ.
-  const alreadyThere = await page.evaluate((target) => location.hash === target.slice(1), route)
+  const alreadyThere = await page.evaluate((target) => location.pathname === target, route)
   if (!alreadyThere) {
     await page.evaluate(() => {
       window.__previousView = document.querySelector('#main-content > *')
