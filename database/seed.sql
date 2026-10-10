@@ -9,15 +9,17 @@
 -- Trong tệp chỉ có mật khẩu ở dạng đã băm BCrypt (cost 12).
 --     admin1 (Quản trị viên), doctor1, doctor2 (Bác sĩ), receptionist1 (Lễ tân), patient1, patient2 (Bệnh nhân)
 --
--- Ngày trong tệp tính theo "hôm nay" (giờ Việt Nam) của lúc nạp, nên nạp lúc nào cũng có:
+-- Ngày trong tệp tính theo "hôm nay" của máy chủ CSDL lúc nạp (CURDATE()), nên nạp lúc nào cũng có:
 --   - ca làm việc và khung giờ trống của hai bác sĩ trong 7 ngày kể từ ngày mai;
 --   - lịch hẹn ở cả bốn trạng thái: Đã đặt (ngày mai, ngày kia), Đang khám (hôm nay), Đã khám, Đã hủy (các ngày trước);
 --   - lần khám, đơn thuốc, hóa đơn đã thu, chưa thu và đã hủy.
+-- Giờ khám trong tệp (08:00, 14:00...) là giờ ứng dụng hiển thị khi máy chủ ứng dụng và máy chủ CSDL cùng múi giờ, như bộ
+-- Docker Compose của dự án (cả hai chạy giờ UTC).
 -- Phần A giống hệt dữ liệu ứng dụng tự nạp khi MEDBOOK_SEED_DEMO=true (src/main/resources/db/seed/demo-seed.sql).
 -- =====================================================================
 
 SET NAMES utf8mb4;
-SET @today = DATE(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+07:00'));
+SET @today = CURDATE();
 
 -- ---------------------------------------------------------------------
 -- A. Tài khoản, danh mục, ca làm việc và khung giờ trống
