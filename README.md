@@ -163,11 +163,14 @@ Sau khi sửa giao diện phải `npm run build` rồi chạy lại backend thì
 
 | Việc | Cách làm |
 |---|---|
+| Dựng CSDL bằng tay (phpMyAdmin, máy chủ không chạy được Flyway) | Nạp `database/schema.sql` vào một CSDL MySQL 8 rỗng, rồi `database/seed.sql` nếu cần dữ liệu mẫu. Đây là **hai tệp chính thức** của lược đồ và dữ liệu mẫu; sau khi nạp, ứng dụng chạy được cả khi Flyway bật lẫn tắt |
 | Thêm thay đổi lược đồ | Thêm tệp `V5__mo_ta.sql` vào `src/main/resources/db/migration`, hoặc một lớp Java trong `config/migration` (V2, V3 và V4 đã dùng cách này); chỉ cộng thêm, không sửa migration đã phát hành |
 | Nâng cấp CSDL đang chạy với Flyway tắt (hồ sơ `online`, `v4mysql`) | Chạy lần lượt `scripts/cx-additive-schema.mysql.sql`, `scripts/receptionist-role.mysql.sql`, `scripts/slot-holds-schema.mysql.sql` (cả ba chạy lại nhiều lần được) **trước khi** triển khai bản ứng dụng mới |
 | Sao lưu | `.\scripts\backup-db.ps1` → tệp `.sql` trong thư mục `backups/` |
 | Kiểm chứng phục hồi | `.\scripts\restore-db.ps1 -File <tệp .sql>`: nạp vào một CSDL trống mới rồi đối chiếu số dòng từng bảng |
 | Ràng buộc bất biến | `CHECK`, `UNIQUE`, khóa ngoại trong migration; ví dụ giờ kết thúc phải sau giờ bắt đầu, mỗi slot chỉ có một lịch đang giữ chỗ |
+
+`database/schema.sql` không viết tay: nó được kết xuất (`mysqldump --no-data`) từ một MySQL 8 rỗng sau khi ứng dụng chạy hết các migration, nên luôn khớp với mã nguồn; thêm migration mới thì kết xuất lại. `database/seed.sql` gồm đúng dữ liệu của `src/main/resources/db/seed/demo-seed.sql` (sáu tài khoản demo ở mục 4, danh mục, ca làm việc và khung giờ trống 7 ngày tới) cộng một bệnh nhân vãng lai, lịch hẹn ở cả bốn trạng thái, lần khám, đơn thuốc và hóa đơn đã thu, chưa thu, đã hủy; ngày trong tệp tính theo ngày nạp. Các tệp SQL trong `docs/` (`docs/seed.sql`, `seed_dev4.sql`, `migration_dev4.sql`…) là tài liệu của các buổi học trước, không dùng để dựng hệ thống.
 
 ## 10. Tài liệu API
 
