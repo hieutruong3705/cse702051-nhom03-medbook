@@ -67,7 +67,26 @@
         <BaseDatePicker id="reschedule-date" v-model="rescheduleDate" label="Ngày khám" required />
       </div>
       <div class="mt-4">
-        <SlotPicker v-model="newSlotId" :doctor-id="rescheduleDoctorId" :date="rescheduleDate" :refresh-key="refreshKey" />
+        <SlotPicker
+          v-model="newSlotId"
+          :doctor-id="rescheduleDoctorId"
+          :date="rescheduleDate"
+          :service-id="selected?.serviceId || null"
+          :refresh-key="refreshKey"
+          @select="holdRescheduleSlot"
+          @update:model-value="onRescheduleSlotModelUpdate"
+        />
+        <div
+          v-if="rescheduleHold.hold.value"
+          class="mt-3 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900"
+          data-test="reschedule-hold-countdown"
+        >
+          <span aria-hidden="true">Đang giữ chỗ, còn <strong>{{ formatHoldCountdown(rescheduleHold.remainingSeconds.value) }}</strong></span>
+          <span class="sr-only" aria-live="polite">{{ rescheduleHoldAnnouncement }}</span>
+        </div>
+        <p v-if="rescheduleHold.holdError.value" class="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+          {{ rescheduleHold.holdError.value }}
+        </p>
       </div>
       <BaseTextarea id="reschedule-reason" v-model="rescheduleReason" class="mt-4" label="Lý do đổi lịch" required :rows="4" :error="rescheduleErrors.reason || rescheduleErrors.newSlotId" />
       <p class="mt-1 text-right text-xs text-slate-500">{{ rescheduleReason.length }}/500</p>
@@ -81,7 +100,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { BaseButton, BaseDatePicker, BaseInput, BaseSelect, BaseTextarea, DataTable, FormModal, PageHeader, Pagination, StatusBadge } from '@/components/ui'
 import ReceptionistLayout from '@/layouts/ReceptionistLayout.vue'
 import SlotPicker from '@/views/patient/booking/SlotPicker.vue'
@@ -94,6 +113,7 @@ import { apiErrorMessage } from '@/utils/apiErrorMessage'
 import { cleanParams, fieldErrors } from '@/utils/params'
 import { formatDate, formatTime } from '@/utils/formatters'
 import { appointmentStatus } from '@/utils/statusLabels'
+import { formatHoldCountdown, useSlotHold } from '@/views/patient/booking/useSlotHold'
 
 const statusOptions = [
   { label: 'Đã đặt', value: 'BOOKED' },
@@ -131,10 +151,17 @@ const rescheduleErrors = ref({})
 const refreshKey = ref(0)
 const actionError = ref('')
 const acting = ref(false)
+const rescheduleHold = useSlotHold()
 
 const doctorOptions = computed(() => doctors.value.map((doctor) => ({ label: `${doctor.fullName}${doctor.specialtyName ? ` · ${doctor.specialtyName}` : ''}`, value: String(doctor.id) })))
 const cancelDescription = computed(() => selected.value ? `${selected.value.patientName} · ${formatDate(selected.value.date)} ${formatTime(selected.value.startTime)}` : '')
 const rescheduleDescription = computed(() => selected.value ? `${selected.value.patientName} · lịch hiện tại ${formatDate(selected.value.date)} ${formatTime(selected.value.startTime)}` : '')
+const rescheduleHoldAnnouncement = computed(() => {
+  const seconds = rescheduleHold.remainingSeconds.value
+  if (!rescheduleHold.hold.value) return ''
+  if (seconds > 30) return `Đang giữ chỗ, còn khoảng ${Math.ceil(seconds / 60)} phút`
+  return seconds > 10 ? 'Đang giữ chỗ, còn chưa đầy 30 giây' : 'Đang giữ chỗ, còn chưa đầy 10 giây'
+})
 
 async function loadDoctors() {
   const response = await doctorsApi.list({ size: 100 })
@@ -185,6 +212,7 @@ function openCancel(row) {
 }
 
 function openReschedule(row) {
+  rescheduleHold.releaseHold()
   selected.value = row
   rescheduleDoctorId.value = String(row.doctorId)
   rescheduleDate.value = row.date
@@ -193,6 +221,29 @@ function openReschedule(row) {
   rescheduleErrors.value = {}
   actionError.value = ''
   rescheduleOpen.value = true
+}
+
+function clearRescheduleSlot({ release = true } = {}) {
+  newSlotId.value = null
+  if (release) rescheduleHold.releaseHold()
+}
+
+async function holdRescheduleSlot(slot) {
+  newSlotId.value = slot.id
+  actionError.value = ''
+  const held = await rescheduleHold.holdSlot(slot.id)
+  if (String(newSlotId.value) !== String(slot.id)) return false
+  if (!held) {
+    actionError.value = rescheduleHold.holdError.value || 'Khung giờ vừa được người khác đặt hoặc giữ. Vui lòng chọn khung giờ khác.'
+    clearRescheduleSlot({ release: false })
+    refreshKey.value += 1
+    return false
+  }
+  return true
+}
+
+function onRescheduleSlotModelUpdate(value) {
+  if (value === null) clearRescheduleSlot()
 }
 
 function validateReason(reason, target) {
@@ -232,15 +283,20 @@ async function submitReschedule() {
   acting.value = true
   actionError.value = ''
   try {
-    const updated = await receptionApi.appointments.reschedule(selected.value.id, { newSlotId: Number(newSlotId.value), reason: rescheduleReason.value.trim() })
+    const updated = await receptionApi.appointments.reschedule(selected.value.id, {
+      newSlotId: Number(newSlotId.value),
+      reason: rescheduleReason.value.trim(),
+      holdId: rescheduleHold.hold.value?.holdId
+    })
     updateRow(updated)
     success('Đã đổi lịch hẹn')
+    rescheduleHold.forgetHold()
     rescheduleOpen.value = false
   } catch (err) {
     rescheduleErrors.value = fieldErrors(err)
     actionError.value = apiErrorMessage(err)
-    if (err?.status === 409) {
-      newSlotId.value = null
+    if (err?.status === 409 || err?.status === 410 || err?.status === 422) {
+      clearRescheduleSlot()
       refreshKey.value += 1
     }
     if (err?.status === 422) {
@@ -250,6 +306,21 @@ async function submitReschedule() {
     acting.value = false
   }
 }
+
+watch(rescheduleOpen, (open) => {
+  if (!open) rescheduleHold.releaseHold()
+})
+
+watch([rescheduleDoctorId, rescheduleDate], () => {
+  if (rescheduleOpen.value) clearRescheduleSlot()
+})
+
+watch(rescheduleHold.expired, (expired) => {
+  if (!expired || !newSlotId.value) return
+  actionError.value = 'Thời gian giữ chỗ đã hết. Vui lòng chọn lại khung giờ.'
+  clearRescheduleSlot({ release: false })
+  refreshKey.value += 1
+})
 
 onMounted(async () => {
   try {
