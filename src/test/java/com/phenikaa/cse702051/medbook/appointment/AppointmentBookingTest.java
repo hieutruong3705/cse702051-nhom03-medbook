@@ -209,6 +209,11 @@ class AppointmentBookingTest extends AbstractApiTest {
     @DisplayName("Không hủy/đổi được lịch trong vòng 2 giờ trước giờ khám → 409, slot giữ nguyên")
     void cannotChangeTooCloseToStart() throws Exception {
         LocalDateTime soon = LocalDateTime.now().plusMinutes(70);
+        // Khung giờ mẫu dài 30 phút và phải nằm trọn trong một ngày. Chạy lúc 22:20–22:50 thì "70 phút nữa" rơi vào
+        // 23:30–23:59 và khung giờ sẽ vắt qua nửa đêm; khi đó lấy 00:05 hôm sau, vẫn cách hiện tại dưới 2 giờ.
+        if (soon.toLocalTime().isAfter(java.time.LocalTime.of(23, 29))) {
+            soon = soon.toLocalDate().plusDays(1).atTime(0, 5);
+        }
         AppointmentSlot near = data.slot(ApiTestData.DOCTOR1_ID, soon.toLocalDate(), soon.toLocalTime().withNano(0));
         long id = bookOk(patientToken(), near.getId());
 
