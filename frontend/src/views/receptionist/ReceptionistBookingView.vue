@@ -1,0 +1,271 @@
+<template>
+  <ReceptionistLayout>
+    <div class="space-y-6">
+      <PageHeader title="Đặt lịch hộ" eyebrow="Quầy lễ tân" description="Chọn bệnh nhân, dịch vụ, bác sĩ và khung giờ để tạo lịch hẹn tại quầy." />
+
+      <ol class="grid gap-2 text-sm sm:grid-cols-4" aria-label="Các bước đặt lịch">
+        <li v-for="item in stepLabels" :key="item.step" class="rounded-md border px-3 py-2" :class="step === item.step ? 'border-primary-600 bg-primary-50 text-primary-800' : 'border-slate-200 bg-white text-slate-600'">
+          <span class="font-semibold">Bước {{ item.step }}.</span> {{ item.label }}
+        </li>
+      </ol>
+
+      <section v-if="pageError" class="rounded-md border border-red-200 bg-red-50 p-4" role="alert">
+        <p class="text-sm font-medium text-red-700">{{ pageError }}</p>
+      </section>
+
+      <section v-if="createdAppointment" class="rounded-md border border-emerald-200 bg-emerald-50 p-5">
+        <h2 class="text-lg font-semibold text-emerald-950">Đã đặt lịch</h2>
+        <p class="mt-2 text-sm text-emerald-800">Mã lịch #{{ createdAppointment.id }} · {{ selectedPatient?.fullName }} · {{ selectedService?.name }}</p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <BaseButton variant="secondary" @click="bookAnother">Đặt lịch khác</BaseButton>
+          <RouterLink to="/receptionist/appointments" class="inline-flex min-h-10 items-center justify-center rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700">
+            Về danh sách lịch hẹn
+          </RouterLink>
+        </div>
+      </section>
+
+      <template v-else>
+        <section v-if="step === 1" class="space-y-4 rounded-md border border-slate-200 bg-white p-5">
+          <form class="flex flex-wrap items-end gap-3" @submit.prevent="searchPatients">
+            <BaseInput id="booking-patient-keyword" v-model="patientKeyword" class="min-w-0 flex-1" label="Tìm bệnh nhân" placeholder="Họ tên, mã bệnh nhân, điện thoại" />
+            <BaseButton type="submit" :loading="searchingPatients" icon="fa-solid fa-magnifying-glass">Tìm</BaseButton>
+            <BaseButton variant="secondary" icon="fa-solid fa-user-plus" @click="patientFormOpen = true">Tạo hồ sơ mới</BaseButton>
+          </form>
+          <p v-if="patientError" class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{{ patientError }}</p>
+          <div v-if="selectedPatient" class="rounded-md border border-primary-200 bg-primary-50 p-4">
+            <p class="font-semibold text-primary-950">{{ selectedPatient.fullName }}</p>
+            <p class="text-sm text-primary-800">{{ selectedPatient.patientCode }} · {{ selectedPatient.phone }}</p>
+          </div>
+          <DataTable :columns="patientColumns" :rows="patientResults" :loading="searchingPatients" empty-text="Nhập từ khóa để tìm bệnh nhân">
+            <template #cell-fullName="{ row }">
+              <div class="font-semibold text-slate-950">{{ row.fullName }}</div>
+              <div class="text-xs text-slate-500">{{ row.patientCode }}</div>
+            </template>
+            <template #cell-dateOfBirth="{ value }">{{ formatDate(value) }}</template>
+            <template #cell-actions="{ row }">
+              <BaseButton variant="secondary" @click="selectPatient(row)">Chọn</BaseButton>
+            </template>
+          </DataTable>
+          <div class="flex justify-end">
+            <BaseButton :disabled="!selectedPatient" @click="step = 2">Tiếp tục</BaseButton>
+          </div>
+        </section>
+
+        <section v-if="step === 2" class="space-y-4 rounded-md border border-slate-200 bg-white p-5">
+          <BaseSelect id="booking-service" v-model="serviceId" label="Dịch vụ khám" placeholder="Chọn dịch vụ" required :options="serviceOptions" />
+          <div v-if="selectedService" class="rounded-md bg-slate-50 p-4 text-sm text-slate-700">
+            <p class="font-semibold text-slate-950">{{ selectedService.name }}</p>
+            <p>{{ selectedService.durationMinutes }} phút · {{ formatCurrency(selectedService.price) }}</p>
+          </div>
+          <div class="flex justify-between gap-2">
+            <BaseButton variant="secondary" @click="step = 1">Quay lại</BaseButton>
+            <BaseButton :disabled="!selectedService" @click="step = 3">Tiếp tục</BaseButton>
+          </div>
+        </section>
+
+        <section v-if="step === 3" class="space-y-4 rounded-md border border-slate-200 bg-white p-5">
+          <div class="grid gap-4 md:grid-cols-3">
+            <BaseSelect id="booking-specialty" v-model="specialtyId" label="Chuyên khoa" placeholder="Tất cả" :options="specialtyOptions" />
+            <BaseSelect id="booking-doctor" v-model="doctorId" label="Bác sĩ" placeholder="Chọn bác sĩ" required :options="doctorOptions" />
+            <BaseDatePicker id="booking-date" v-model="appointmentDate" label="Ngày khám" required :error="dateError" />
+          </div>
+          <SlotPicker :key="slotPickerKey" v-model="slotId" :doctor-id="doctorId" :date="appointmentDate" :refresh-key="refreshKey" @select="selectedSlot = $event" />
+          <div class="flex justify-between gap-2">
+            <BaseButton variant="secondary" @click="step = 2">Quay lại</BaseButton>
+            <BaseButton :disabled="!canConfirm" @click="step = 4">Tiếp tục</BaseButton>
+          </div>
+        </section>
+
+        <section v-if="step === 4" class="space-y-4 rounded-md border border-slate-200 bg-white p-5">
+          <h2 class="text-lg font-semibold text-slate-950">Xác nhận đặt lịch</h2>
+          <dl class="grid gap-3 text-sm md:grid-cols-2">
+            <div><dt class="text-slate-500">Bệnh nhân</dt><dd class="font-semibold text-slate-950">{{ selectedPatient?.fullName }}</dd></div>
+            <div><dt class="text-slate-500">Dịch vụ</dt><dd class="font-semibold text-slate-950">{{ selectedService?.name }} · {{ formatCurrency(selectedService?.price) }}</dd></div>
+            <div><dt class="text-slate-500">Bác sĩ</dt><dd class="font-semibold text-slate-950">{{ selectedDoctor?.fullName }}</dd></div>
+            <div><dt class="text-slate-500">Thời gian</dt><dd class="font-semibold text-slate-950">{{ formatDate(appointmentDate) }} · {{ slotSummary }}</dd></div>
+          </dl>
+          <BaseTextarea id="booking-notes" v-model="notes" label="Ghi chú khi đặt hộ" :rows="4" :error="notesError" hint="Tối đa 2000 ký tự. Ghi chú chỉ gửi một chiều, không đọc lại từ máy chủ." />
+          <p class="text-right text-xs text-slate-500">{{ notes.length }}/2000</p>
+          <p v-if="submitError" class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{{ submitError }}</p>
+          <div class="flex justify-between gap-2">
+            <BaseButton variant="secondary" @click="step = 3">Quay lại</BaseButton>
+            <BaseButton :loading="submitting" :disabled="submitting" @click="submitBooking">Xác nhận đặt lịch</BaseButton>
+          </div>
+        </section>
+      </template>
+    </div>
+
+    <PatientFormModal v-model="patientFormOpen" @created="selectPatient" />
+  </ReceptionistLayout>
+</template>
+
+<script setup>
+import { computed, onMounted, ref, watch } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
+import { BaseButton, BaseDatePicker, BaseInput, BaseSelect, BaseTextarea, DataTable, PageHeader } from '@/components/ui'
+import ReceptionistLayout from '@/layouts/ReceptionistLayout.vue'
+import PatientFormModal from './PatientFormModal.vue'
+import SlotPicker from '@/views/patient/booking/SlotPicker.vue'
+import { doctorName, doctorSpecialty, slotLabel, todayIso } from '@/views/patient/booking/bookingUtils'
+import { receptionApi } from '@/api/reception'
+import { catalogApi } from '@/api/catalog'
+import { doctorsApi } from '@/api/doctors'
+import { apiErrorMessage } from '@/utils/apiErrorMessage'
+import { fieldErrors } from '@/utils/params'
+import { formatCurrency, formatDate } from '@/utils/formatters'
+
+const route = useRoute()
+const stepLabels = [
+  { step: 1, label: 'Bệnh nhân' },
+  { step: 2, label: 'Dịch vụ' },
+  { step: 3, label: 'Bác sĩ và giờ' },
+  { step: 4, label: 'Xác nhận' }
+]
+const patientColumns = [
+  { key: 'fullName', label: 'Bệnh nhân' },
+  { key: 'dateOfBirth', label: 'Ngày sinh' },
+  { key: 'phone', label: 'Điện thoại' },
+  { key: 'actions', label: 'Thao tác' }
+]
+
+const step = ref(1)
+const pageError = ref('')
+const patientKeyword = ref('')
+const patientResults = ref([])
+const searchingPatients = ref(false)
+const patientError = ref('')
+const selectedPatient = ref(null)
+const patientFormOpen = ref(false)
+
+const services = ref([])
+const specialties = ref([])
+const doctors = ref([])
+const serviceId = ref('')
+const specialtyId = ref('')
+const doctorId = ref('')
+const appointmentDate = ref(todayIso())
+const slotId = ref(null)
+const selectedSlot = ref(null)
+const refreshKey = ref(0)
+const notes = ref('')
+const notesError = ref('')
+const submitError = ref('')
+const submitting = ref(false)
+const createdAppointment = ref(null)
+
+const serviceOptions = computed(() => services.value.map((item) => ({ label: item.name, value: String(item.id) })))
+const specialtyOptions = computed(() => specialties.value.map((item) => ({ label: item.name, value: String(item.id) })))
+const selectedService = computed(() => services.value.find((item) => String(item.id) === String(serviceId.value)) || null)
+const filteredDoctors = computed(() => doctors.value.filter((doctor) => !specialtyId.value || String(doctor.specialtyId) === String(specialtyId.value)))
+const doctorOptions = computed(() => filteredDoctors.value.map((doctor) => ({ label: `${doctorName(doctor)}${doctorSpecialty(doctor) ? ` · ${doctorSpecialty(doctor)}` : ''}`, value: String(doctor.id) })))
+const selectedDoctor = computed(() => doctors.value.find((item) => String(item.id) === String(doctorId.value)) || null)
+const dateError = computed(() => appointmentDate.value && appointmentDate.value < todayIso() ? 'Không chọn ngày đã qua.' : '')
+const canConfirm = computed(() => selectedService.value && selectedDoctor.value && appointmentDate.value && !dateError.value && slotId.value)
+const slotSummary = computed(() => selectedSlot.value ? slotLabel(selectedSlot.value) : `Khung giờ #${slotId.value || ''}`)
+const slotPickerKey = computed(() => `${serviceId.value}-${doctorId.value}-${appointmentDate.value}-${refreshKey.value}`)
+
+watch([serviceId, doctorId, appointmentDate], () => {
+  slotId.value = null
+  selectedSlot.value = null
+})
+
+async function loadLookups() {
+  try {
+    const [serviceResponse, specialtyResponse, doctorResponse] = await Promise.all([
+      catalogApi.services.list({ size: 100 }),
+      catalogApi.specialties.list({ size: 100 }),
+      doctorsApi.list({ size: 100 })
+    ])
+    services.value = serviceResponse?.content ?? []
+    specialties.value = specialtyResponse?.content ?? []
+    doctors.value = doctorResponse?.content ?? []
+  } catch (err) {
+    pageError.value = apiErrorMessage(err)
+  }
+}
+
+async function loadPatientFromQuery() {
+  const id = route.query.patientId
+  if (!id) return
+  try {
+    selectedPatient.value = await receptionApi.patients.get(id)
+    step.value = 2
+  } catch (err) {
+    patientError.value = err?.status === 404 ? 'Không tìm thấy bệnh nhân, vui lòng chọn lại.' : apiErrorMessage(err)
+    step.value = 1
+  }
+}
+
+async function searchPatients() {
+  searchingPatients.value = true
+  patientError.value = ''
+  try {
+    const response = await receptionApi.patients.list({ keyword: patientKeyword.value, page: 0, size: 10 })
+    patientResults.value = response?.content ?? []
+  } catch (err) {
+    patientResults.value = []
+    patientError.value = apiErrorMessage(err)
+  } finally {
+    searchingPatients.value = false
+  }
+}
+
+function selectPatient(patient) {
+  selectedPatient.value = patient
+  patientFormOpen.value = false
+}
+
+function validateNotes() {
+  notesError.value = notes.value.length > 2000 ? 'Ghi chú tối đa 2000 ký tự.' : ''
+  return !notesError.value
+}
+
+async function submitBooking() {
+  if (submitting.value || createdAppointment.value || !validateNotes()) return
+  submitting.value = true
+  submitError.value = ''
+  pageError.value = ''
+  const payload = {
+    patientId: selectedPatient.value.id,
+    slotId: Number(slotId.value),
+    serviceId: Number(serviceId.value)
+  }
+  if (notes.value.trim()) payload.notes = notes.value.trim()
+  try {
+    createdAppointment.value = await receptionApi.appointments.create(payload)
+  } catch (err) {
+    const details = fieldErrors(err)
+    notesError.value = details.notes || ''
+    submitError.value = apiErrorMessage(err)
+    if (err?.status === 409) {
+      pageError.value = submitError.value
+      step.value = 3
+      slotId.value = null
+      selectedSlot.value = null
+      refreshKey.value += 1
+    } else if (err?.status === 422) {
+      pageError.value = submitError.value
+      step.value = 1
+    }
+  } finally {
+    submitting.value = false
+  }
+}
+
+function bookAnother() {
+  createdAppointment.value = null
+  serviceId.value = ''
+  specialtyId.value = ''
+  doctorId.value = ''
+  appointmentDate.value = todayIso()
+  slotId.value = null
+  selectedSlot.value = null
+  notes.value = ''
+  submitError.value = ''
+  step.value = 2
+}
+
+onMounted(async () => {
+  await Promise.all([loadLookups(), loadPatientFromQuery()])
+})
+</script>
