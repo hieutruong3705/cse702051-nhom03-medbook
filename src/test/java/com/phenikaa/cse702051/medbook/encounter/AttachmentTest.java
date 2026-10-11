@@ -242,6 +242,77 @@ class AttachmentTest extends AbstractApiTest {
         mvc.perform(get(url).header("Authorization", adminToken())).andExpect(status().isForbidden());
     }
 
+    @Test
+    @DisplayName("AC-S5.1 Mỗi lần bác sĩ phụ trách hoặc bệnh nhân chủ liệt kê tệp có đúng một bản audit ATTACHMENT_LIST mang danh tính người xem; metadata chỉ có số lượng, không có tên tệp")
+    void listingAttachmentsIsAudited() throws Exception {
+        IsolatedDoctor doc = data.isolatedDoctor("att_laud_doc");
+        IsolatedPatient owner = data.isolatedPatient("att_laud_owner");
+        Encounter encounter = openEncounter(doc, owner);
+        uploadOk(doc.token(), encounter.getId(), "Ket qua noi soi da day.pdf", PDF);
+        uploadOk(doc.token(), encounter.getId(), "x-quang-phoi.png", PNG);
+        String url = "/api/v1/encounters/" + encounter.getId() + "/attachments";
+
+        mvc.perform(get(url).header("Authorization", doc.token())).andExpect(status().isOk());
+        assertEquals(1, countAudits(AuditActions.ENTITY_ENCOUNTERS, encounter.getId(), AuditActions.ATTACHMENT_LIST,
+                doc.userId()));
+        assertEquals(0, countAudits(AuditActions.ENTITY_ENCOUNTERS, encounter.getId(), AuditActions.ATTACHMENT_LIST,
+                owner.userId()));
+
+        mvc.perform(get(url).header("Authorization", owner.token())).andExpect(status().isOk());
+        mvc.perform(get(url).header("Authorization", owner.token())).andExpect(status().isOk());
+        assertEquals(1, countAudits(AuditActions.ENTITY_ENCOUNTERS, encounter.getId(), AuditActions.ATTACHMENT_LIST,
+                doc.userId()));
+        assertEquals(2, countAudits(AuditActions.ENTITY_ENCOUNTERS, encounter.getId(), AuditActions.ATTACHMENT_LIST,
+                owner.userId()), "mỗi lần xem một bản ghi");
+
+        auditsOf(AuditActions.ENTITY_ENCOUNTERS, encounter.getId()).stream()
+                .filter(audit -> audit.getActionCode().equals(AuditActions.ATTACHMENT_LIST))
+                .forEach(audit -> {
+                    String metadata = audit.getMetadataJson();
+                    assertEquals("{\"count\":2}", metadata.replace(" ", ""));
+                    assertFalse(metadata.contains("noi soi") || metadata.contains("x-quang") || metadata.contains(".pdf"),
+                            metadata);
+                });
+    }
+
+    @Test
+    @DisplayName("AC-S5.2 Bác sĩ khác và quản trị viên liệt kê tệp: 403, có ACCESS_DENIED mang danh tính của họ, không có ATTACHMENT_LIST")
+    void deniedListingIsAuditedAsAccessDenied() throws Exception {
+        IsolatedDoctor doc = data.isolatedDoctor("att_lden_doc");
+        IsolatedDoctor otherDoctor = data.isolatedDoctor("att_lden_other");
+        IsolatedPatient owner = data.isolatedPatient("att_lden_owner");
+        Encounter encounter = openEncounter(doc, owner);
+        uploadOk(doc.token(), encounter.getId(), "a.pdf", PDF);
+        String url = "/api/v1/encounters/" + encounter.getId() + "/attachments";
+
+        mvc.perform(get(url).header("Authorization", otherDoctor.token())).andExpect(status().isForbidden());
+        mvc.perform(get(url).header("Authorization", adminToken())).andExpect(status().isForbidden());
+
+        assertEquals(1, countAudits(AuditActions.ENTITY_ENCOUNTERS, encounter.getId(), AuditActions.ACCESS_DENIED,
+                otherDoctor.userId()));
+        assertEquals(1, countAudits(AuditActions.ENTITY_ENCOUNTERS, encounter.getId(), AuditActions.ACCESS_DENIED,
+                ADMIN_USER_ID));
+        assertEquals(0, auditsOf(AuditActions.ENTITY_ENCOUNTERS, encounter.getId()).stream()
+                .filter(audit -> audit.getActionCode().equals(AuditActions.ATTACHMENT_LIST)).count());
+    }
+
+    @Test
+    @DisplayName("Lần khám chưa có tệp: danh sách rỗng vẫn được ghi nhật ký với số lượng 0")
+    void listingAnEncounterWithoutFilesIsAuditedWithZero() throws Exception {
+        IsolatedDoctor doc = data.isolatedDoctor("att_lzero_doc");
+        IsolatedPatient owner = data.isolatedPatient("att_lzero_owner");
+        Encounter encounter = openEncounter(doc, owner);
+
+        mvc.perform(get("/api/v1/encounters/" + encounter.getId() + "/attachments").header("Authorization", owner.token()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+
+        var audits = auditsOf(AuditActions.ENTITY_ENCOUNTERS, encounter.getId()).stream()
+                .filter(audit -> audit.getActionCode().equals(AuditActions.ATTACHMENT_LIST)).toList();
+        assertEquals(1, audits.size());
+        assertEquals("{\"count\":0}", audits.get(0).getMetadataJson().replace(" ", ""));
+        assertEquals(owner.userId(), audits.get(0).getActorUser().getId());
+    }
+
     // ---------- xóa ----------
 
     @Test

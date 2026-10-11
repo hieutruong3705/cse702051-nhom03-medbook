@@ -26,6 +26,7 @@ public final class AuditActions {
     public static final String ENCOUNTER_VIEW = "ENCOUNTER_VIEW";
     public static final String PRESCRIPTION_VIEW = "PRESCRIPTION_VIEW";
     public static final String ATTACHMENT_DOWNLOAD = "ATTACHMENT_DOWNLOAD";
+    public static final String ATTACHMENT_LIST = "ATTACHMENT_LIST";
 
     // --- Thay đổi dữ liệu nhạy cảm ---
     public static final String ATTACHMENT_UPLOAD = "ATTACHMENT_UPLOAD";
