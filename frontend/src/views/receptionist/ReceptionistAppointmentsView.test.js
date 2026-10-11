@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   reschedule: vi.fn(),
   doctorsList: vi.fn(),
   slotsAvailable: vi.fn(),
+  slotsHold: vi.fn(),
+  slotsRelease: vi.fn(),
   toastSuccess: vi.fn(),
   toastError: vi.fn()
 }))
@@ -23,10 +25,17 @@ vi.mock('@/api/reception', () => ({
 }))
 
 vi.mock('@/api/doctors', () => ({ doctorsApi: { list: mocks.doctorsList } }))
-vi.mock('@/api/slots', () => ({ slotsApi: { availableByDoctor: mocks.slotsAvailable } }))
+vi.mock('@/api/slots', () => ({
+  slotsApi: {
+    availableByDoctor: mocks.slotsAvailable,
+    hold: mocks.slotsHold,
+    release: mocks.slotsRelease
+  }
+}))
 vi.mock('@/composables/useToast', () => ({ useToast: () => ({ success: mocks.toastSuccess, error: mocks.toastError }) }))
 
-const booked = { id: 1, status: 'BOOKED', patientId: 1, patientName: 'Nguyễn Minh An', patientCode: 'BN000001', patientPhone: '0900111222', doctorId: 3, doctorName: 'Bác sĩ Lan', specialtyName: 'Nội tổng quát', serviceName: 'Khám tổng quát', slotId: 5, date: '2026-10-10', startTime: '08:00:00', endTime: '08:30:00' }
+const booked = { id: 1, status: 'BOOKED', patientId: 1, patientName: 'Nguyễn Minh An', patientCode: 'BN000001', patientPhone: '0900111222', doctorId: 3, doctorName: 'Bác sĩ Lan', specialtyName: 'Nội tổng quát', serviceId: 2, serviceName: 'Khám tổng quát', slotId: 5, date: '2026-10-10', startTime: '08:00:00', endTime: '08:30:00' }
+const heldFor = (slotId) => ({ holdId: 7000 + slotId, slotId, expiresAt: '2026-10-11T09:10:00', remainingSeconds: 600 })
 const completed = { ...booked, id: 2, status: 'COMPLETED', patientName: 'Trần Gia Bình', patientCode: 'BN000002' }
 const page = (content) => ({ content, page: 0, size: 20, totalElements: content.length, totalPages: 1 })
 
@@ -49,6 +58,8 @@ function resetMocks() {
     { id: 4, fullName: 'Bác sĩ Mai', specialtyName: 'Tim mạch' }
   ]))
   mocks.slotsAvailable.mockResolvedValue([{ id: 8, slotDate: '2026-10-11', startTime: '09:00:00', endTime: '09:30:00' }])
+  mocks.slotsHold.mockImplementation((slotId) => Promise.resolve(heldFor(slotId)))
+  mocks.slotsRelease.mockResolvedValue(null)
 }
 
 async function mountPage() {
@@ -156,14 +167,31 @@ describe('ReceptionistAppointmentsView', () => {
     typeBody('#reschedule-date', '2026-10-11', 'input')
     await flushPromises()
     await Array.from(document.querySelectorAll('button')).find((button) => button.textContent.includes('09:00')).click()
+    await flushPromises()
     typeBody('#reschedule-reason', 'Đổi giờ theo yêu cầu')
     await clickBody('Đổi lịch')
-    expect(mocks.reschedule).toHaveBeenCalledWith(1, { newSlotId: 8, reason: 'Đổi giờ theo yêu cầu' })
+    expect(mocks.slotsAvailable).toHaveBeenLastCalledWith('3', '2026-10-11', 2)
+    expect(mocks.slotsHold).toHaveBeenCalledWith(8)
+    expect(mocks.reschedule).toHaveBeenCalledWith(1, { newSlotId: 8, reason: 'Đổi giờ theo yêu cầu', holdId: 7008 })
     expect(wrapper.text()).toContain('09:00 - 09:30')
     wrapper.unmount()
   })
 
-  it('đổi lịch bị 409 thì bỏ khung giờ và tải lại SlotPicker', async () => {
+  it('đóng hộp đổi lịch sau khi chọn giờ thì nhả giữ chỗ', async () => {
+    const wrapper = await mountPage()
+    await wrapper.find('button[aria-label="Đổi lịch #1"]').trigger('click')
+    await flushPromises()
+    typeBody('#reschedule-date', '2026-10-11', 'input')
+    await flushPromises()
+    await Array.from(document.querySelectorAll('button')).find((button) => button.textContent.includes('09:00')).click()
+    await flushPromises()
+
+    await clickBody('Hủy')
+    expect(mocks.slotsRelease).toHaveBeenCalledWith(8)
+    wrapper.unmount()
+  })
+
+  it('đổi lịch bị 409 thì bỏ khung giờ, nhả giữ chỗ và tải lại SlotPicker', async () => {
     mocks.reschedule.mockRejectedValueOnce(Object.assign(new Error('Khung giờ mới vừa được đặt'), { status: 409 }))
     const wrapper = await mountPage()
     await wrapper.find('button[aria-label="Đổi lịch #1"]').trigger('click')
@@ -171,9 +199,11 @@ describe('ReceptionistAppointmentsView', () => {
     typeBody('#reschedule-date', '2026-10-11', 'input')
     await flushPromises()
     await Array.from(document.querySelectorAll('button')).find((button) => button.textContent.includes('09:00')).click()
+    await flushPromises()
     typeBody('#reschedule-reason', 'Đổi giờ theo yêu cầu')
     await clickBody('Đổi lịch')
     expect(document.body.textContent).toContain('Khung giờ mới vừa được đặt')
+    expect(mocks.slotsRelease).toHaveBeenCalledWith(8)
     expect(mocks.slotsAvailable.mock.calls.length).toBeGreaterThan(1)
     wrapper.unmount()
   })
