@@ -3,7 +3,7 @@
     <section class="mx-auto max-w-2xl px-4 py-12">
       <form class="rounded-md border border-slate-200 bg-white p-6 shadow-sm" novalidate @submit.prevent="submit">
         <h1 class="text-2xl font-bold text-slate-950">Tạo tài khoản bệnh nhân</h1>
-        <p class="mt-1 text-sm text-slate-600">Tài khoản mới mặc định có vai trò bệnh nhân (PATIENT).</p>
+        <p class="mt-1 text-sm text-slate-600">Tài khoản tạo ở đây là tài khoản bệnh nhân.</p>
 
         <div class="mt-6 grid gap-4 sm:grid-cols-2">
           <BaseInput id="register-full-name" v-model="values.fullName" label="Họ và tên" required autocomplete="name" :error="errors.fullName" />
