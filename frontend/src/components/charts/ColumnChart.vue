@@ -12,7 +12,8 @@
 
     <p v-if="!rows.length" class="mt-3 text-sm text-slate-500">{{ emptyText }}</p>
 
-    <div v-else class="grid grid-cols-[auto_1fr] gap-x-2" :class="showTotals ? 'mt-7' : 'mt-3'" role="img" :aria-label="summary">
+    <!-- minmax(0,1fr): cột biểu đồ được co theo khung; để 1fr thì hàng nhãn trục hoành ép cả khung rộng hơn màn hình hẹp -->
+    <div v-else class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2" :class="showTotals ? 'mt-7' : 'mt-3'" role="img" :aria-label="summary">
       <!-- Trục tung: ba mốc 0, một nửa và giá trị lớn nhất đã làm tròn -->
       <div class="flex h-48 flex-col justify-between text-right text-[11px] leading-none text-slate-500" aria-hidden="true">
         <span v-for="tick in ticks" :key="tick">{{ axisFormat(tick) }}</span>

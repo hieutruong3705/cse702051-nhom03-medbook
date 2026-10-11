@@ -1,7 +1,7 @@
 import { h } from 'vue'
-import { createRouter, createWebHashHistory, RouterLink, RouterView } from 'vue-router'
+import { createRouter, createWebHistory, RouterLink, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { installAuthGuards } from './guards'
+import { installAuthGuards, isSafeRedirect } from './guards'
 
 /**
  * Router gốc (Dev 5). Route con của từng khu vực nằm ở file `*.routes.js` cùng thư mục
@@ -19,7 +19,8 @@ import { installAuthGuards } from './guards'
  * Layout (`src/layouts/*`) là component dạng slot do CHÍNH VIEW bọc (ví dụ
  * `<DashboardLayout>` trong view), nên route cha ở đây chỉ là khung trống `<RouterView />`.
  *
- * Hash history: Spring Boot phục vụ bản build tĩnh nên không cần cấu hình fallback SPA.
+ * Địa chỉ thường (/doctors, không có dấu #): máy chủ trả index.html cho mọi địa chỉ trang (SpaForwardController),
+ * nên gõ thẳng hay tải lại một trang đều được. Liên kết cũ dạng /#/doctors được đổi sang địa chỉ mới khi khởi động.
  */
 
 const PassThrough = { name: 'PassThroughLayout', render: () => h(RouterView) }
@@ -76,7 +77,23 @@ const routes = [
   { path: '/:pathMatch(.*)*', name: 'not-found', component: notFoundPage, meta: { title: 'Không tìm thấy trang' } }
 ]
 
-export function createAppRouter(history = createWebHashHistory()) {
+/** Địa chỉ mới của một liên kết cũ dạng `/#/doctors?specialtyId=1`; không phải liên kết cũ thì trả `null`. */
+export function legacyHashTarget(location) {
+  const { pathname, hash } = location ?? {}
+  if (pathname !== '/' && pathname !== '/index.html') return null
+  if (typeof hash !== 'string' || !hash.startsWith('#/')) return null
+  const target = hash.slice(1)
+  return isSafeRedirect(target) ? target : null
+}
+
+/** Lịch sử trình duyệt của ứng dụng. Liên kết cũ được đổi tại chỗ, trước khi bộ định tuyến đọc địa chỉ. */
+function createBrowserHistory() {
+  const target = legacyHashTarget(window.location)
+  if (target) window.history.replaceState(window.history.state, '', target)
+  return createWebHistory()
+}
+
+export function createAppRouter(history = createBrowserHistory()) {
   const router = createRouter({
     history,
     routes,

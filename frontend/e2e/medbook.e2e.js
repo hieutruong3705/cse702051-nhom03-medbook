@@ -14,7 +14,7 @@ const viDay = (iso) => {
 }
 
 async function login(page, username) {
-  await page.goto('/#/login')
+  await page.goto('/login')
   await page.locator('#login-identity').fill(username)
   await page.locator('#login-password').fill(PASSWORD)
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
@@ -25,7 +25,7 @@ const dialog = (page) => page.getByRole('dialog').last()
 
 test.describe('Trang công khai và bảo mật cơ bản', () => {
   test('khách xem được danh sách bác sĩ; bấm Đặt lịch thì phải đăng nhập', async ({ page }) => {
-    await page.goto('/#/doctors')
+    await page.goto('/doctors')
     await expect(page.getByRole('heading', { name: 'Bác sĩ', level: 1 })).toBeVisible()
     await expect(page.getByText('Bác sĩ Lan').first()).toBeVisible()
     await expect(page.getByRole('table').getByText('Nội tổng quát').first()).toBeVisible()
@@ -33,7 +33,7 @@ test.describe('Trang công khai và bảo mật cơ bản', () => {
     await expect(page.locator('footer')).toContainText('Hệ thống quản lý bệnh án và đặt lịch khám bệnh')
 
     await page.getByRole('link', { name: 'Đặt lịch với Bác sĩ Lan' }).click()
-    await expect(page).toHaveURL(/#\/login/)
+    await expect(page).toHaveURL(/^[^?#]*\/login/)
     await expect(page.locator('#login-identity')).toBeVisible()
   })
 
@@ -58,30 +58,81 @@ test.describe('Trang công khai và bảo mật cơ bản', () => {
     expect((await request.get('/v3/api-docs')).status()).toBe(401)
   })
 
+  test('địa chỉ trang gõ thẳng hoặc tải lại đều mở đúng trang; liên kết cũ có dấu # được đổi sang địa chỉ mới', async ({ page }) => {
+    await page.goto('/specialties')
+    await expect(page.getByRole('heading', { name: 'Chuyên khoa', level: 1 })).toBeVisible()
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Chuyên khoa', level: 1 })).toBeVisible()
+    await expect(page).toHaveTitle('Chuyên khoa · MedBook')
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', new URL('/specialties', page.url()).href)
+    const specialtiesDescription = await page.locator('meta[name="description"]').getAttribute('content')
+
+    await page.goto('/services')
+    await expect(page).toHaveTitle('Dịch vụ · MedBook')
+    expect(await page.locator('meta[name="description"]').getAttribute('content')).not.toBe(specialtiesDescription)
+    await expect(page.locator('meta[name="robots"]')).toHaveCount(0)
+
+    // liên kết đã lưu từ bản cũ
+    await page.goto('/#/doctors?specialtyId=1')
+    await expect(page).toHaveURL(/\/doctors\?specialtyId=1$/)
+    await expect(page.getByRole('heading', { name: 'Bác sĩ', level: 1 })).toBeVisible()
+
+    // trang cần đăng nhập: máy chủ vẫn trả ứng dụng, ứng dụng đưa về trang đăng nhập
+    await page.goto('/patient/dashboard')
+    await expect(page).toHaveURL(/^[^?#]*\/login\?redirect=\/patient\/dashboard$/)
+    await expect(page.locator('#login-identity')).toBeVisible()
+
+    // địa chỉ lạ hiện trang 404 của ứng dụng và không được lập chỉ mục
+    await page.goto('/abc/xyz')
+    await expect(page.getByRole('heading', { name: 'Không tìm thấy trang', level: 1 })).toBeVisible()
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex')
+  })
+
+  test('tệp không có trả 404 thật; bản đồ trang và robots dùng địa chỉ tuyệt đối; API không bao giờ trả HTML', async ({ request, baseURL }) => {
+    const missing = await request.get('/assets/khong-co.js')
+    expect(missing.status()).toBe(404)
+    expect(missing.headers()['content-type']).not.toContain('text/html')
+
+    const sitemap = await (await request.get('/sitemap.xml')).text()
+    const locations = [...sitemap.matchAll(/<loc>([^<]*)<\/loc>/g)].map((match) => match[1])
+    expect(locations).toEqual(['/', '/doctors', '/specialties', '/services', '/login', '/register'].map((path) => new URL(path, baseURL).href))
+    expect(await (await request.get('/robots.txt')).text()).toContain(`Sitemap: ${new URL('/sitemap.xml', baseURL).href}`)
+
+    for (const path of ['/doctors', '/patient/dashboard', '/abc/xyz']) {
+      const response = await request.get(path)
+      expect(response.status(), path).toBe(200)
+      expect(response.headers()['content-type'], path).toContain('text/html')
+      expect(response.headers()['x-frame-options'], path).toBe('DENY')
+    }
+    const unknownApi = await request.get('/api/v1/khong-ton-tai')
+    expect(unknownApi.status()).toBe(401)
+    expect(unknownApi.headers()['content-type']).toContain('application/json')
+  })
+
   test('sai mật khẩu báo lỗi chung, không lộ tài khoản có tồn tại hay không', async ({ page }) => {
-    await page.goto('/#/login')
+    await page.goto('/login')
     await page.locator('#login-identity').fill('patient1')
     await page.locator('#login-password').fill('Sai#Mat1khau')
     await page.getByRole('button', { name: 'Đăng nhập' }).click()
     await expect(page.getByText('Tên đăng nhập/email hoặc mật khẩu không chính xác!')).toBeVisible()
-    await expect(page).toHaveURL(/#\/login/)
+    await expect(page).toHaveURL(/^[^?#]*\/login/)
   })
 })
 
 test.describe('Bệnh nhân', () => {
   test('đăng nhập chỉ bằng bàn phím, vào tổng quan, mở thông báo từ chuông và đăng xuất', async ({ page }) => {
-    await page.goto('/#/login')
+    await page.goto('/login')
     await page.locator('#login-identity').focus()
     await page.keyboard.type('patient1')
     await page.keyboard.press('Tab')
     await page.keyboard.type(PASSWORD)
     await page.keyboard.press('Enter')
 
-    await expect(page).toHaveURL(/#\/patient\/dashboard/)
+    await expect(page).toHaveURL(/^[^?#]*\/patient\/dashboard/)
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Xin chào')
 
     await page.getByTestId('notification-bell').or(page.locator('[data-test="notification-bell"]')).first().click()
-    await expect(page).toHaveURL(/#\/patient\/notifications/)
+    await expect(page).toHaveURL(/^[^?#]*\/patient\/notifications/)
     await expect(page.getByRole('heading', { name: 'Thông báo', level: 1 })).toBeVisible()
 
     await page.getByRole('button', { name: 'Đăng xuất' }).click()
@@ -90,7 +141,7 @@ test.describe('Bệnh nhân', () => {
 
   test('không vào được khu quản trị: giao diện báo không có quyền và API trả 403', async ({ page }) => {
     await login(page, 'patient1')
-    await page.goto('/#/admin/users')
+    await page.goto('/admin/users')
     await expect(page.getByText('Bạn không có quyền truy cập')).toBeVisible()
     await expect(page.getByText('Tạo tài khoản')).toHaveCount(0)
 
@@ -111,7 +162,7 @@ test.describe('Bác sĩ', () => {
   test('tạo ca làm việc, xem slot, thêm giờ nghỉ, chặn ca chồng giờ, rồi xóa ca', async ({ page }) => {
     const day = isoDay(40 + Math.floor(Math.random() * 15))
     await login(page, 'doctor1')
-    await page.goto('/#/doctor/schedules')
+    await page.goto('/doctor/schedules')
     await expect(page.getByRole('heading', { name: 'Lịch làm việc', level: 1 })).toBeVisible()
 
     await page.locator('#schedule-date').fill(day)
@@ -151,7 +202,7 @@ test.describe('Quản trị viên', () => {
     const code = `E2E${unique()}`
     const name = `Chuyên khoa thử ${code}`
     await login(page, 'admin1')
-    await page.goto('/#/admin/catalog')
+    await page.goto('/admin/catalog')
     await page.getByRole('button', { name: 'Thêm chuyên khoa' }).click()
     await dialog(page).locator('#catalog-code').fill(code)
     await dialog(page).locator('#catalog-name').fill(name)
@@ -159,10 +210,10 @@ test.describe('Quản trị viên', () => {
     await expect(page.getByText('Đã thêm chuyên khoa')).toBeVisible()
     await expect(page.getByRole('row').filter({ hasText: code })).toBeVisible()
 
-    await page.goto('/#/specialties')
+    await page.goto('/specialties')
     await expect(page.getByRole('heading', { name })).toBeVisible()
 
-    await page.goto('/#/admin/catalog')
+    await page.goto('/admin/catalog')
     await page.getByRole('button', { name: `Xóa ${name}` }).click()
     await dialog(page).getByRole('button', { name: 'Xóa', exact: true }).click()
     await expect(page.getByText('Đã xóa chuyên khoa')).toBeVisible()
@@ -172,7 +223,7 @@ test.describe('Quản trị viên', () => {
   test('tạo tài khoản bệnh nhân, khóa rồi mở khóa; người bị khóa không đăng nhập được', async ({ page, browser }) => {
     const username = `e2e_${unique().toLowerCase()}`
     await login(page, 'admin1')
-    await page.goto('/#/admin/users')
+    await page.goto('/admin/users')
     await page.getByRole('button', { name: 'Tạo tài khoản' }).click()
     await dialog(page).locator('#create-full-name').fill('Bệnh nhân Thử Nghiệm')
     await dialog(page).locator('#create-email').fill(`${username}@example.com`)
@@ -194,7 +245,7 @@ test.describe('Quản trị viên', () => {
 
     const other = await browser.newContext()
     const guest = await other.newPage()
-    await guest.goto('/#/login')
+    await guest.goto('/login')
     await guest.locator('#login-identity').fill(username)
     await guest.locator('#login-password').fill(PASSWORD)
     await guest.getByRole('button', { name: 'Đăng nhập' }).click()
@@ -208,7 +259,7 @@ test.describe('Quản trị viên', () => {
 
   test('ba báo cáo có biểu đồ và bảng số liệu; xuất CSV tải được tệp', async ({ page }) => {
     await login(page, 'admin1')
-    await page.goto('/#/admin/reports')
+    await page.goto('/admin/reports')
     await expect(page.getByRole('heading', { name: 'Lịch khám', exact: true })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Doanh thu', exact: true })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Dịch vụ khám', exact: true })).toBeVisible()
@@ -231,7 +282,7 @@ test.describe('Quản trị viên', () => {
 
   test('nhật ký hệ thống ghi nhận đăng nhập và tra cứu được theo mã hành động', async ({ page }) => {
     await login(page, 'admin1')
-    await page.goto('/#/admin/audit-logs')
+    await page.goto('/admin/audit-logs')
     await expect(page.getByRole('heading', { name: 'Nhật ký hệ thống', level: 1 })).toBeVisible()
     await page.locator('#audit-action').selectOption('LOGIN_SUCCESS')
     await page.getByRole('button', { name: 'Lọc' }).click()
@@ -241,10 +292,10 @@ test.describe('Quản trị viên', () => {
 
 test.describe('Màn hình hẹp 360 px', () => {
   const pages = {
-    patient1: ['/#/patient/dashboard', '/#/patient/booking', '/#/patient/appointments', '/#/patient/notifications', '/#/patient/invoices'],
-    doctor1: ['/#/doctor/dashboard', '/#/doctor/schedules', '/#/doctor/appointments', '/#/doctor/patients', '/#/doctor/notifications'],
-    receptionist1: ['/#/receptionist/dashboard', '/#/receptionist/appointments', '/#/receptionist/booking', '/#/receptionist/patients', '/#/receptionist/invoices'],
-    admin1: ['/#/admin/dashboard', '/#/admin/users', '/#/admin/doctors', '/#/admin/catalog', '/#/admin/invoices', '/#/admin/reports', '/#/admin/audit-logs']
+    patient1: ['/patient/dashboard', '/patient/booking', '/patient/appointments', '/patient/notifications', '/patient/invoices'],
+    doctor1: ['/doctor/dashboard', '/doctor/schedules', '/doctor/appointments', '/doctor/patients', '/doctor/notifications'],
+    receptionist1: ['/receptionist/dashboard', '/receptionist/appointments', '/receptionist/booking', '/receptionist/patients', '/receptionist/invoices'],
+    admin1: ['/admin/dashboard', '/admin/users', '/admin/doctors', '/admin/catalog', '/admin/invoices', '/admin/reports', '/admin/audit-logs']
   }
 
   for (const [username, routes] of Object.entries(pages)) {
@@ -252,7 +303,7 @@ test.describe('Màn hình hẹp 360 px', () => {
       await page.setViewportSize({ width: 1366, height: 800 })
       await login(page, username)
       await page.setViewportSize({ width: 360, height: 740 })
-      for (const route of ['/#/doctors', ...routes]) {
+      for (const route of ['/doctors', ...routes]) {
         await page.goto(route)
         await page.waitForLoadState('networkidle')
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)

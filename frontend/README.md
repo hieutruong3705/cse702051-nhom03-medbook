@@ -12,5 +12,5 @@ npm run test
 
 Dev server proxy mọi request `/api` tới `http://localhost:8080`, nên frontend gọi
 backend thật mà không cần hardcode host. Build xuất thẳng vào
-`../src/main/resources/static` và dùng hash history để Spring Boot có thể phục vụ
-SPA tĩnh.
+`../src/main/resources/static` và dùng địa chỉ thường (không có dấu `#`); Spring Boot trả `index.html`
+cho mọi địa chỉ trang nên gõ thẳng hay tải lại đều được.

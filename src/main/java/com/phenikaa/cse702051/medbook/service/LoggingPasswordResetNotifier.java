@@ -28,7 +28,7 @@ public class LoggingPasswordResetNotifier implements PasswordResetNotifier {
 
     @Override
     public void sendResetLink(User user, String rawToken, LocalDateTime expiresAt) {
-        log.info("[DEV] Liên kết đặt lại mật khẩu cho '{}' (hết hạn {}): {}/#/reset-password?token={}",
+        log.info("[DEV] Liên kết đặt lại mật khẩu cho '{}' (hết hạn {}): {}/reset-password?token={}",
                 user.getUsername(), expiresAt, frontendBaseUrl, rawToken);
     }
 }

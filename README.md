@@ -109,6 +109,7 @@ Mở **http://localhost:8080/**. Lần build đầu cần Internet và mất và
 | `MEDBOOK_SEED_ACTIVITY` | mọi nơi trừ `prod` | `true`: nạp lịch khám và hóa đơn mẫu 28 ngày gần nhất cho báo cáo khi CSDL chưa có hoạt động. Không đặt thì đi theo `MEDBOOK_SEED_DEMO` |
 | `MEDBOOK_OPENAPI_ENABLED` | mọi nơi | `true`: mở `/swagger-ui.html` và `/v3/api-docs`. Mặc định tắt |
 | `MEDBOOK_BOOKING_HOLD_MINUTES` | mọi nơi | Số phút giữ chỗ một khung giờ sau khi người dùng chọn, mặc định 10 |
+| `MEDBOOK_PUBLIC_BASE_URL` | mọi nơi | Địa chỉ công khai của trang (ví dụ `https://medbook.example`), dùng làm địa chỉ tuyệt đối trong `/sitemap.xml` và `/robots.txt`. Để trống thì lấy theo địa chỉ của yêu cầu đang tới |
 | `APP_PORT`, `DB_PORT`, `PMA_PORT` | compose | Cổng trên máy chủ (8080, 3307, 8081) |
 
 Không đưa tệp `.env` lên Git (đã có trong `.gitignore`).
@@ -155,6 +156,8 @@ npm run build      # ghi bản build vào src/main/resources/static (bản backe
 ```
 
 Sau khi sửa giao diện phải `npm run build` rồi chạy lại backend thì bản ở cổng 8080 mới đổi. Ảnh Docker tự build giao diện nên không cần bước này.
+
+Địa chỉ trang là địa chỉ thường, không có dấu `#` (`/doctors`, `/patient/dashboard`): gõ thẳng hay tải lại đều được vì máy chủ trả `index.html` cho mọi địa chỉ trang, còn `/api/**` và tệp tĩnh thì không. Liên kết cũ dạng `/#/doctors` tự chuyển sang địa chỉ mới. Mỗi trang công khai có tiêu đề, mô tả và địa chỉ chuẩn riêng; `/sitemap.xml` và `/robots.txt` do máy chủ sinh với địa chỉ tuyệt đối (xem `MEDBOOK_PUBLIC_BASE_URL`).
 
 ## 9. Cơ sở dữ liệu
 

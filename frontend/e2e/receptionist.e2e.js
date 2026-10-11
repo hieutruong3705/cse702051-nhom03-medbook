@@ -34,12 +34,12 @@ test('chuẩn bị: bác sĩ mở một ca làm việc bốn khung giờ', async
 
 test('lễ tân tạo hồ sơ bệnh nhân, đặt lịch hộ, đổi lịch rồi hủy lịch', async ({ page }) => {
   await login(page, 'receptionist1')
-  await expect(page).toHaveURL(/#\/receptionist\/dashboard/)
+  await expect(page).toHaveURL(/^[^?#]*\/receptionist\/dashboard/)
   await expect(page.getByRole('heading', { name: 'Tổng quan lễ tân' })).toBeVisible()
   await expect(page.getByText('Hóa đơn chưa thu')).toBeVisible()
 
   // Tạo hồ sơ cho bệnh nhân chưa có tài khoản
-  await page.goto('/#/receptionist/patients')
+  await page.goto('/receptionist/patients')
   await page.getByRole('button', { name: 'Thêm bệnh nhân' }).click()
   await dialog(page).locator('#patient-full-name').fill(PATIENT_NAME)
   await dialog(page).locator('#patient-date-of-birth').fill('1988-03-15')
@@ -56,7 +56,7 @@ test('lễ tân tạo hồ sơ bệnh nhân, đặt lịch hộ, đổi lịch r
 
   // Đặt lịch hộ: dịch vụ → bác sĩ và giờ → xác nhận
   await patientRow.getByRole('link', { name: 'Đặt lịch' }).click()
-  await expect(page).toHaveURL(/#\/receptionist\/booking\?patientId=\d+/)
+  await expect(page).toHaveURL(/^[^?#]*\/receptionist\/booking\?patientId=\d+/)
   await page.locator('#booking-service').selectOption({ label: 'Khám tổng quát' }) // 30 phút, vừa khung giờ của ca
   await page.getByRole('button', { name: 'Tiếp tục' }).click()
   await page.locator('#booking-doctor').selectOption(DOCTOR_ID)
@@ -112,10 +112,10 @@ test('lễ tân không đọc được dữ liệu lâm sàng và không vào đ
     expect(response.status(), path).toBe(403)
   }
 
-  await page.goto('/#/admin/dashboard')
-  await expect(page).toHaveURL(/#\/403/)
-  await page.goto('/#/doctor/dashboard')
-  await expect(page).toHaveURL(/#\/403/)
+  await page.goto('/admin/dashboard')
+  await expect(page).toHaveURL(/^[^?#]*\/403/)
+  await page.goto('/doctor/dashboard')
+  await expect(page).toHaveURL(/^[^?#]*\/403/)
 })
 
 test('chuẩn bị: bệnh nhân đặt lịch, bác sĩ khám và lập hóa đơn', async ({ request }) => {
@@ -145,7 +145,7 @@ test('chuẩn bị: bệnh nhân đặt lịch, bác sĩ khám và lập hóa đ
 test('lễ tân xem dòng hóa đơn và ghi nhận đã thu; hóa đơn rời khỏi danh sách chưa thu', async ({ page }) => {
   expect(shared.invoiceCode, 'ca chuẩn bị phải lập được hóa đơn').toBeTruthy()
   await login(page, 'receptionist1')
-  await page.goto('/#/receptionist/invoices')
+  await page.goto('/receptionist/invoices')
   await page.locator('#invoice-keyword').fill(shared.invoiceCode)
   await page.getByRole('button', { name: 'Lọc' }).click()
   const row = page.getByRole('row').filter({ hasText: shared.invoiceCode })
