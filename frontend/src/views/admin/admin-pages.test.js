@@ -218,6 +218,44 @@ describe('trang quản trị', () => {
     expect(wrapper.text()).toContain('Xem báo cáo')
   })
 
+  it('trang tổng quan hiện bốn số liệu lấy từ tổng số dòng của các danh sách quản trị', async () => {
+    resetMocks()
+    mocks.usersList.mockResolvedValue({ content: [], totalElements: 1234 })
+    mocks.doctorsListAdmin.mockResolvedValue({ content: [], totalElements: 3 })
+    mocks.appointmentsListAdmin.mockResolvedValue({ content: [], totalElements: 0 })
+    mocks.invoicesListAdmin.mockResolvedValue({ content: [], totalElements: 7 })
+    const wrapper = mount(AdminDashboardView)
+    await flushPromises()
+
+    const values = wrapper.findAll('article').map((card) => card.text())
+    expect(values[0]).toContain('Tài khoản')
+    expect(values[0]).toContain('1.234')
+    expect(values[1]).toMatch(/Bác sĩ\s*3/)
+    expect(values[2]).toMatch(/Lịch hẹn hôm nay\s*0/)
+    expect(values[3]).toMatch(/Hóa đơn chưa thu\s*7/)
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect(mocks.invoicesListAdmin).toHaveBeenCalledWith({ status: 'UNPAID', size: 1 })
+    const today = mocks.appointmentsListAdmin.mock.calls.at(-1)[0]
+    expect(today.from).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(today.to).toBe(today.from)
+  })
+
+  it('trang tổng quan: số liệu nào không tải được thì giữ dấu -- và có thông báo, các số khác vẫn hiện', async () => {
+    resetMocks()
+    mocks.usersList.mockResolvedValue({ content: [], totalElements: 6 })
+    mocks.doctorsListAdmin.mockRejectedValue(new Error('mất mạng'))
+    mocks.appointmentsListAdmin.mockResolvedValue({ content: [], totalElements: 2 })
+    mocks.invoicesListAdmin.mockResolvedValue({ content: [], totalElements: 1 })
+    const wrapper = mount(AdminDashboardView)
+    await flushPromises()
+
+    const values = wrapper.findAll('article').map((card) => card.text())
+    expect(values[0]).toMatch(/Tài khoản\s*6/)
+    expect(values[1]).toMatch(/Bác sĩ\s*--/)
+    expect(values[3]).toMatch(/Hóa đơn chưa thu\s*1/)
+    expect(wrapper.find('[role="alert"]').text()).toContain('Chưa tải được một số số liệu')
+  })
+
   describe('tài khoản', () => {
     it('hiện danh sách với nhãn vai trò, trạng thái tiếng Việt và không gửi bộ lọc rỗng', async () => {
       resetMocks()
