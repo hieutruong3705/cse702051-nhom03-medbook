@@ -3,7 +3,7 @@
     <PageHeader
       eyebrow="Khu bệnh nhân"
       title="Đặt lịch khám"
-      description="Chọn bác sĩ, ngày và khung giờ phù hợp. Danh tính của bạn được lấy từ tài khoản đang đăng nhập."
+      description="Chọn dịch vụ, bác sĩ, ngày và khung giờ phù hợp. Danh tính của bạn được lấy từ tài khoản đang đăng nhập."
     />
 
     <nav class="mt-6" aria-label="Các bước đặt lịch">
@@ -33,8 +33,84 @@
         {{ flow.conflictMessage.value }}
       </p>
 
-      <!-- Bước 1: bác sĩ -->
+      <!-- Đồng hồ giữ chỗ: phần nhìn thấy đổi từng giây; phần cho trình đọc màn hình chỉ đổi theo phút để không đọc liên tục -->
+      <div
+        v-if="flow.hold.value && flow.step.value >= SLOT_STEP && flow.step.value <= CONFIRM_STEP"
+        class="mt-3 flex items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900"
+        data-test="hold-countdown"
+      >
+        <i class="fa-regular fa-clock" aria-hidden="true"></i>
+        <span aria-hidden="true">Đang giữ chỗ, còn <strong>{{ formatHoldCountdown(flow.remainingSeconds.value) }}</strong></span>
+        <span class="sr-only" aria-live="polite">{{ holdAnnouncement }}</span>
+      </div>
+
+      <!-- Bước 1: dịch vụ và gợi ý giờ sớm nhất -->
       <div v-if="flow.step.value === 1" class="mt-4 space-y-4">
+        <LoadingSpinner v-if="loadingServices" label="Đang tải dịch vụ" />
+        <div v-else-if="servicesError" class="rounded-md bg-red-50 px-3 py-3 text-sm text-red-700" role="alert">
+          <p>{{ servicesError }}</p>
+          <BaseButton class="mt-2" variant="secondary" @click="loadServices">Thử lại</BaseButton>
+        </div>
+        <template v-else>
+          <div class="max-w-md">
+            <BaseSelect
+              id="booking-service"
+              :model-value="flow.service.value?.id ?? ''"
+              label="Dịch vụ khám"
+              required
+              placeholder="Chọn dịch vụ"
+              :options="serviceOptions"
+              :error="flow.fieldErrors.serviceId"
+              hint="Danh sách khung giờ trống phụ thuộc thời lượng của dịch vụ."
+              @update:model-value="selectService"
+            />
+          </div>
+          <p v-if="flow.service.value" class="text-sm text-slate-600">
+            Giá tham khảo: <strong>{{ formatCurrency(flow.service.value.price) }}</strong>
+            <span v-if="flow.service.value.durationMinutes"> · khoảng {{ flow.service.value.durationMinutes }} phút</span>
+          </p>
+
+          <section v-if="flow.service.value" class="rounded-md border border-slate-200 p-3 sm:p-4" aria-labelledby="earliest-title" data-test="earliest">
+            <h3 id="earliest-title" class="font-semibold text-slate-950">Giờ sớm nhất còn trống</h3>
+            <p class="mt-1 text-sm text-slate-600">Chọn một dòng để tới thẳng bước xác nhận, hoặc bấm Tiếp tục để tự chọn bác sĩ và ngày.</p>
+            <div class="mt-3 max-w-md">
+              <BaseSelect
+                id="booking-earliest-specialty"
+                v-model="earliestSpecialty"
+                label="Chuyên khoa"
+                placeholder="Tất cả chuyên khoa"
+                :options="specialtyOptions"
+              />
+            </div>
+            <LoadingSpinner v-if="loadingEarliest" class="mt-3" label="Đang tìm giờ sớm nhất" />
+            <div v-else-if="earliestError" class="mt-3 rounded-md bg-red-50 px-3 py-3 text-sm text-red-700" role="alert">
+              <p>{{ earliestError }}</p>
+              <BaseButton class="mt-2" variant="secondary" @click="loadEarliest">Thử lại</BaseButton>
+            </div>
+            <p v-else-if="!earliest.length" class="mt-3 rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              Chưa có khung giờ trống phù hợp trong 30 ngày tới. Hãy thử chuyên khoa khác hoặc dịch vụ khác.
+            </p>
+            <ul v-else class="mt-3 grid gap-2 sm:grid-cols-2" aria-label="Giờ sớm nhất còn trống">
+              <li v-for="item in earliest" :key="item.slotId">
+                <button
+                  type="button"
+                  class="w-full rounded-md border border-slate-300 bg-white p-3 text-left transition hover:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600/40 disabled:cursor-not-allowed disabled:opacity-60"
+                  :disabled="choosingEarliest"
+                  @click="pickEarliest(item)"
+                >
+                  <span class="block font-semibold text-slate-950">
+                    {{ formatDate(item.date) }} · {{ formatTime(item.startTime) }} – {{ formatTime(item.endTime) }}
+                  </span>
+                  <span class="block text-sm text-slate-600">{{ item.doctorName }}<template v-if="item.specialtyName"> · {{ item.specialtyName }}</template></span>
+                </button>
+              </li>
+            </ul>
+          </section>
+        </template>
+      </div>
+
+      <!-- Bước 2: bác sĩ -->
+      <div v-else-if="flow.step.value === 2" class="mt-4 space-y-4">
         <BaseInput id="booking-doctor-search" v-model="keyword" label="Tìm theo tên bác sĩ hoặc chuyên khoa" placeholder="Ví dụ: Nội tổng quát" />
         <LoadingSpinner v-if="loadingDoctors" label="Đang tải danh sách bác sĩ" />
         <p v-else-if="doctorsError" class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{{ doctorsError }}</p>
@@ -55,8 +131,8 @@
         </ul>
       </div>
 
-      <!-- Bước 2: ngày -->
-      <div v-else-if="flow.step.value === 2" class="mt-4 max-w-xs">
+      <!-- Bước 3: ngày -->
+      <div v-else-if="flow.step.value === 3" class="mt-4 max-w-xs">
         <BaseDatePicker
           id="booking-date"
           :model-value="flow.date.value"
@@ -67,40 +143,34 @@
         />
       </div>
 
-      <!-- Bước 3: khung giờ -->
-      <div v-else-if="flow.step.value === 3" class="mt-4">
+      <!-- Bước 4: khung giờ (chọn là giữ chỗ) -->
+      <div v-else-if="flow.step.value === 4" class="mt-4">
         <p class="mb-3 text-sm text-slate-600">
-          {{ doctorName(flow.doctor.value) }} · {{ formatDate(flow.date.value) }}
+          {{ doctorName(flow.doctor.value) }} · {{ formatDate(flow.date.value) }} · {{ flow.service.value?.name }}
         </p>
         <SlotPicker
           :doctor-id="flow.doctor.value?.id"
           :date="flow.date.value"
+          :service-id="flow.service.value?.id ?? null"
           :model-value="flow.slot.value?.id ?? null"
           :refresh-key="flow.slotsRefreshKey.value"
           @select="flow.selectSlot"
           @update:model-value="onSlotCleared"
         />
+        <p class="mt-3 text-sm text-slate-500">Khung giờ bạn chọn được giữ riêng cho bạn trong thời gian có hạn để hoàn tất đặt lịch.</p>
       </div>
 
-      <!-- Bước 4: dịch vụ -->
-      <div v-else-if="flow.step.value === 4" class="mt-4 space-y-4">
-        <LoadingSpinner v-if="loadingServices" label="Đang tải dịch vụ" />
-        <p v-else-if="servicesError" class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{{ servicesError }}</p>
-        <template v-else>
-          <BaseSelect
-            id="booking-service"
-            :model-value="flow.service.value?.id ?? ''"
-            label="Dịch vụ khám"
-            required
-            placeholder="Chọn dịch vụ"
-            :options="serviceOptions"
-            :error="flow.fieldErrors.serviceId"
-            @update:model-value="selectService"
-          />
-          <p v-if="flow.service.value" class="text-sm text-slate-600">
-            Giá tham khảo: <strong>{{ formatCurrency(flow.service.value.price) }}</strong>
-            <span v-if="flow.service.value.durationMinutes"> · khoảng {{ flow.service.value.durationMinutes }} phút</span>
-          </p>
+      <!-- Bước 5: ghi chú và xác nhận -->
+      <div v-else-if="flow.step.value === 5" class="mt-4">
+        <dl class="grid gap-3 text-sm sm:grid-cols-2" data-test="summary">
+          <div><dt class="text-slate-500">Dịch vụ</dt><dd class="font-semibold text-slate-950">{{ flow.service.value?.name }}</dd></div>
+          <div><dt class="text-slate-500">Giá tham khảo</dt><dd class="font-semibold text-slate-950">{{ formatCurrency(flow.service.value?.price) }}</dd></div>
+          <div><dt class="text-slate-500">Bác sĩ</dt><dd class="font-semibold text-slate-950">{{ doctorName(flow.doctor.value) }}</dd></div>
+          <div><dt class="text-slate-500">Chuyên khoa</dt><dd class="font-semibold text-slate-950">{{ doctorSpecialty(flow.doctor.value) || '—' }}</dd></div>
+          <div><dt class="text-slate-500">Ngày khám</dt><dd class="font-semibold text-slate-950">{{ formatDate(flow.date.value) }}</dd></div>
+          <div><dt class="text-slate-500">Giờ khám</dt><dd class="font-semibold text-slate-950">{{ flow.slot.value ? slotLabel(flow.slot.value) : '—' }}</dd></div>
+        </dl>
+        <div class="mt-4">
           <BaseTextarea
             id="booking-notes"
             v-model="flow.notes.value"
@@ -109,20 +179,7 @@
             :error="flow.notesError.value || flow.fieldErrors.notes"
             hint="Không bắt buộc. Tối đa 2000 ký tự."
           />
-        </template>
-      </div>
-
-      <!-- Bước 5: xác nhận -->
-      <div v-else-if="flow.step.value === 5" class="mt-4">
-        <dl class="grid gap-3 text-sm sm:grid-cols-2" data-test="summary">
-          <div><dt class="text-slate-500">Bác sĩ</dt><dd class="font-semibold text-slate-950">{{ doctorName(flow.doctor.value) }}</dd></div>
-          <div><dt class="text-slate-500">Chuyên khoa</dt><dd class="font-semibold text-slate-950">{{ doctorSpecialty(flow.doctor.value) || '—' }}</dd></div>
-          <div><dt class="text-slate-500">Ngày khám</dt><dd class="font-semibold text-slate-950">{{ formatDate(flow.date.value) }}</dd></div>
-          <div><dt class="text-slate-500">Giờ khám</dt><dd class="font-semibold text-slate-950">{{ flow.slot.value ? slotLabel(flow.slot.value) : '—' }}</dd></div>
-          <div><dt class="text-slate-500">Dịch vụ</dt><dd class="font-semibold text-slate-950">{{ flow.service.value?.name }}</dd></div>
-          <div><dt class="text-slate-500">Giá tham khảo</dt><dd class="font-semibold text-slate-950">{{ formatCurrency(flow.service.value?.price) }}</dd></div>
-          <div v-if="flow.notes.value.trim()" class="sm:col-span-2"><dt class="text-slate-500">Ghi chú</dt><dd class="whitespace-pre-line text-slate-900">{{ flow.notes.value.trim() }}</dd></div>
-        </dl>
+        </div>
         <p v-if="flow.submitError.value" class="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{{ flow.submitError.value }}</p>
       </div>
 
@@ -148,7 +205,7 @@
         <BaseButton variant="secondary" :disabled="flow.step.value === 1 || flow.submitting.value" @click="flow.back">Quay lại</BaseButton>
         <div class="flex items-center gap-3">
           <p v-if="flow.step.value < 5 && flow.currentProblem.value" class="text-sm text-slate-500">{{ flow.currentProblem.value }}</p>
-          <BaseButton v-if="flow.step.value < 5" :disabled="!flow.canContinue.value" @click="flow.next">Tiếp tục</BaseButton>
+          <BaseButton v-if="flow.step.value < 5" :disabled="!flow.canContinue.value" @click="onNext">Tiếp tục</BaseButton>
           <BaseButton v-else :loading="flow.submitting.value" icon="fa-solid fa-check" @click="flow.submit">Xác nhận đặt lịch</BaseButton>
         </div>
       </div>
@@ -172,11 +229,15 @@ import {
 import PatientLayout from '@/layouts/PatientLayout.vue'
 import { catalogApi } from '@/api/catalog'
 import { doctorsApi } from '@/api/doctors'
+import { slotsApi } from '@/api/slots'
 import { apiErrorMessage } from '@/utils/apiErrorMessage'
 import { formatCurrency, formatDate, formatTime } from '@/utils/formatters'
 import SlotPicker from './SlotPicker.vue'
 import { doctorName, doctorSpecialty, isPastDate, normalizeList, slotLabel } from './bookingUtils'
-import { BOOKING_STEPS, DONE_STEP, useBookingFlow } from './useBookingFlow'
+import { BOOKING_STEPS, CONFIRM_STEP, DONE_STEP, SLOT_STEP, useBookingFlow } from './useBookingFlow'
+import { formatHoldCountdown } from './useSlotHold'
+
+const EARLIEST_LIMIT = 5
 
 const route = useRoute()
 const flow = useBookingFlow()
@@ -189,12 +250,21 @@ const doctorsError = ref('')
 const services = ref([])
 const loadingServices = ref(false)
 const servicesError = ref('')
+const specialties = ref([])
+const earliest = ref([])
+const earliestSpecialty = ref('')
+const loadingEarliest = ref(false)
+const earliestError = ref('')
+const choosingEarliest = ref(false)
+// Bác sĩ được chọn sẵn qua `?doctorId=`: chọn xong dịch vụ thì bỏ qua bước chọn bác sĩ một lần
+let skipDoctorStep = false
+let earliestRequest = 0
 
 const stepTitles = {
-  1: 'Bước 1: Chọn bác sĩ',
-  2: 'Bước 2: Chọn ngày khám',
-  3: 'Bước 3: Chọn khung giờ',
-  4: 'Bước 4: Chọn dịch vụ và ghi chú',
+  1: 'Bước 1: Chọn dịch vụ',
+  2: 'Bước 2: Chọn bác sĩ',
+  3: 'Bước 3: Chọn ngày khám',
+  4: 'Bước 4: Chọn khung giờ',
   5: 'Bước 5: Xác nhận thông tin',
   [DONE_STEP]: 'Hoàn tất'
 }
@@ -207,7 +277,16 @@ const filteredDoctors = computed(() => {
 })
 
 const serviceOptions = computed(() => services.value.map((item) => ({ label: item.name, value: item.id })))
+const specialtyOptions = computed(() => specialties.value.map((item) => ({ label: item.name, value: item.id })))
 const dateError = computed(() => (isPastDate(flow.date.value) ? 'Ngày khám phải từ hôm nay trở đi' : ''))
+
+// Thông báo cho trình đọc màn hình: chỉ đổi khi số phút đổi, và đổi dày hơn ở nửa phút cuối
+const holdAnnouncement = computed(() => {
+  const seconds = flow.remainingSeconds.value
+  if (!flow.hold.value) return ''
+  if (seconds > 30) return `Đang giữ chỗ, còn khoảng ${Math.ceil(seconds / 60)} phút`
+  return seconds > 10 ? 'Đang giữ chỗ, còn chưa đầy 30 giây' : 'Đang giữ chỗ, còn chưa đầy 10 giây'
+})
 
 function stepClass(id) {
   if (flow.step.value === id) return 'border-primary-600 bg-primary-600 text-white'
@@ -216,12 +295,21 @@ function stepClass(id) {
 }
 
 function selectService(value) {
-  flow.service.value = services.value.find((item) => String(item.id) === String(value)) ?? null
+  flow.selectService(services.value.find((item) => String(item.id) === String(value)) ?? null)
 }
 
-// SlotPicker báo slot đã chọn không còn trong danh sách mới tải → bỏ lựa chọn
+function onNext() {
+  const leavingServiceStep = flow.step.value === 1
+  if (!flow.next()) return
+  if (leavingServiceStep && skipDoctorStep && flow.doctor.value) {
+    skipDoctorStep = false
+    flow.next()
+  }
+}
+
+// SlotPicker báo slot đã chọn không còn trong danh sách mới tải → bỏ lựa chọn và nhả bản giữ chỗ (nếu còn)
 function onSlotCleared(value) {
-  if (value === null) flow.slot.value = null
+  if (value === null) flow.clearSlot()
 }
 
 async function loadDoctors() {
@@ -237,7 +325,7 @@ async function loadDoctors() {
   }
 }
 
-/** `/patient/booking?doctorId=7` chọn sẵn bác sĩ và chuyển thẳng sang bước chọn ngày. */
+/** `/patient/booking?doctorId=7` chọn sẵn bác sĩ; sau khi chọn dịch vụ, luồng đi thẳng sang bước chọn ngày. */
 async function preselectDoctor() {
   const raw = Array.isArray(route.query.doctorId) ? route.query.doctorId[0] : route.query.doctorId
   if (!raw) return
@@ -251,7 +339,7 @@ async function preselectDoctor() {
     }
   }
   flow.selectDoctor(found)
-  flow.next()
+  skipDoctorStep = true
 }
 
 async function loadServices() {
@@ -266,10 +354,63 @@ async function loadServices() {
   }
 }
 
+// Bộ lọc chuyên khoa của khối "giờ sớm nhất" chỉ là tiện ích: không tải được thì vẫn đặt lịch bình thường
+async function loadSpecialties() {
+  try {
+    specialties.value = normalizeList(await catalogApi.specialties.list({ status: 'ACTIVE', size: 100 }))
+  } catch {
+    specialties.value = []
+  }
+}
+
+async function loadEarliest() {
+  earliest.value = []
+  earliestError.value = ''
+  if (!flow.service.value) return
+  const current = ++earliestRequest
+  loadingEarliest.value = true
+  try {
+    const response = await slotsApi.earliest({
+      serviceId: flow.service.value.id,
+      specialtyId: earliestSpecialty.value || undefined,
+      limit: EARLIEST_LIMIT
+    })
+    if (current === earliestRequest) earliest.value = normalizeList(response).slice(0, EARLIEST_LIMIT)
+  } catch (err) {
+    if (current === earliestRequest) earliestError.value = apiErrorMessage(err)
+  } finally {
+    if (current === earliestRequest) loadingEarliest.value = false
+  }
+}
+
+/** Chọn một dòng "giờ sớm nhất": điền bác sĩ, ngày, khung giờ, giữ chỗ rồi tới bước xác nhận. */
+async function pickEarliest(item) {
+  if (choosingEarliest.value) return
+  choosingEarliest.value = true
+  try {
+    const doctor = doctors.value.find((candidate) => candidate.id === item.doctorId) ?? {
+      id: item.doctorId,
+      fullName: item.doctorName,
+      specialtyName: item.specialtyName
+    }
+    const held = await flow.chooseEarliest({
+      doctor,
+      date: item.date,
+      slot: { id: item.slotId, date: item.date, startTime: item.startTime, endTime: item.endTime }
+    })
+    if (!held) loadEarliest() // khung giờ vừa bị người khác giữ hoặc đặt: danh sách gợi ý đã cũ
+  } finally {
+    choosingEarliest.value = false
+  }
+}
+
+watch(() => [flow.service.value?.id, earliestSpecialty.value], loadEarliest)
+
 // Chuyển bước thì đưa focus về tiêu đề để người dùng bàn phím/trình đọc màn hình biết nội dung đã đổi
 watch(
   () => flow.step.value,
-  async () => {
+  async (current) => {
+    if (current === 1) loadEarliest() // quay lại bước dịch vụ: gợi ý cũ có thể đã có người đặt
     await nextTick()
     heading.value?.focus()
   }
@@ -278,5 +419,6 @@ watch(
 onMounted(() => {
   loadDoctors()
   loadServices()
+  loadSpecialties()
 })
 </script>

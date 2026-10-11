@@ -15,6 +15,8 @@ public record ReceptionBookRequest(
         @NotNull(message = "Phải chọn dịch vụ khám")
         Long serviceId,
         @Size(max = 2000, message = "Ghi chú tối đa 2000 ký tự")
-        String notes
+        String notes,
+        /** Tùy chọn: bản giữ chỗ lễ tân nhận được khi chọn khung giờ. Đã hết hạn → 410. */
+        Long holdId
 ) {
 }

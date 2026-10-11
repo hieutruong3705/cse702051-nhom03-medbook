@@ -157,6 +157,10 @@ public class SecurityConfig {
                             API + "/appointments/*/cancel",
                             API + "/appointments/*/reschedule").hasRole("PATIENT");
                     auth.requestMatchers(API + "/patients/me").hasRole("PATIENT");
+                    // Giữ chỗ khung giờ: chỉ người đặt lịch (bệnh nhân tự đặt, lễ tân đặt hộ)
+                    auth.requestMatchers(API + "/appointment-slots/*/hold").hasAnyRole("PATIENT", "RECEPTIONIST");
+                    auth.requestMatchers(HttpMethod.GET, API + "/appointment-slots/earliest")
+                            .hasAnyRole("PATIENT", "RECEPTIONIST");
                     auth.requestMatchers(HttpMethod.GET, API + "/encounters/me").hasRole("PATIENT");
                     auth.requestMatchers(API + "/patients", API + "/patients/**").hasAnyRole("DOCTOR", "ADMIN");
 

@@ -57,12 +57,14 @@ INSERT INTO medicines (id, code, name, unit, description, status, created_at, up
 (5, 'T05', 'Omeprazole 20mg', 'Viên', 'Giảm tiết axit dạ dày', 'ACTIVE', NOW(), NOW());
 
 -- Ca làm việc trong 7 ngày kể từ ngày mai (để lúc nào chạy demo cũng còn giờ trống đặt được):
--- bác sĩ 1 sáng 08:00-10:00 và chiều 14:00-15:30, bác sĩ 2 sáng 08:00-09:30; mỗi slot 30 phút.
+-- bác sĩ 1 sáng 08:00-10:00 và chiều 14:00-15:30, bác sĩ 2 sáng 08:00-09:30, mỗi slot 30 phút; bác sĩ 2 thêm ca
+-- chiều 15:00-16:30 với slot 45 phút, để dịch vụ dài nhất (DV02, 45 phút) cũng có khung giờ đủ dài.
 INSERT INTO doctor_schedules (doctor_id, work_date, start_time, end_time, slot_minutes, created_at, updated_at)
-SELECT s.doctor_id, TIMESTAMPADD(DAY, d.n, CURDATE()), s.start_time, s.end_time, 30, NOW(), NOW()
-FROM (SELECT 1 AS doctor_id, '08:00:00' AS start_time, '10:00:00' AS end_time
-      UNION ALL SELECT 1, '14:00:00', '15:30:00'
-      UNION ALL SELECT 2, '08:00:00', '09:30:00') s
+SELECT s.doctor_id, TIMESTAMPADD(DAY, d.n, CURDATE()), s.start_time, s.end_time, s.slot_minutes, NOW(), NOW()
+FROM (SELECT 1 AS doctor_id, '08:00:00' AS start_time, '10:00:00' AS end_time, 30 AS slot_minutes
+      UNION ALL SELECT 1, '14:00:00', '15:30:00', 30
+      UNION ALL SELECT 2, '08:00:00', '09:30:00', 30
+      UNION ALL SELECT 2, '15:00:00', '16:30:00', 45) s
 CROSS JOIN (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
             UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7) d;
 
@@ -77,6 +79,8 @@ FROM (SELECT 1 AS doctor_id, '08:00:00' AS start_time, '08:30:00' AS end_time
       UNION ALL SELECT 1, '15:00:00', '15:30:00'
       UNION ALL SELECT 2, '08:00:00', '08:30:00'
       UNION ALL SELECT 2, '08:30:00', '09:00:00'
-      UNION ALL SELECT 2, '09:00:00', '09:30:00') t
+      UNION ALL SELECT 2, '09:00:00', '09:30:00'
+      UNION ALL SELECT 2, '15:00:00', '15:45:00'
+      UNION ALL SELECT 2, '15:45:00', '16:30:00') t
 CROSS JOIN (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
             UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7) d;

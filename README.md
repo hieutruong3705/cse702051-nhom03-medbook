@@ -23,6 +23,7 @@ Bốn vai trò, mỗi vai trò chỉ thấy đúng phần việc của mình (ki
 
 - **Khách:** xem bác sĩ, chuyên khoa, dịch vụ và giờ trống của bác sĩ.
 - **Bệnh nhân:** đăng ký, đặt lịch, đổi lịch, hủy lịch; xem bệnh án, đơn thuốc, hóa đơn và thông báo của mình.
+  Đặt lịch bắt đầu từ dịch vụ: danh sách khung giờ trống phụ thuộc cả bác sĩ lẫn thời lượng dịch vụ, và hệ thống gợi ý các giờ sớm nhất còn trống. Khung giờ vừa chọn được **giữ chỗ có thời hạn** (mặc định 10 phút, có đồng hồ đếm ngược); hết hạn mà chưa xác nhận thì tự trở lại trống.
 - **Bác sĩ:** quản lý ca làm việc, giờ nghỉ, ngày nghỉ (hệ thống tự sinh giờ trống); khám bệnh, ghi bệnh án, kê đơn, tải tệp đính kèm, lập hóa đơn; xem bệnh nhân mình phụ trách.
 - **Lễ tân:** tìm bệnh nhân và tạo hồ sơ cho người chưa có tài khoản; xem lịch hẹn của cả phòng khám; đặt, đổi, hủy lịch hộ bệnh nhân (bắt buộc ghi lý do khi đổi và hủy); xem hóa đơn và ghi nhận đã thu. Là vai trò hành chính: không đọc được bệnh án, đơn thuốc, tệp đính kèm hay ghi chú lịch hẹn; không hủy được hóa đơn.
 - **Quản trị viên:** quản lý tài khoản (tạo, khóa, đổi vai trò), hồ sơ bác sĩ, danh mục (chuyên khoa, dịch vụ, thuốc); theo dõi lịch hẹn; thu và hủy hóa đơn; ba báo cáo có biểu đồ và xuất CSV (lịch khám, doanh thu, dịch vụ khám); tra cứu nhật ký hệ thống. Quản trị viên không xem được nội dung bệnh án.
@@ -107,6 +108,7 @@ Mở **http://localhost:8080/**. Lần build đầu cần Internet và mất và
 | `MEDBOOK_SEED_DEMO` | `docker` | `true`: nạp dữ liệu demo khi CSDL trống. Bị bỏ qua ở `prod` |
 | `MEDBOOK_SEED_ACTIVITY` | mọi nơi trừ `prod` | `true`: nạp lịch khám và hóa đơn mẫu 28 ngày gần nhất cho báo cáo khi CSDL chưa có hoạt động. Không đặt thì đi theo `MEDBOOK_SEED_DEMO` |
 | `MEDBOOK_OPENAPI_ENABLED` | mọi nơi | `true`: mở `/swagger-ui.html` và `/v3/api-docs`. Mặc định tắt |
+| `MEDBOOK_BOOKING_HOLD_MINUTES` | mọi nơi | Số phút giữ chỗ một khung giờ sau khi người dùng chọn, mặc định 10 |
 | `APP_PORT`, `DB_PORT`, `PMA_PORT` | compose | Cổng trên máy chủ (8080, 3307, 8081) |
 
 Không đưa tệp `.env` lên Git (đã có trong `.gitignore`).
@@ -129,7 +131,7 @@ $env:PORT = '8089'; .\mvnw.cmd spring-boot:run     # cửa sổ thứ nhất
 cd frontend; npm run e2e                           # cửa sổ thứ hai (đổi địa chỉ bằng E2E_BASE_URL)
 ```
 
-Bộ đầu-cuối gồm ba tệp trong `frontend/e2e`: `core-flow.e2e.js` (bác sĩ mở ca, hai bệnh nhân tranh một khung giờ, đặt lịch chỉ bằng bàn phím, khám, kê đơn, tệp đính kèm, hóa đơn, thu tiền, phiên bị thu hồi), `medbook.e2e.js` (trang công khai, phân quyền, quản trị, màn hình hẹp 360 px) và `accessibility.e2e.js` (quét WCAG 2.1 mức A, AA bằng axe trên 29 trang).
+Bộ đầu-cuối gồm ba tệp trong `frontend/e2e`: `core-flow.e2e.js` (bác sĩ mở ca, khung giờ đang được một bệnh nhân giữ chỗ thì người khác không thấy và không đặt được, đặt lịch chỉ bằng bàn phím, khám, kê đơn, tệp đính kèm, hóa đơn, thu tiền, phiên bị thu hồi), `medbook.e2e.js` (trang công khai, phân quyền, quản trị, màn hình hẹp 360 px) và `accessibility.e2e.js` (quét WCAG 2.1 mức A, AA bằng axe trên 29 trang).
 
 Kiểm chứng lược đồ trên MySQL thật (cần Docker; tự dựng một MySQL tạm, không đụng tới container đang chạy):
 
@@ -158,8 +160,8 @@ Sau khi sửa giao diện phải `npm run build` rồi chạy lại backend thì
 
 | Việc | Cách làm |
 |---|---|
-| Thêm thay đổi lược đồ | Thêm tệp `V4__mo_ta.sql` (hoặc lớp Java; V2 và V3 đã dùng) vào `src/main/resources/db/migration`; chỉ cộng thêm, không sửa migration đã phát hành |
-| Nâng cấp CSDL đang chạy với Flyway tắt (hồ sơ `online`, `v4mysql`) | Chạy `scripts/cx-additive-schema.mysql.sql` rồi `scripts/receptionist-role.mysql.sql` (cả hai chạy lại nhiều lần được) **trước khi** triển khai bản ứng dụng mới |
+| Thêm thay đổi lược đồ | Thêm tệp `V5__mo_ta.sql` vào `src/main/resources/db/migration`, hoặc một lớp Java trong `config/migration` (V2, V3 và V4 đã dùng cách này); chỉ cộng thêm, không sửa migration đã phát hành |
+| Nâng cấp CSDL đang chạy với Flyway tắt (hồ sơ `online`, `v4mysql`) | Chạy lần lượt `scripts/cx-additive-schema.mysql.sql`, `scripts/receptionist-role.mysql.sql`, `scripts/slot-holds-schema.mysql.sql` (cả ba chạy lại nhiều lần được) **trước khi** triển khai bản ứng dụng mới |
 | Sao lưu | `.\scripts\backup-db.ps1` → tệp `.sql` trong thư mục `backups/` |
 | Kiểm chứng phục hồi | `.\scripts\restore-db.ps1 -File <tệp .sql>`: nạp vào một CSDL trống mới rồi đối chiếu số dòng từng bảng |
 | Ràng buộc bất biến | `CHECK`, `UNIQUE`, khóa ngoại trong migration; ví dụ giờ kết thúc phải sau giờ bắt đầu, mỗi slot chỉ có một lịch đang giữ chỗ |

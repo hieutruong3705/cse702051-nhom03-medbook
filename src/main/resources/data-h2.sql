@@ -70,7 +70,10 @@ INSERT INTO appointment_slots (id, doctor_id, slot_date, start_time, end_time, i
 (10, 2, CURDATE(), '08:30:00', '09:00:00', TRUE, 'AVAILABLE', 0, NOW(), NOW()),
 (11, 2, CURDATE(), '09:00:00', '09:30:00', TRUE, 'AVAILABLE', 0, NOW(), NOW()),
 (12, 2, CURDATE(), '14:00:00', '14:30:00', TRUE, 'AVAILABLE', 0, NOW(), NOW()),
-(13, 2, CURDATE(), '14:30:00', '15:00:00', TRUE, 'AVAILABLE', 0, NOW(), NOW());
+(13, 2, CURDATE(), '14:30:00', '15:00:00', TRUE, 'AVAILABLE', 0, NOW(), NOW()),
+-- Hai khung giờ 45 phút của bác sĩ 2: dịch vụ mẫu dài nhất (DV02, 45 phút) chỉ đặt được vào khung giờ đủ dài
+(14, 2, CURDATE(), '15:00:00', '15:45:00', TRUE, 'AVAILABLE', 0, NOW(), NOW()),
+(15, 2, CURDATE(), '15:45:00', '16:30:00', TRUE, 'AVAILABLE', 0, NOW(), NOW());
 
 -- Bộ đếm IDENTITY của H2 không tự tăng khi chèn ID cố định ở trên, nên INSERT tiếp theo
 -- (đăng ký, đặt lịch, ...) sẽ đụng khóa chính. Đặt lại bộ đếm sau phần seed.
@@ -87,15 +90,16 @@ ALTER TABLE appointment_slots ALTER COLUMN id RESTART WITH 1000;
 -- Ca làm việc mẫu khớp với slot seed (hôm nay) và 3 ngày kế tiếp, để khi chạy demo luôn có giờ trống còn
 -- đặt được (slot của hôm nay có thể đã qua giờ). Đặt SAU các lệnh RESTART nên id tự sinh bắt đầu từ 1000.
 INSERT INTO doctor_schedules (doctor_id, work_date, start_time, end_time, slot_minutes, created_at, updated_at)
-SELECT s.doctor_id, DATEADD('DAY', d.n, CURDATE()), s.start_time, s.end_time, 30, NOW(), NOW()
-FROM (SELECT 1 AS doctor_id, TIME '08:00:00' AS start_time, TIME '10:30:00' AS end_time
-      UNION ALL SELECT 1, TIME '14:00:00', TIME '15:30:00'
-      UNION ALL SELECT 2, TIME '08:00:00', TIME '09:30:00'
-      UNION ALL SELECT 2, TIME '14:00:00', TIME '15:00:00') s
+SELECT s.doctor_id, DATEADD('DAY', d.n, CURDATE()), s.start_time, s.end_time, s.slot_minutes, NOW(), NOW()
+FROM (SELECT 1 AS doctor_id, TIME '08:00:00' AS start_time, TIME '10:30:00' AS end_time, 30 AS slot_minutes
+      UNION ALL SELECT 1, TIME '14:00:00', TIME '15:30:00', 30
+      UNION ALL SELECT 2, TIME '08:00:00', TIME '09:30:00', 30
+      UNION ALL SELECT 2, TIME '14:00:00', TIME '15:00:00', 30
+      UNION ALL SELECT 2, TIME '15:00:00', TIME '16:30:00', 45) s
 CROSS JOIN (SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3) d;
 
 INSERT INTO appointment_slots (doctor_id, slot_date, start_time, end_time, is_available, status, version, created_at, updated_at)
 SELECT s.doctor_id, DATEADD('DAY', d.n, s.slot_date), s.start_time, s.end_time, TRUE, 'AVAILABLE', 0, NOW(), NOW()
 FROM appointment_slots s
 CROSS JOIN (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3) d
-WHERE s.id BETWEEN 1 AND 13;
+WHERE s.id BETWEEN 1 AND 15;

@@ -75,6 +75,7 @@ public class ReceptionAppointmentController {
     @PatchMapping("/{id:\\d+}/reschedule")
     public ReceptionAppointmentDTO reschedule(@PathVariable Long id,
             @Valid @RequestBody ReceptionRescheduleRequest request) {
-        return receptionAppointmentService.reschedule(id, request.newSlotId(), request.reason());
+        return receptionAppointmentService.reschedule(id, request.newSlotId(), request.reason(),
+                request.holdId());
     }
 }

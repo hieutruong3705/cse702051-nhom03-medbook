@@ -4,6 +4,7 @@ import java.time.LocalDate;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.phenikaa.cse702051.medbook.dto.PageResponse;
@@ -81,8 +82,11 @@ public class ReceptionAppointmentService {
         return view(id);
     }
 
-    /** Đặt lịch hộ. Bệnh nhân không tồn tại → 404; không ở trạng thái ACTIVE → 422; khung giờ đã mất → 409. */
-    @Transactional
+    /**
+     * Đặt lịch hộ. Bệnh nhân không tồn tại → 404; không ở trạng thái ACTIVE → 422; khung giờ đã mất hoặc người khác
+     * đang giữ chỗ → 409; bản giữ chỗ gửi kèm đã hết hạn → 410.
+     */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public ReceptionAppointmentDTO book(ReceptionBookRequest request) {
         currentUserService.requireRole(ROLE);
         Patient patient = patientRepository.findById(request.patientId())
@@ -92,7 +96,7 @@ public class ReceptionAppointmentService {
         }
 
         Appointment appointment = appointmentService.bookOnBehalf(patient.getId(), request.slotId(),
-                request.serviceId(), request.notes());
+                request.serviceId(), request.notes(), request.holdId());
         auditLogService.recordInCurrentTransaction(AuditEvent.of(AuditActions.APPOINTMENT_BOOK_ON_BEHALF,
                 AuditActions.ENTITY_APPOINTMENTS, appointment.getId())
                 .with("patientId", patient.getId())
@@ -113,12 +117,12 @@ public class ReceptionAppointmentService {
     }
 
     /** Đổi lịch hộ sang khung giờ trống khác; cùng điều kiện với hủy hộ. Thất bại thì lịch cũ giữ nguyên. */
-    @Transactional
-    public ReceptionAppointmentDTO reschedule(Long appointmentId, Long newSlotId, String reason) {
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public ReceptionAppointmentDTO reschedule(Long appointmentId, Long newSlotId, String reason, Long holdId) {
         currentUserService.requireRole(ROLE);
         requireReason(reason);
         Long oldSlotId = appointmentService.findById(appointmentId).getSlot().getId();
-        Appointment appointment = appointmentService.rescheduleOnBehalf(appointmentId, newSlotId);
+        Appointment appointment = appointmentService.rescheduleOnBehalf(appointmentId, newSlotId, holdId);
         auditLogService.recordInCurrentTransaction(AuditEvent.of(AuditActions.APPOINTMENT_RESCHEDULE_ON_BEHALF,
                 AuditActions.ENTITY_APPOINTMENTS, appointment.getId())
                 .with("patientId", appointment.getPatientId())

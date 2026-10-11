@@ -13,6 +13,8 @@ public record ReceptionRescheduleRequest(
         Long newSlotId,
         @NotBlank(message = "Phải nhập lý do đổi lịch")
         @Size(max = 500, message = "Lý do tối đa 500 ký tự")
-        String reason
+        String reason,
+        /** Tùy chọn: bản giữ chỗ trên khung giờ mới. Đã hết hạn → 410. */
+        Long holdId
 ) {
 }

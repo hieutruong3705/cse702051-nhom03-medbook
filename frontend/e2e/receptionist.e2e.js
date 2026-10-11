@@ -57,7 +57,7 @@ test('lễ tân tạo hồ sơ bệnh nhân, đặt lịch hộ, đổi lịch r
   // Đặt lịch hộ: dịch vụ → bác sĩ và giờ → xác nhận
   await patientRow.getByRole('link', { name: 'Đặt lịch' }).click()
   await expect(page).toHaveURL(/#\/receptionist\/booking\?patientId=\d+/)
-  await page.locator('#booking-service').selectOption({ index: 1 })
+  await page.locator('#booking-service').selectOption({ label: 'Khám tổng quát' }) // 30 phút, vừa khung giờ của ca
   await page.getByRole('button', { name: 'Tiếp tục' }).click()
   await page.locator('#booking-doctor').selectOption(DOCTOR_ID)
   await page.locator('#booking-date').fill(day)

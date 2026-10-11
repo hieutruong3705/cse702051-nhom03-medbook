@@ -10,6 +10,7 @@ public enum ErrorCode {
     ACCOUNT_LOCKED(HttpStatus.FORBIDDEN, "Tài khoản đang bị khóa"),
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy tài nguyên"),
     CONFLICT(HttpStatus.CONFLICT, "Dữ liệu bị xung đột"),
+    GONE(HttpStatus.GONE, "Tài nguyên đã hết hiệu lực"),
     PAYLOAD_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE,"Tệp hoặc nội dung gửi lên quá lớn"),
     UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Content-Type không được hỗ trợ"),
     UNPROCESSABLE_ENTITY(HttpStatus.UNPROCESSABLE_CONTENT,"Dữ liệu hợp lệ về cú pháp nhưng không thể xử lý"),
