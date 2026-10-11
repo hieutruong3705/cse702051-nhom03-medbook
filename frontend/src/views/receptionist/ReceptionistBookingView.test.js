@@ -50,7 +50,7 @@ vi.mock('@/composables/useToast', () => ({
 const patient = { id: 1, patientCode: 'BN000001', fullName: 'Nguyễn Minh An', dateOfBirth: '1990-01-01', genderCode: 'MALE', phone: '0900111222', hasAccount: false }
 const service = { id: 2, name: 'Khám tổng quát', durationMinutes: 30, price: 150000 }
 const doctor = { id: 3, fullName: 'Bác sĩ Lan', specialtyId: 4, specialtyName: 'Nội tổng quát' }
-const slot = { id: 5, doctorId: 3, slotDate: '2026-10-10', startTime: '08:00:00', endTime: '08:30:00', status: 'AVAILABLE' }
+const slot = { id: 5, doctorId: 3, slotDate: '2099-01-05', startTime: '08:00:00', endTime: '08:30:00', status: 'AVAILABLE' }
 const page = (content) => ({ content, page: 0, size: 10, totalElements: content.length, totalPages: 1 })
 
 const global = {
@@ -86,7 +86,7 @@ async function chooseBaseFlow(wrapper) {
   await wrapper.findAll('button').find((button) => button.text() === 'Tiếp tục').trigger('click')
   await flushPromises()
   await wrapper.find('#booking-doctor').setValue('3')
-  await wrapper.find('#booking-date').setValue('2026-10-10')
+  await wrapper.find('#booking-date').setValue('2099-01-05')
   await flushPromises()
   const slotButton = wrapper.findAll('button').find((button) => button.text().includes('08:00'))
   expect(slotButton).toBeTruthy()
