@@ -109,6 +109,7 @@ Mở **http://localhost:8080/**. Lần build đầu cần Internet và mất và
 | `MEDBOOK_SEED_ACTIVITY` | mọi nơi trừ `prod` | `true`: nạp lịch khám và hóa đơn mẫu 28 ngày gần nhất cho báo cáo khi CSDL chưa có hoạt động. Không đặt thì đi theo `MEDBOOK_SEED_DEMO` |
 | `MEDBOOK_OPENAPI_ENABLED` | mọi nơi | `true`: mở `/swagger-ui.html` và `/v3/api-docs`. Mặc định tắt |
 | `MEDBOOK_BOOKING_HOLD_MINUTES` | mọi nơi | Số phút giữ chỗ một khung giờ sau khi người dùng chọn, mặc định 10 |
+| `MEDBOOK_TIME_ZONE` | mọi nơi | Múi giờ của phòng khám, mặc định `Asia/Ho_Chi_Minh`. Ứng dụng tính "hôm nay", khung giờ đã qua và hạn hủy trước giờ khám theo múi giờ này dù máy chủ chạy giờ nào (container thường chạy UTC); ngày giờ trong MySQL được lưu và đọc theo cùng múi giờ. Tên sai thì ứng dụng không khởi động |
 | `MEDBOOK_PUBLIC_BASE_URL` | mọi nơi | Địa chỉ công khai của trang (ví dụ `https://medbook.example`), dùng làm địa chỉ tuyệt đối trong `/sitemap.xml` và `/robots.txt`. Để trống thì lấy theo địa chỉ của yêu cầu đang tới |
 | `APP_PORT`, `DB_PORT`, `PMA_PORT` | compose | Cổng trên máy chủ (8080, 3307, 8081) |
 
@@ -166,6 +167,7 @@ Sau khi sửa giao diện phải `npm run build` rồi chạy lại backend thì
 | Dựng CSDL bằng tay (phpMyAdmin, máy chủ không chạy được Flyway) | Nạp `database/schema.sql` vào một CSDL MySQL 8 rỗng, rồi `database/seed.sql` nếu cần dữ liệu mẫu. Đây là **hai tệp chính thức** của lược đồ và dữ liệu mẫu; sau khi nạp, ứng dụng chạy được cả khi Flyway bật lẫn tắt |
 | Thêm thay đổi lược đồ | Thêm tệp `V5__mo_ta.sql` vào `src/main/resources/db/migration`, hoặc một lớp Java trong `config/migration` (V2, V3 và V4 đã dùng cách này); chỉ cộng thêm, không sửa migration đã phát hành |
 | Nâng cấp CSDL đang chạy với Flyway tắt (hồ sơ `online`, `v4mysql`) | Chạy lần lượt `scripts/cx-additive-schema.mysql.sql`, `scripts/receptionist-role.mysql.sql`, `scripts/slot-holds-schema.mysql.sql` (cả ba chạy lại nhiều lần được) **trước khi** triển khai bản ứng dụng mới |
+| Nâng cấp từ bản chạy giờ UTC (trước khi có `MEDBOOK_TIME_ZONE`) | Không cần đổi dữ liệu: ngày khám và giờ khám đã lưu giữ nguyên ý nghĩa. Hai điều sẽ thấy sau khi nâng cấp: các mốc thời gian ghi trước đó (ngày tạo, nhật ký) hiển thị sớm hơn thực tế 7 giờ, và mọi phiên đăng nhập cũ hết hạn nên người dùng phải đăng nhập lại. Nếu `MEDBOOK_DB_URL` tự đặt có `serverTimezone=UTC` thì nên đổi thành `serverTimezone=Asia/Ho_Chi_Minh` |
 | Sao lưu | `.\scripts\backup-db.ps1` → tệp `.sql` trong thư mục `backups/` |
 | Kiểm chứng phục hồi | `.\scripts\restore-db.ps1 -File <tệp .sql>`: nạp vào một CSDL trống mới rồi đối chiếu số dòng từng bảng |
 | Ràng buộc bất biến | `CHECK`, `UNIQUE`, khóa ngoại trong migration; ví dụ giờ kết thúc phải sau giờ bắt đầu, mỗi slot chỉ có một lịch đang giữ chỗ |

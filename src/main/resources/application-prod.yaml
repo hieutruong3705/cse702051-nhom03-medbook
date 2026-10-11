@@ -20,7 +20,7 @@ spring:
       hibernate:
         format_sql: false
         dialect: org.hibernate.dialect.MySQLDialect
-        jdbc.time_zone: UTC
+        jdbc.time_zone: ${MEDBOOK_TIME_ZONE:Asia/Ho_Chi_Minh}
 
   sql:
     init:

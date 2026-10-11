@@ -13,8 +13,8 @@
 --   - ca làm việc và khung giờ trống của hai bác sĩ trong 7 ngày kể từ ngày mai;
 --   - lịch hẹn ở cả bốn trạng thái: Đã đặt (ngày mai, ngày kia), Đang khám (hôm nay), Đã khám, Đã hủy (các ngày trước);
 --   - lần khám, đơn thuốc, hóa đơn đã thu, chưa thu và đã hủy.
--- Giờ khám trong tệp (08:00, 14:00...) là giờ ứng dụng hiển thị khi máy chủ ứng dụng và máy chủ CSDL cùng múi giờ, như bộ
--- Docker Compose của dự án (cả hai chạy giờ UTC).
+-- Giờ khám trong tệp (08:00, 14:00...) là giờ phòng khám; ứng dụng hiển thị đúng như vậy. Để "hôm nay" của tệp trùng với
+-- "hôm nay" của ứng dụng, máy chủ CSDL nên cùng múi giờ với ứng dụng (MEDBOOK_TIME_ZONE); Docker Compose của dự án đặt sẵn.
 -- Phần A giống hệt dữ liệu ứng dụng tự nạp khi MEDBOOK_SEED_DEMO=true (src/main/resources/db/seed/demo-seed.sql).
 -- =====================================================================
 
