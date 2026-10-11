@@ -16,6 +16,9 @@
           </div>
         </article>
       </div>
+      <p v-if="loadFailed" class="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800" role="alert">
+        Chưa tải được một số số liệu. Tải lại trang để thử lại.
+      </p>
 
       <section class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
         <h2 class="text-lg font-semibold text-slate-950">Cần xử lý tiếp</h2>
@@ -31,15 +34,46 @@
 </template>
 
 <script setup>
+import { onMounted, reactive, ref } from 'vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import { adminUsersApi } from '@/api/adminUsers'
+import { appointmentsApi } from '@/api/appointments'
+import { doctorsApi } from '@/api/doctors'
+import { invoicesApi } from '@/api/invoices'
 
-const cards = [
-  { label: 'Tài khoản', value: '--', icon: 'fa-solid fa-users' },
-  { label: 'Bác sĩ', value: '--', icon: 'fa-solid fa-user-doctor' },
-  { label: 'Lịch hẹn hôm nay', value: '--', icon: 'fa-regular fa-calendar-check' },
-  { label: 'Hóa đơn chưa thu', value: '--', icon: 'fa-solid fa-file-invoice-dollar' }
-]
+const isoToday = () => {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+// Mỗi thẻ là tổng số dòng của một danh sách quản trị có sẵn (chỉ xin một dòng, đọc totalElements).
+const cards = reactive([
+  { label: 'Tài khoản', value: '--', icon: 'fa-solid fa-users', count: () => adminUsersApi.list({ size: 1 }) },
+  { label: 'Bác sĩ', value: '--', icon: 'fa-solid fa-user-doctor', count: () => doctorsApi.listAdmin({ size: 1 }) },
+  {
+    label: 'Lịch hẹn hôm nay',
+    value: '--',
+    icon: 'fa-regular fa-calendar-check',
+    count: () => appointmentsApi.listAdmin({ from: isoToday(), to: isoToday(), size: 1 })
+  },
+  {
+    label: 'Hóa đơn chưa thu',
+    value: '--',
+    icon: 'fa-solid fa-file-invoice-dollar',
+    count: () => invoicesApi.listAdmin({ status: 'UNPAID', size: 1 })
+  }
+])
+const loadFailed = ref(false)
+
+onMounted(async () => {
+  const results = await Promise.allSettled(cards.map((card) => card.count()))
+  results.forEach((result, index) => {
+    const total = result.status === 'fulfilled' ? result.value?.totalElements : undefined
+    if (typeof total === 'number') cards[index].value = new Intl.NumberFormat('vi-VN').format(total)
+    else loadFailed.value = true
+  })
+})
 
 const quickLinks = [
   { to: '/admin/users', label: 'Quản lý tài khoản', icon: 'fa-solid fa-users' },
