@@ -79,6 +79,6 @@ const quickLinks = [
   { to: '/admin/users', label: 'Quản lý tài khoản', icon: 'fa-solid fa-users' },
   { to: '/admin/catalog', label: 'Quản lý danh mục', icon: 'fa-solid fa-layer-group' },
   { to: '/admin/reports', label: 'Xem báo cáo', icon: 'fa-solid fa-chart-column' },
-  { to: '/admin/audit-logs', label: 'Tra audit log', icon: 'fa-solid fa-shield-halved' }
+  { to: '/admin/audit-logs', label: 'Tra nhật ký hệ thống', icon: 'fa-solid fa-shield-halved' }
 ]
 </script>

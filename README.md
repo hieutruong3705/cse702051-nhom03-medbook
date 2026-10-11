@@ -133,7 +133,7 @@ $env:PORT = '8089'; .\mvnw.cmd spring-boot:run     # cửa sổ thứ nhất
 cd frontend; npm run e2e                           # cửa sổ thứ hai (đổi địa chỉ bằng E2E_BASE_URL)
 ```
 
-Bộ đầu-cuối gồm ba tệp trong `frontend/e2e`: `core-flow.e2e.js` (bác sĩ mở ca, khung giờ đang được một bệnh nhân giữ chỗ thì người khác không thấy và không đặt được, đặt lịch chỉ bằng bàn phím, khám, kê đơn, tệp đính kèm, hóa đơn, thu tiền, phiên bị thu hồi), `medbook.e2e.js` (trang công khai, phân quyền, quản trị, màn hình hẹp 360 px) và `accessibility.e2e.js` (quét WCAG 2.1 mức A, AA bằng axe trên 29 trang).
+Bộ đầu-cuối gồm bốn tệp trong `frontend/e2e`: `core-flow.e2e.js` (bác sĩ mở ca, khung giờ đang được một bệnh nhân giữ chỗ thì người khác không thấy và không đặt được, đặt lịch chỉ bằng bàn phím, khám, kê đơn, tệp đính kèm, hóa đơn, thu tiền, phiên bị thu hồi), `medbook.e2e.js` (trang công khai, địa chỉ trang, phân quyền, quản trị, màn hình hẹp 360 px), `receptionist.e2e.js` (lễ tân lập hồ sơ, đặt lịch hộ có giữ chỗ, đổi lịch, hủy lịch, thu tiền; không đọc được dữ liệu lâm sàng) và `accessibility.e2e.js` (quét WCAG 2.1 mức A, AA bằng axe trên 35 trang).
 
 Kiểm chứng lược đồ trên MySQL thật (cần Docker; tự dựng một MySQL tạm, không đụng tới container đang chạy):
 

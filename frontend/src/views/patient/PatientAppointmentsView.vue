@@ -1,6 +1,6 @@
 <template>
   <PatientLayout>
-    <PageHeader title="Lịch hẹn của tôi" eyebrow="Bệnh nhân" description="Theo dõi lịch khám theo trạng thái và khoảng ngày. Chỉ dùng danh tính từ JWT." />
+    <PageHeader title="Lịch hẹn của tôi" eyebrow="Bệnh nhân" description="Theo dõi lịch khám của bạn theo trạng thái và khoảng ngày." />
 
     <section class="space-y-4">
       <form class="grid gap-3 rounded-md border border-slate-200 bg-white p-4 md:grid-cols-4" @submit.prevent="reload">

@@ -215,4 +215,115 @@ describe('ReceptionistBookingView', () => {
     await flushPromises()
     wrapper.unmount()
   })
+
+  describe('giữ chỗ ở bước chọn giờ', () => {
+    const laterSlot = { ...slot, id: 6, startTime: '08:30:00', endTime: '09:00:00' }
+    const slotButton = (wrapper, start) => wrapper.findAll('button').find((button) => button.text().startsWith(start))
+    const clickButton = async (wrapper, text) => {
+      await wrapper.findAll('button').find((button) => button.text() === text).trigger('click')
+      await flushPromises()
+    }
+
+    /** Đi tới bước 3 với dịch vụ, bác sĩ và ngày đã chọn; chưa chọn khung giờ. */
+    async function goToSlots() {
+      const wrapper = await mountBooking({ patientId: '1' })
+      await wrapper.find('#booking-service').setValue('2')
+      await flushPromises()
+      await clickButton(wrapper, 'Tiếp tục')
+      await wrapper.find('#booking-doctor').setValue('3')
+      await wrapper.find('#booking-date').setValue('2099-01-05')
+      await flushPromises()
+      return wrapper
+    }
+
+    it('chọn khung giờ thì giữ đúng một lần và hiện đồng hồ; chọn khung khác thì giữ khung mới và gửi holdId của nó', async () => {
+      mocks.slotsAvailable.mockResolvedValue([slot, laterSlot])
+      const wrapper = await goToSlots()
+
+      await slotButton(wrapper, '08:00').trigger('click')
+      await flushPromises()
+      expect(mocks.slotsHold).toHaveBeenCalledTimes(1)
+      expect(mocks.slotsHold).toHaveBeenLastCalledWith(5)
+      expect(wrapper.find('[data-test="hold-countdown"]').text()).toContain('Đang giữ chỗ, còn 10:00')
+
+      await slotButton(wrapper, '08:30').trigger('click')
+      await flushPromises()
+      expect(mocks.slotsHold).toHaveBeenCalledTimes(2)
+      expect(mocks.slotsHold).toHaveBeenLastCalledWith(6)
+
+      await clickButton(wrapper, 'Tiếp tục')
+      await clickButton(wrapper, 'Xác nhận đặt lịch')
+      const payload = mocks.appointmentCreate.mock.calls[0][0]
+      expect(payload).toEqual({ patientId: 1, slotId: 6, serviceId: 2, holdId: 5006 })
+      expect(payload).not.toHaveProperty('notes') // ghi chú để trống thì không gửi
+      wrapper.unmount()
+    })
+
+    it('hết giờ giữ chỗ thì bỏ khung giờ, báo lỗi, tải lại danh sách và giữ nguyên các lựa chọn khác', async () => {
+      // chỉ giả lập đồng hồ đếm ngược; setTimeout vẫn thật để flushPromises chạy được
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] })
+      try {
+        mocks.slotsHold.mockImplementation((slotId) => Promise.resolve({ ...heldFor(slotId), remainingSeconds: 2 }))
+        const wrapper = await goToSlots()
+        await slotButton(wrapper, '08:00').trigger('click')
+        await flushPromises()
+        expect(wrapper.find('[data-test="hold-countdown"]').text()).toContain('00:02')
+        const loadsBefore = mocks.slotsAvailable.mock.calls.length
+
+        vi.advanceTimersByTime(3000)
+        await flushPromises()
+
+        expect(wrapper.find('[data-test="hold-countdown"]').exists()).toBe(false)
+        expect(wrapper.find('[role="alert"]').text()).toContain('Thời gian giữ chỗ đã hết')
+        expect(wrapper.text()).toContain('Bác sĩ và giờ')
+        expect(wrapper.find('#booking-doctor').element.value).toBe('3')
+        expect(wrapper.find('#booking-date').element.value).toBe('2099-01-05')
+        expect(mocks.slotsAvailable.mock.calls.length).toBe(loadsBefore + 1)
+        expect(mocks.appointmentCreate).not.toHaveBeenCalled()
+        wrapper.unmount()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('không giữ được khung giờ thì hiện thông điệp của máy chủ, bỏ khung giờ và tải lại danh sách', async () => {
+      mocks.slotsHold.mockRejectedValueOnce(Object.assign(new Error('Khung giờ đang được người khác giữ'), { status: 409 }))
+      const wrapper = await goToSlots()
+      const loadsBefore = mocks.slotsAvailable.mock.calls.length
+
+      await slotButton(wrapper, '08:00').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Khung giờ đang được người khác giữ')
+      expect(wrapper.find('[data-test="hold-countdown"]').exists()).toBe(false)
+      expect(mocks.slotsAvailable.mock.calls.length).toBe(loadsBefore + 1)
+      expect(wrapper.findAll('button').find((button) => button.text() === 'Tiếp tục').attributes('disabled')).toBeDefined()
+      wrapper.unmount()
+    })
+
+    it('đổi ngày khám khi đang giữ chỗ thì nhả khung giờ đang giữ', async () => {
+      const wrapper = await goToSlots()
+      await slotButton(wrapper, '08:00').trigger('click')
+      await flushPromises()
+      expect(mocks.slotsRelease).not.toHaveBeenCalled()
+
+      await wrapper.find('#booking-date').setValue('2099-01-06')
+      await flushPromises()
+
+      expect(mocks.slotsRelease).toHaveBeenCalledWith(5)
+      expect(wrapper.find('[data-test="hold-countdown"]').exists()).toBe(false)
+      wrapper.unmount()
+    })
+
+    it('rời trang khi đang giữ chỗ thì nhả khung giờ', async () => {
+      const wrapper = await goToSlots()
+      await slotButton(wrapper, '08:00').trigger('click')
+      await flushPromises()
+
+      wrapper.unmount()
+      await flushPromises()
+
+      expect(mocks.slotsRelease).toHaveBeenCalledWith(5)
+    })
+  })
 })

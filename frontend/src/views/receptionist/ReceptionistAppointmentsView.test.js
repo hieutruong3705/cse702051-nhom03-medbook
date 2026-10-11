@@ -34,8 +34,8 @@ vi.mock('@/api/slots', () => ({
 }))
 vi.mock('@/composables/useToast', () => ({ useToast: () => ({ success: mocks.toastSuccess, error: mocks.toastError }) }))
 
-const booked = { id: 1, status: 'BOOKED', patientId: 1, patientName: 'Nguyễn Minh An', patientCode: 'BN000001', patientPhone: '0900111222', doctorId: 3, doctorName: 'Bác sĩ Lan', specialtyName: 'Nội tổng quát', serviceId: 2, serviceName: 'Khám tổng quát', slotId: 5, date: '2026-10-10', startTime: '08:00:00', endTime: '08:30:00' }
-const heldFor = (slotId) => ({ holdId: 7000 + slotId, slotId, expiresAt: '2026-10-11T09:10:00', remainingSeconds: 600 })
+const booked = { id: 1, status: 'BOOKED', patientId: 1, patientName: 'Nguyễn Minh An', patientCode: 'BN000001', patientPhone: '0900111222', doctorId: 3, doctorName: 'Bác sĩ Lan', specialtyName: 'Nội tổng quát', serviceId: 2, serviceName: 'Khám tổng quát', slotId: 5, date: '2099-01-05', startTime: '08:00:00', endTime: '08:30:00' }
+const heldFor = (slotId) => ({ holdId: 7000 + slotId, slotId, expiresAt: '2099-01-06T09:10:00', remainingSeconds: 600 })
 const completed = { ...booked, id: 2, status: 'COMPLETED', patientName: 'Trần Gia Bình', patientCode: 'BN000002' }
 const page = (content) => ({ content, page: 0, size: 20, totalElements: content.length, totalPages: 1 })
 
@@ -52,12 +52,12 @@ function resetMocks() {
   document.body.innerHTML = ''
   mocks.list.mockResolvedValue(page([booked, completed]))
   mocks.cancel.mockResolvedValue({ ...booked, status: 'CANCELLED' })
-  mocks.reschedule.mockResolvedValue({ ...booked, doctorId: 4, doctorName: 'Bác sĩ Mai', slotId: 8, date: '2026-10-11', startTime: '09:00:00', endTime: '09:30:00' })
+  mocks.reschedule.mockResolvedValue({ ...booked, doctorId: 4, doctorName: 'Bác sĩ Mai', slotId: 8, date: '2099-01-06', startTime: '09:00:00', endTime: '09:30:00' })
   mocks.doctorsList.mockResolvedValue(page([
     { id: 3, fullName: 'Bác sĩ Lan', specialtyName: 'Nội tổng quát' },
     { id: 4, fullName: 'Bác sĩ Mai', specialtyName: 'Tim mạch' }
   ]))
-  mocks.slotsAvailable.mockResolvedValue([{ id: 8, slotDate: '2026-10-11', startTime: '09:00:00', endTime: '09:30:00' }])
+  mocks.slotsAvailable.mockResolvedValue([{ id: 8, slotDate: '2099-01-06', startTime: '09:00:00', endTime: '09:30:00' }])
   mocks.slotsHold.mockImplementation((slotId) => Promise.resolve(heldFor(slotId)))
   mocks.slotsRelease.mockResolvedValue(null)
 }
@@ -164,13 +164,13 @@ describe('ReceptionistAppointmentsView', () => {
     expect(mocks.reschedule).not.toHaveBeenCalled()
     expect(document.querySelector('#reschedule-reason-error').textContent).toContain('Phải nhập lý do')
 
-    typeBody('#reschedule-date', '2026-10-11', 'input')
+    typeBody('#reschedule-date', '2099-01-06', 'input')
     await flushPromises()
     await Array.from(document.querySelectorAll('button')).find((button) => button.textContent.includes('09:00')).click()
     await flushPromises()
     typeBody('#reschedule-reason', 'Đổi giờ theo yêu cầu')
     await clickBody('Đổi lịch')
-    expect(mocks.slotsAvailable).toHaveBeenLastCalledWith('3', '2026-10-11', 2)
+    expect(mocks.slotsAvailable).toHaveBeenLastCalledWith('3', '2099-01-06', 2)
     expect(mocks.slotsHold).toHaveBeenCalledWith(8)
     expect(mocks.reschedule).toHaveBeenCalledWith(1, { newSlotId: 8, reason: 'Đổi giờ theo yêu cầu', holdId: 7008 })
     expect(wrapper.text()).toContain('09:00 - 09:30')
@@ -181,7 +181,7 @@ describe('ReceptionistAppointmentsView', () => {
     const wrapper = await mountPage()
     await wrapper.find('button[aria-label="Đổi lịch #1"]').trigger('click')
     await flushPromises()
-    typeBody('#reschedule-date', '2026-10-11', 'input')
+    typeBody('#reschedule-date', '2099-01-06', 'input')
     await flushPromises()
     await Array.from(document.querySelectorAll('button')).find((button) => button.textContent.includes('09:00')).click()
     await flushPromises()
@@ -196,7 +196,7 @@ describe('ReceptionistAppointmentsView', () => {
     const wrapper = await mountPage()
     await wrapper.find('button[aria-label="Đổi lịch #1"]').trigger('click')
     await flushPromises()
-    typeBody('#reschedule-date', '2026-10-11', 'input')
+    typeBody('#reschedule-date', '2099-01-06', 'input')
     await flushPromises()
     await Array.from(document.querySelectorAll('button')).find((button) => button.textContent.includes('09:00')).click()
     await flushPromises()
@@ -206,5 +206,73 @@ describe('ReceptionistAppointmentsView', () => {
     expect(mocks.slotsRelease).toHaveBeenCalledWith(8)
     expect(mocks.slotsAvailable.mock.calls.length).toBeGreaterThan(1)
     wrapper.unmount()
+  })
+
+  /** Mở hộp đổi lịch của lịch #1, chọn ngày và khung giờ 09:00 (khung giờ được giữ chỗ). */
+  async function openRescheduleAndPickSlot() {
+    const wrapper = await mountPage()
+    await wrapper.find('button[aria-label="Đổi lịch #1"]').trigger('click')
+    await flushPromises()
+    typeBody('#reschedule-date', '2099-01-06', 'input')
+    await flushPromises()
+    await Array.from(document.querySelectorAll('button')).find((button) => button.textContent.includes('09:00')).click()
+    await flushPromises()
+    return wrapper
+  }
+
+  it.each([
+    [410, 'Thời gian giữ chỗ đã hết. Vui lòng chọn lại khung giờ!'],
+    [422, 'Dịch vụ dài hơn khung giờ đã chọn']
+  ])('đổi lịch bị %i thì hiện thông điệp của máy chủ, bỏ khung giờ, tải lại SlotPicker và giữ hộp thoại mở', async (status, message) => {
+    mocks.reschedule.mockRejectedValueOnce(Object.assign(new Error(message), { status }))
+    const wrapper = await openRescheduleAndPickSlot()
+    const loadsBefore = mocks.slotsAvailable.mock.calls.length
+    typeBody('#reschedule-reason', 'Đổi giờ theo yêu cầu')
+    await clickBody('Đổi lịch')
+
+    expect(mocks.reschedule).toHaveBeenCalledWith(1, { newSlotId: 8, reason: 'Đổi giờ theo yêu cầu', holdId: 7008 })
+    expect(document.body.textContent).toContain(message)
+    expect(document.querySelector('[data-test="reschedule-hold-countdown"]')).toBeNull()
+    expect(mocks.slotsAvailable.mock.calls.length).toBeGreaterThan(loadsBefore)
+    expect(document.querySelector('[role="dialog"]')).not.toBeNull()
+    expect(document.querySelector('#reschedule-reason').value).toBe('Đổi giờ theo yêu cầu')
+    wrapper.unmount()
+  })
+
+  it('hủy bị 409 thì hiện thông điệp và tải lại bảng', async () => {
+    mocks.cancel.mockRejectedValueOnce(Object.assign(new Error('Lịch đã qua giờ bắt đầu'), { status: 409 }))
+    const wrapper = await mountPage()
+    await wrapper.find('button[aria-label="Hủy lịch #1"]').trigger('click')
+    await flushPromises()
+    typeBody('#cancel-reason', 'Bệnh nhân yêu cầu hủy')
+    await clickBody('Hủy lịch hẹn')
+    expect(mocks.toastError).toHaveBeenCalledWith('Lịch đã qua giờ bắt đầu')
+    expect(mocks.list).toHaveBeenCalledTimes(2)
+    wrapper.unmount()
+  })
+
+  it('chọn khung giờ trong hộp đổi lịch thì hiện đồng hồ giữ chỗ; hết giờ thì bỏ khung giờ, báo lỗi và tải lại', async () => {
+    // chỉ giả lập đồng hồ đếm ngược; setTimeout vẫn thật để flushPromises chạy được
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] })
+    try {
+      mocks.slotsHold.mockImplementation((slotId) => Promise.resolve({ ...heldFor(slotId), remainingSeconds: 2 }))
+      const wrapper = await openRescheduleAndPickSlot()
+      expect(mocks.slotsHold).toHaveBeenCalledTimes(1)
+      expect(document.querySelector('[data-test="reschedule-hold-countdown"]').textContent).toContain('Đang giữ chỗ, còn 00:02')
+      const loadsBefore = mocks.slotsAvailable.mock.calls.length
+
+      vi.advanceTimersByTime(3000)
+      await flushPromises()
+
+      expect(document.querySelector('[data-test="reschedule-hold-countdown"]')).toBeNull()
+      expect(document.body.textContent).toContain('Thời gian giữ chỗ đã hết')
+      expect(mocks.slotsAvailable.mock.calls.length).toBeGreaterThan(loadsBefore)
+      typeBody('#reschedule-reason', 'Đổi giờ theo yêu cầu')
+      await clickBody('Đổi lịch')
+      expect(mocks.reschedule).not.toHaveBeenCalled() // chưa chọn lại khung giờ thì không gửi
+      wrapper.unmount()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
