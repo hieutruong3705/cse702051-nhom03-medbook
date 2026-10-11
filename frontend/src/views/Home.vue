@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PublicLayout from '@/layouts/PublicLayout.vue'
-import heroImage from '@/assets/hero.png'
+import heroImage from '@/assets/hero.webp'
 import { catalogApi } from '@/api/catalog'
 import { doctorsApi } from '@/api/doctors'
 import { useAuthStore } from '@/stores/auth'
@@ -61,7 +61,12 @@ function openBooking() {
 <template>
   <PublicLayout>
     <section class="relative overflow-hidden bg-slate-950 text-white">
-      <img :src="heroImage" alt="" class="absolute inset-0 h-full w-full object-cover opacity-35" />
+      <img :src="heroImage" alt="" class="absolute inset-0 h-full w-full object-cover" />
+      <!-- Lớp phủ tối ở phía có chữ để chữ trắng đủ tương phản; sáng dần sang phải để thấy ảnh. Màn hình hẹp phủ đều hơn. -->
+      <div
+        class="absolute inset-0 bg-linear-to-r from-slate-950/90 via-slate-950/75 to-slate-950/60 lg:via-slate-950/65 lg:to-slate-950/15"
+        aria-hidden="true"
+      ></div>
       <div class="relative mx-auto flex min-h-[520px] max-w-7xl flex-col justify-center px-4 py-16 sm:px-6 lg:px-8">
         <div class="max-w-3xl">
           <h1 class="text-4xl font-bold sm:text-5xl">MedBook</h1>
