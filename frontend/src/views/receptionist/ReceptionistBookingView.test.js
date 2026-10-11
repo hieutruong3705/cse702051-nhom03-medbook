@@ -10,7 +10,10 @@ const mocks = vi.hoisted(() => ({
   servicesList: vi.fn(),
   specialtiesList: vi.fn(),
   doctorsList: vi.fn(),
-  slotsAvailable: vi.fn()
+  slotsAvailable: vi.fn(),
+  slotsEarliest: vi.fn(),
+  slotsHold: vi.fn(),
+  slotsRelease: vi.fn()
 }))
 
 vi.mock('vue-router', () => ({
@@ -40,7 +43,12 @@ vi.mock('@/api/doctors', () => ({
 }))
 
 vi.mock('@/api/slots', () => ({
-  slotsApi: { availableByDoctor: mocks.slotsAvailable }
+  slotsApi: {
+    availableByDoctor: mocks.slotsAvailable,
+    earliest: mocks.slotsEarliest,
+    hold: mocks.slotsHold,
+    release: mocks.slotsRelease
+  }
 }))
 
 vi.mock('@/composables/useToast', () => ({
@@ -52,6 +60,7 @@ const service = { id: 2, name: 'Khám tổng quát', durationMinutes: 30, price:
 const doctor = { id: 3, fullName: 'Bác sĩ Lan', specialtyId: 4, specialtyName: 'Nội tổng quát' }
 const slot = { id: 5, doctorId: 3, slotDate: '2099-01-05', startTime: '08:00:00', endTime: '08:30:00', status: 'AVAILABLE' }
 const page = (content) => ({ content, page: 0, size: 10, totalElements: content.length, totalPages: 1 })
+const heldFor = (slotId) => ({ holdId: 5000 + slotId, slotId, expiresAt: '2099-01-05T08:10:00', remainingSeconds: 600 })
 
 const global = {
   stubs: {
@@ -71,6 +80,9 @@ function resetMocks() {
   mocks.specialtiesList.mockResolvedValue(page([{ id: 4, name: 'Nội tổng quát' }]))
   mocks.doctorsList.mockResolvedValue(page([doctor]))
   mocks.slotsAvailable.mockResolvedValue([slot])
+  mocks.slotsEarliest.mockResolvedValue([])
+  mocks.slotsHold.mockImplementation((slotId) => Promise.resolve(heldFor(slotId)))
+  mocks.slotsRelease.mockResolvedValue(null)
 }
 
 async function mountBooking(query = {}) {
@@ -134,8 +146,10 @@ describe('ReceptionistBookingView', () => {
     await wrapper.findAll('button').find((button) => button.text() === 'Xác nhận đặt lịch').trigger('click')
     await flushPromises()
 
-    expect(mocks.appointmentCreate).toHaveBeenCalledWith({ patientId: 1, slotId: 5, serviceId: 2, notes: 'Cần gọi lại trước giờ khám' })
+    expect(mocks.slotsHold).toHaveBeenCalledWith(5)
+    expect(mocks.appointmentCreate).toHaveBeenCalledWith({ patientId: 1, slotId: 5, serviceId: 2, holdId: 5005, notes: 'Cần gọi lại trước giờ khám' })
     expect(wrapper.text()).toContain('Đã đặt lịch')
+    expect(mocks.slotsRelease).not.toHaveBeenCalled()
     wrapper.unmount()
   })
 
@@ -149,6 +163,42 @@ describe('ReceptionistBookingView', () => {
     expect(wrapper.text()).toContain('Bác sĩ và giờ')
     expect(wrapper.text()).toContain('Khung giờ vừa được đặt')
     expect(mocks.slotsAvailable.mock.calls.length).toBeGreaterThan(1)
+    wrapper.unmount()
+  })
+
+  it('410 khi xác nhận quay về bước chọn giờ, bỏ hold và giữ nguyên lựa chọn khác', async () => {
+    mocks.appointmentCreate.mockRejectedValueOnce(Object.assign(new Error('Thời gian giữ chỗ đã hết. Vui lòng chọn lại khung giờ!'), { status: 410 }))
+    const wrapper = await mountBooking({ patientId: '1' })
+    await chooseBaseFlow(wrapper)
+    const loadsBefore = mocks.slotsAvailable.mock.calls.length
+    await wrapper.findAll('button').find((button) => button.text() === 'Xác nhận đặt lịch').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Bác sĩ và giờ')
+    expect(wrapper.text()).toContain('Thời gian giữ chỗ đã hết')
+    expect(wrapper.find('#booking-doctor').element.value).toBe('3')
+    expect(wrapper.find('#booking-date').element.value).toBe('2099-01-05')
+    expect(mocks.slotsAvailable.mock.calls.length).toBe(loadsBefore + 1)
+    expect(mocks.slotsRelease).toHaveBeenCalledWith(5)
+    wrapper.unmount()
+  })
+
+  it('chọn giờ sớm nhất thì giữ chỗ, điền bác sĩ/ngày/slot và sang xác nhận', async () => {
+    mocks.slotsEarliest.mockResolvedValueOnce([
+      { slotId: 6, doctorId: 3, doctorName: 'Bác sĩ Lan', specialtyId: 4, specialtyName: 'Nội tổng quát', date: '2099-01-06', startTime: '09:00:00', endTime: '09:30:00' }
+    ])
+    const wrapper = await mountBooking({ patientId: '1' })
+    await wrapper.find('#booking-service').setValue('2')
+    await flushPromises()
+    const earliest = wrapper.findAll('ul[aria-label="Giờ sớm nhất còn trống"] button')[0]
+    expect(earliest.text()).toContain('09:00')
+    await earliest.trigger('click')
+    await flushPromises()
+
+    expect(mocks.slotsEarliest).toHaveBeenLastCalledWith({ serviceId: 2, specialtyId: undefined, limit: 5 })
+    expect(mocks.slotsHold).toHaveBeenCalledWith(6)
+    expect(wrapper.text()).toContain('Xác nhận đặt lịch')
+    expect(wrapper.text()).toContain('09:00')
     wrapper.unmount()
   })
 
