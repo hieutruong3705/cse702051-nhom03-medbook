@@ -58,12 +58,15 @@ test('lễ tân tạo hồ sơ bệnh nhân, đặt lịch hộ, đổi lịch r
   await patientRow.getByRole('link', { name: 'Đặt lịch' }).click()
   await expect(page).toHaveURL(/^[^?#]*\/receptionist\/booking\?patientId=\d+/)
   await page.locator('#booking-service').selectOption({ label: 'Khám tổng quát' }) // 30 phút, vừa khung giờ của ca
+  await expect(page.getByRole('heading', { name: 'Giờ sớm nhất còn trống' })).toBeVisible()
   await page.getByRole('button', { name: 'Tiếp tục' }).click()
   await page.locator('#booking-doctor').selectOption(DOCTOR_ID)
   await page.locator('#booking-date').fill(day)
   const freeSlots = page.getByRole('list', { name: 'Khung giờ còn trống' }).getByRole('button')
   await expect(freeSlots).toHaveCount(4)
+  // chọn khung giờ thì quầy giữ chỗ ngay, có đồng hồ đếm ngược
   await freeSlots.first().click()
+  await expect(page.locator('[data-test="hold-countdown"]')).toContainText('Đang giữ chỗ, còn')
   await page.getByRole('button', { name: 'Tiếp tục' }).click()
   await expect(page.getByRole('heading', { name: 'Xác nhận đặt lịch' })).toBeVisible()
   await page.locator('#booking-notes').fill('Bệnh nhân đến quầy, nhờ đặt hộ')
@@ -86,6 +89,7 @@ test('lễ tân tạo hồ sơ bệnh nhân, đặt lịch hộ, đổi lịch r
   const otherSlots = dialog(page).getByRole('list', { name: 'Khung giờ còn trống' }).getByRole('button')
   await expect(otherSlots).toHaveCount(3)
   await otherSlots.first().click()
+  await expect(dialog(page).locator('[data-test="reschedule-hold-countdown"]')).toContainText('Đang giữ chỗ, còn')
   await dialog(page).locator('#reschedule-reason').fill('Bệnh nhân xin lùi nửa giờ')
   await dialog(page).getByRole('button', { name: 'Đổi lịch', exact: true }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
