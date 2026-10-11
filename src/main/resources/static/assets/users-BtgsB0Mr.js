@@ -1,0 +1,1 @@
+import{r as e}from"./index-C8UiNJj4.js";var t={me:()=>e.get(`/users/me`).then(e=>e.data),updateMe:t=>e.put(`/users/me`,t).then(e=>e.data)};export{t};
