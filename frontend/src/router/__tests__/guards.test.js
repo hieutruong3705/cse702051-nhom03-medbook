@@ -260,6 +260,24 @@ describe('router gốc của ứng dụng', () => {
     expect(router.currentRoute.value.name).toBe('not-found')
   })
 
+  it('khu Lễ tân chỉ dành cho RECEPTIONIST; lễ tân không vào được khu quản trị, bác sĩ, bệnh nhân', async () => {
+    const router = createAppRouter(createMemoryHistory())
+    const auth = useAuthStore()
+
+    expect(routeAccess(router.resolve('/receptionist'))).toEqual({
+      roles: ['RECEPTIONIST'],
+      requiresAuth: true,
+      guestOnly: false
+    })
+
+    loginAs(auth, ['RECEPTIONIST'])
+    expect(auth.dashboardPath).toBe('/receptionist/dashboard')
+    for (const path of ['/admin/dashboard', '/doctor/dashboard', '/patient/dashboard']) {
+      await router.push(path)
+      expect(router.currentRoute.value.path).toBe('/403')
+    }
+  })
+
   it('/patient chuyển về dashboard; ADMIN vào được /admin/dashboard', async () => {
     const router = createAppRouter(createMemoryHistory())
     const auth = useAuthStore()

@@ -19,11 +19,12 @@ Dữ liệu trong đồ án là dữ liệu mô phỏng phục vụ học tập.
 
 ## 2. Chức năng
 
-Ba vai trò, mỗi vai trò chỉ thấy đúng phần việc của mình (kiểm quyền ở phía máy chủ, không chỉ ẩn nút):
+Bốn vai trò, mỗi vai trò chỉ thấy đúng phần việc của mình (kiểm quyền ở phía máy chủ, không chỉ ẩn nút):
 
 - **Khách:** xem bác sĩ, chuyên khoa, dịch vụ và giờ trống của bác sĩ.
 - **Bệnh nhân:** đăng ký, đặt lịch, đổi lịch, hủy lịch; xem bệnh án, đơn thuốc, hóa đơn và thông báo của mình.
 - **Bác sĩ:** quản lý ca làm việc, giờ nghỉ, ngày nghỉ (hệ thống tự sinh giờ trống); khám bệnh, ghi bệnh án, kê đơn, tải tệp đính kèm, lập hóa đơn; xem bệnh nhân mình phụ trách.
+- **Lễ tân:** tìm bệnh nhân và tạo hồ sơ cho người chưa có tài khoản; xem lịch hẹn của cả phòng khám; đặt, đổi, hủy lịch hộ bệnh nhân (bắt buộc ghi lý do khi đổi và hủy); xem hóa đơn và ghi nhận đã thu. Là vai trò hành chính: không đọc được bệnh án, đơn thuốc, tệp đính kèm hay ghi chú lịch hẹn; không hủy được hóa đơn.
 - **Quản trị viên:** quản lý tài khoản (tạo, khóa, đổi vai trò), hồ sơ bác sĩ, danh mục (chuyên khoa, dịch vụ, thuốc); theo dõi lịch hẹn; thu và hủy hóa đơn; ba báo cáo có biểu đồ và xuất CSV (lịch khám, doanh thu, dịch vụ khám); tra cứu nhật ký hệ thống. Quản trị viên không xem được nội dung bệnh án.
 
 ## 3. Công nghệ
@@ -65,6 +66,7 @@ Muốn trang báo cáo của quản trị viên có sẵn số liệu và biểu
 | `admin1` | Quản trị viên | `MedBook@2026` |
 | `doctor1`, `doctor2` | Bác sĩ | `MedBook@2026` |
 | `patient1`, `patient2` | Bệnh nhân | `MedBook@2026` |
+| `receptionist1` | Lễ tân | `MedBook@2026` |
 
 Có thể đăng nhập bằng email (`admin1@medbook.local`, …). Các tài khoản này chỉ có ở chế độ phát triển và khi bật `MEDBOOK_SEED_DEMO=true` trên Docker; **không bao giờ** có ở hồ sơ `prod`.
 
@@ -156,8 +158,8 @@ Sau khi sửa giao diện phải `npm run build` rồi chạy lại backend thì
 
 | Việc | Cách làm |
 |---|---|
-| Thêm thay đổi lược đồ | Thêm tệp `V3__mo_ta.sql` (hoặc lớp Java) vào `src/main/resources/db/migration`; chỉ cộng thêm, không sửa migration đã phát hành |
-| Nâng cấp CSDL đang chạy với Flyway tắt (hồ sơ `online`, `v4mysql`) | Chạy `scripts/cx-additive-schema.mysql.sql` (chạy lại nhiều lần được) **trước khi** triển khai bản ứng dụng mới |
+| Thêm thay đổi lược đồ | Thêm tệp `V4__mo_ta.sql` (hoặc lớp Java; V2 và V3 đã dùng) vào `src/main/resources/db/migration`; chỉ cộng thêm, không sửa migration đã phát hành |
+| Nâng cấp CSDL đang chạy với Flyway tắt (hồ sơ `online`, `v4mysql`) | Chạy `scripts/cx-additive-schema.mysql.sql` rồi `scripts/receptionist-role.mysql.sql` (cả hai chạy lại nhiều lần được) **trước khi** triển khai bản ứng dụng mới |
 | Sao lưu | `.\scripts\backup-db.ps1` → tệp `.sql` trong thư mục `backups/` |
 | Kiểm chứng phục hồi | `.\scripts\restore-db.ps1 -File <tệp .sql>`: nạp vào một CSDL trống mới rồi đối chiếu số dòng từng bảng |
 | Ràng buộc bất biến | `CHECK`, `UNIQUE`, khóa ngoại trong migration; ví dụ giờ kết thúc phải sau giờ bắt đầu, mỗi slot chỉ có một lịch đang giữ chỗ |

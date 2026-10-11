@@ -9,6 +9,7 @@ import { installAuthGuards } from './guards'
  *   public.routes.js  → khu công khai + đăng nhập/đăng ký (Dev 5)
  *   patient.routes.js → khu Bệnh nhân            (Dev 5)
  *   doctor.routes.js  → khu Bác sĩ               (Dev 5)
+ *   receptionist.routes.js → khu Lễ tân          (Dev 5)
  *   admin.routes.js   → khu Admin                (Dev 1)
  * Mỗi file `export default` một mảng route CON (đường dẫn tương đối, không có `/` đầu).
  *
@@ -58,6 +59,12 @@ const routes = [
     component: PassThrough,
     meta: { requiresAuth: true, roles: ['DOCTOR'] },
     children: [{ path: '', redirect: '/doctor/dashboard' }, ...routesOf('doctor')]
+  },
+  {
+    path: '/receptionist',
+    component: PassThrough,
+    meta: { requiresAuth: true, roles: ['RECEPTIONIST'] },
+    children: [{ path: '', redirect: '/receptionist/dashboard' }, ...routesOf('receptionist')]
   },
   {
     path: '/admin',

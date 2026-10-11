@@ -96,7 +96,69 @@ public class AppointmentService {
     public AppointmentDTO book(Long slotId, Long serviceId, String notes) {
         currentUserService.requireRole("PATIENT");
         Long patientId = currentActorService.requireCurrentPatientId();
+        return mapper.toDTO(bookFor(patientId, slotId, serviceId, notes));
+    }
 
+    /** YCCN-12: bệnh nhân hủy lịch của mình, giải phóng slot. */
+    @Transactional
+    public AppointmentDTO cancel(Long appointmentId, String reason) {
+        currentUserService.requireRole("PATIENT");
+        Long patientId = currentActorService.requireCurrentPatientId();
+        Appointment appointment = requireOwnedByPatient(appointmentId, patientId);
+
+        assertChangeableByPatient(appointment, "hủy");
+        return mapper.toDTO(cancelBooked(appointment, reason));
+    }
+
+    /**
+     * YCCN-13: đổi lịch sang slot trống khác, nguyên tử: chiếm slot mới trước, rồi nhả slot cũ.
+     * Thất bại ở bất kỳ bước nào ⇒ rollback, lịch cũ và slot cũ giữ nguyên.
+     */
+    @Transactional
+    public AppointmentDTO reschedule(Long appointmentId, Long newSlotId, String reason) {
+        currentUserService.requireRole("PATIENT");
+        Long patientId = currentActorService.requireCurrentPatientId();
+        Appointment appointment = requireOwnedByPatient(appointmentId, patientId);
+
+        assertChangeableByPatient(appointment, "đổi");
+        return mapper.toDTO(moveToSlot(appointment, newSlotId,
+                "Khung giờ mới vừa có người khác đặt. Lịch hiện tại của bạn được giữ nguyên!"));
+    }
+
+    // ================= Đặt / hủy / đổi lịch hộ tại quầy (nội bộ cho module lễ tân) =================
+    // Ba phương thức dưới đây KHÔNG kiểm quyền người gọi và không ghi nhật ký: người gọi (ReceptionAppointmentService)
+    // đã kiểm vai trò lễ tân và tự ghi nhật ký "làm hộ". Chúng dùng đúng phần lõi của luồng bệnh nhân, nên bảo đảm
+    // đồng thời (khóa lạc quan của slot + UNIQUE active_slot_id) là một.
+
+    /** Đặt lịch cho bệnh nhân {@code patientId}; người gọi đã kiểm bệnh nhân tồn tại và đang hoạt động. */
+    @Transactional
+    public Appointment bookOnBehalf(Long patientId, Long slotId, Long serviceId, String notes) {
+        return bookFor(patientId, slotId, serviceId, notes);
+    }
+
+    /**
+     * Hủy hộ một lịch BOOKED. Khác bệnh nhân tự hủy: không bị chặn trong {@code cancel-before-hours} giờ trước giờ
+     * khám, nhưng không hủy được lịch đã qua giờ bắt đầu.
+     */
+    @Transactional
+    public Appointment cancelOnBehalf(Long appointmentId, String reason) {
+        Appointment appointment = findById(appointmentId);
+        assertChangeableAtDesk(appointment, "hủy");
+        return cancelBooked(appointment, reason);
+    }
+
+    /** Đổi hộ một lịch BOOKED sang slot trống khác; cùng điều kiện với {@link #cancelOnBehalf}. */
+    @Transactional
+    public Appointment rescheduleOnBehalf(Long appointmentId, Long newSlotId) {
+        Appointment appointment = findById(appointmentId);
+        assertChangeableAtDesk(appointment, "đổi");
+        return moveToSlot(appointment, newSlotId,
+                "Khung giờ mới vừa có người khác đặt. Lịch hiện tại được giữ nguyên!");
+    }
+
+    // ================= Phần lõi dùng chung của đặt / hủy / đổi =================
+
+    private Appointment bookFor(Long patientId, Long slotId, Long serviceId, String notes) {
         MedicalService service = requireActiveService(serviceId);
         AppointmentSlot slot = slotRepository.findById(slotId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khung giờ khám!"));
@@ -120,18 +182,10 @@ public class AppointmentService {
 
         eventPublisher.publishEvent(new AppointmentBookedEvent(appointment.getId(), patientId,
                 slot.getDoctor().getId(), slot.getSlotDate(), slot.getStartTime(), slot.getEndTime()));
-        return mapper.toDTO(appointment);
+        return appointment;
     }
 
-    /** YCCN-12: bệnh nhân hủy lịch của mình, giải phóng slot. */
-    @Transactional
-    public AppointmentDTO cancel(Long appointmentId, String reason) {
-        currentUserService.requireRole("PATIENT");
-        Long patientId = currentActorService.requireCurrentPatientId();
-        Appointment appointment = requireOwnedByPatient(appointmentId, patientId);
-
-        assertChangeableByPatient(appointment, "hủy");
-
+    private Appointment cancelBooked(Appointment appointment, String reason) {
         AppointmentSlot slot = appointment.getSlot();
         LocalDateTime now = LocalDateTime.now();
         appointment.cancel(reason == null || reason.isBlank() ? null : reason.trim(), now);
@@ -139,23 +193,12 @@ public class AppointmentService {
         appointmentRepository.save(appointment);
         flushOrConflict("Lịch hẹn vừa có thay đổi. Vui lòng tải lại và thử lại!");
 
-        eventPublisher.publishEvent(new AppointmentCancelledEvent(appointment.getId(), patientId,
+        eventPublisher.publishEvent(new AppointmentCancelledEvent(appointment.getId(), appointment.getPatientId(),
                 slot.getDoctor().getId(), slot.getSlotDate(), slot.getStartTime(), appointment.getCancelReason()));
-        return mapper.toDTO(appointment);
+        return appointment;
     }
 
-    /**
-     * YCCN-13: đổi lịch sang slot trống khác, nguyên tử: chiếm slot mới trước, rồi nhả slot cũ.
-     * Thất bại ở bất kỳ bước nào ⇒ rollback, lịch cũ và slot cũ giữ nguyên.
-     */
-    @Transactional
-    public AppointmentDTO reschedule(Long appointmentId, Long newSlotId, String reason) {
-        currentUserService.requireRole("PATIENT");
-        Long patientId = currentActorService.requireCurrentPatientId();
-        Appointment appointment = requireOwnedByPatient(appointmentId, patientId);
-
-        assertChangeableByPatient(appointment, "đổi");
-
+    private Appointment moveToSlot(Appointment appointment, Long newSlotId, String slotTakenMessage) {
         AppointmentSlot oldSlot = appointment.getSlot();
         if (oldSlot.getId().equals(newSlotId)) {
             throw new FieldValidationException("newSlotId", "Khung giờ mới phải khác khung giờ hiện tại");
@@ -169,7 +212,7 @@ public class AppointmentService {
         Long oldDoctorId = oldSlot.getDoctor().getId();
 
         // 1. chiếm slot mới (xung đột ⇒ 409, toàn bộ giao dịch rollback)
-        takeSlot(newSlot, "Khung giờ mới vừa có người khác đặt. Lịch hiện tại của bạn được giữ nguyên!");
+        takeSlot(newSlot, slotTakenMessage);
         // 2. nhả slot cũ
         releaseSlot(oldSlot);
         // 3. chuyển lịch hẹn sang slot mới
@@ -177,12 +220,12 @@ public class AppointmentService {
         appointment.setReminder24hSentAt(null);
         appointment.setReminder2hSentAt(null);
         appointmentRepository.save(appointment);
-        flushOrConflict("Khung giờ mới vừa có người khác đặt. Lịch hiện tại của bạn được giữ nguyên!");
+        flushOrConflict(slotTakenMessage);
 
-        eventPublisher.publishEvent(new AppointmentRescheduledEvent(appointment.getId(), patientId, oldDoctorId,
-                oldDate, oldStart, newSlot.getDoctor().getId(), newSlot.getSlotDate(), newSlot.getStartTime(),
-                newSlot.getEndTime()));
-        return mapper.toDTO(appointment);
+        eventPublisher.publishEvent(new AppointmentRescheduledEvent(appointment.getId(), appointment.getPatientId(),
+                oldDoctorId, oldDate, oldStart, newSlot.getDoctor().getId(), newSlot.getSlotDate(),
+                newSlot.getStartTime(), newSlot.getEndTime()));
+        return appointment;
     }
 
     // ================= Trạng thái khám (bác sĩ) =================
@@ -314,6 +357,18 @@ public class AppointmentService {
         if (Duration.between(LocalDateTime.now(), start).compareTo(Duration.ofHours(cancelBeforeHours)) < 0) {
             throw new ConflictException("Không thể " + action + " lịch trong vòng " + cancelBeforeHours
                     + " giờ trước giờ khám. Vui lòng liên hệ phòng khám!");
+        }
+    }
+
+    /** Tại quầy: chỉ lịch BOOKED (sai trạng thái → 422) và chưa qua giờ bắt đầu (đã qua → 409). */
+    private void assertChangeableAtDesk(Appointment appointment, String action) {
+        if (appointment.getStatus() != AppointmentStatus.BOOKED) {
+            throw new UnprocessableEntityException("Chỉ có thể " + action + " lịch hẹn ở trạng thái BOOKED (hiện tại: "
+                    + appointment.getStatus() + ")!");
+        }
+        LocalDateTime start = LocalDateTime.of(appointment.getSlot().getSlotDate(), appointment.getSlot().getStartTime());
+        if (!start.isAfter(LocalDateTime.now())) {
+            throw new ConflictException("Lịch hẹn đã qua giờ bắt đầu nên không thể " + action + "!");
         }
     }
 

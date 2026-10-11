@@ -11,7 +11,8 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * Admin tạo tài khoản với đúng một vai trò ({@code PATIENT}, {@code DOCTOR} hoặc {@code ADMIN}).
+ * Admin tạo tài khoản với đúng một vai trò ({@code PATIENT}, {@code DOCTOR}, {@code RECEPTIONIST} hoặc
+ * {@code ADMIN}).
  * {@code doctorProfile} bắt buộc khi vai trò là {@code DOCTOR} và không được gửi với vai trò khác.
  */
 public record AdminCreateUserRequest(

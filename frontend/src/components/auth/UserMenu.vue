@@ -75,7 +75,7 @@ const router = useRouter()
 const auth = useAuthStore()
 const toast = useToast()
 
-const ROLE_LABELS = { ADMIN: 'Quản trị viên', DOCTOR: 'Bác sĩ', PATIENT: 'Bệnh nhân' }
+const ROLE_LABELS = { ADMIN: 'Quản trị viên', DOCTOR: 'Bác sĩ', RECEPTIONIST: 'Lễ tân', PATIENT: 'Bệnh nhân' }
 const roleLabel = computed(() => ROLE_LABELS[auth.primaryRole] || 'Tài khoản')
 
 // Chờ xác nhận thu hồi phiên; lỗi mạng cho phép người dùng thử lại.

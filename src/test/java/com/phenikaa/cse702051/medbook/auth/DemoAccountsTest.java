@@ -17,7 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 
 /**
- * Tài khoản demo trong {@code data-h2.sql} (dev/H2): cả 5 tài khoản dùng chung mật khẩu demo
+ * Tài khoản demo trong {@code data-h2.sql} (dev/H2): cả 6 tài khoản dùng chung mật khẩu demo
  * {@value #DEMO_PASSWORD}. Test này bảo đảm thông tin ghi trong README/tài liệu luôn đăng nhập được.
  */
 class DemoAccountsTest extends AbstractApiTest {
@@ -30,7 +30,8 @@ class DemoAccountsTest extends AbstractApiTest {
             "doctor1,DOCTOR",
             "doctor2,DOCTOR",
             "patient1,PATIENT",
-            "patient2,PATIENT"
+            "patient2,PATIENT",
+            "receptionist1,RECEPTIONIST"
     })
     @DisplayName("Tài khoản demo đăng nhập được bằng mật khẩu demo và có đúng vai trò")
     void demoAccountsCanLogIn(String username, String role) throws Exception {
@@ -53,6 +54,7 @@ class DemoAccountsTest extends AbstractApiTest {
         String path = switch (role) {
             case "ADMIN" -> "/api/v1/admin/invoices";
             case "DOCTOR" -> "/api/v1/patients";
+            case "RECEPTIONIST" -> "/api/v1/reception/overview";
             default -> "/api/v1/patients/me";
         };
         mvc.perform(get(path).header("Authorization", "Bearer " + login.get("token").asText()))

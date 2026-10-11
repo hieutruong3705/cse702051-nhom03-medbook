@@ -68,12 +68,8 @@ public class PatientService {
      */
     @Transactional
     public Patient createForNewUser(User user, RegisterRequest request) {
-        LocalDateTime now = LocalDateTime.now();
-
-        Patient patient = Patient.builder()
+        return saveWithCodeAndRecord(Patient.builder()
                 .user(user)
-                // mã tạm duy nhất; đổi thành BN + id ngay bên dưới
-                .patientCode("TMP" + UUID.randomUUID().toString().replace("-", "").substring(0, 12))
                 .fullName(user.getFullName())
                 .dateOfBirth(request.getDateOfBirth() != null ? request.getDateOfBirth() : LocalDate.of(2000, 1, 1))
                 .genderCode(request.getGenderCode() != null && !request.getGenderCode().isBlank()
@@ -86,10 +82,35 @@ public class PatientService {
                 .emergencyContactPhone(request.getEmergencyContactPhone())
                 .bloodType(request.getBloodType())
                 .allergies(request.getAllergies())
-                .status("ACTIVE")
-                .createdAt(now)
-                .updatedAt(now)
-                .build();
+                .build());
+    }
+
+    /**
+     * Tạo hồ sơ bệnh nhân KHÔNG gắn tài khoản (bệnh nhân đến quầy) kèm bệnh án rỗng. API nội bộ cho quầy lễ tân:
+     * không kiểm quyền người gọi và không ghi nhật ký; người gọi chịu trách nhiệm hai việc đó và phải đã chuẩn hóa
+     * dữ liệu. Chạy trong giao dịch của người gọi.
+     */
+    @Transactional
+    public Patient createWithoutAccount(String fullName, LocalDate dateOfBirth, String genderCode, String phone,
+            String email, String address) {
+        return saveWithCodeAndRecord(Patient.builder()
+                .fullName(fullName)
+                .dateOfBirth(dateOfBirth)
+                .genderCode(genderCode)
+                .phone(phone)
+                .email(email)
+                .address(address)
+                .build());
+    }
+
+    /** Lưu hồ sơ mới ở trạng thái ACTIVE, cấp mã {@code BN} + id sáu chữ số và tạo bệnh án rỗng. */
+    private Patient saveWithCodeAndRecord(Patient patient) {
+        LocalDateTime now = LocalDateTime.now();
+        // mã tạm duy nhất; đổi thành BN + id ngay bên dưới
+        patient.setPatientCode("TMP" + UUID.randomUUID().toString().replace("-", "").substring(0, 12));
+        patient.setStatus("ACTIVE");
+        patient.setCreatedAt(now);
+        patient.setUpdatedAt(now);
         patient = patientRepository.save(patient);
         patient.setPatientCode(String.format("BN%06d", patient.getId()));
         patient = patientRepository.save(patient);

@@ -136,6 +136,9 @@ public class SecurityConfig {
                                 API + "/medicines", API + "/medicines/**").hasRole("ADMIN");
                     }
 
+                    // === RECEPTIONIST: khu lễ tân chỉ dành cho lễ tân; Admin dùng /admin/**, không dùng nhóm này ===
+                    auth.requestMatchers(API + "/reception", API + "/reception/**").hasRole("RECEPTIONIST");
+
                     // === DOCTOR ===
                     auth.requestMatchers(API + "/doctor-schedules", API + "/doctor-schedules/**").hasRole("DOCTOR");
                     auth.requestMatchers(HttpMethod.PATCH, API + "/appointments/*/status").hasRole("DOCTOR");

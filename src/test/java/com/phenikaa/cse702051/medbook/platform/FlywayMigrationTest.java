@@ -28,6 +28,7 @@ import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 
 import com.phenikaa.cse702051.medbook.config.DemoSeedRunner;
 import com.phenikaa.cse702051.medbook.config.migration.V2__CxAdditiveSchema;
+import com.phenikaa.cse702051.medbook.config.migration.V3__ReceptionistRole;
 
 import jakarta.persistence.Table;
 
@@ -66,7 +67,7 @@ class FlywayMigrationTest {
         return Flyway.configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
-                .javaMigrations(new V2__CxAdditiveSchema())
+                .javaMigrations(new V2__CxAdditiveSchema(), new V3__ReceptionistRole())
                 .baselineOnMigrate(true)
                 .baselineVersion("1")
                 .load();
@@ -92,15 +93,17 @@ class FlywayMigrationTest {
     }
 
     @Test
-    @DisplayName("AC-09.8 CSDL mới: V1 và V2 chạy hết, đủ bảng cho mọi entity, đủ cột và chỉ mục mới; chạy lại không đổi gì")
+    @DisplayName("AC-09.8 CSDL mới: V1, V2 và V3 chạy hết, đủ bảng cho mọi entity, đủ cột và chỉ mục mới; chạy lại không đổi gì")
     void migratesAnEmptyDatabase() throws Exception {
         DataSource dataSource = newDatabase();
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
 
         MigrateResult result = flyway(dataSource).migrate();
 
-        assertEquals(2, result.migrationsExecuted);
-        assertEquals("2", result.targetSchemaVersion);
+        assertEquals(3, result.migrationsExecuted);
+        assertEquals("3", result.targetSchemaVersion);
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM roles", Long.class),
+                "V3 không chèn vào bảng roles rỗng: vai trò đến từ dữ liệu khởi tạo, có id tường minh");
         assertEquals(entityTables(), tables(jdbc), "mỗi entity phải có bảng do migration tạo, và ngược lại");
         assertTrue(columns(jdbc, "prescription_items").contains("medicine_id"));
         assertTrue(columns(jdbc, "invoices").containsAll(List.of("voided_at", "void_reason")));
@@ -154,7 +157,7 @@ class FlywayMigrationTest {
     }
 
     @Test
-    @DisplayName("AC-09.4 CSDL đã có (chưa có lịch sử Flyway, đã có sẵn một phần thay đổi): baseline V1 rồi chỉ chạy V2, không lỗi")
+    @DisplayName("AC-09.4 CSDL đã có (chưa có lịch sử Flyway, đã có sẵn một phần thay đổi): baseline V1 rồi chỉ chạy V2 và V3, không lỗi")
     void upgradesAnExistingDatabaseWithoutHistory() throws Exception {
         DataSource dataSource = newDatabase();
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
@@ -174,16 +177,20 @@ class FlywayMigrationTest {
 
         MigrateResult result = flyway(dataSource).migrate();
 
-        assertEquals(1, result.migrationsExecuted, "chỉ V2 được chạy, V1 được coi là đã có");
+        assertEquals(2, result.migrationsExecuted, "chỉ V2 và V3 được chạy, V1 được coi là đã có");
         assertEquals(entityTables(), tables(jdbc));
         assertTrue(columns(jdbc, "invoices").containsAll(List.of("voided_at", "void_reason")));
         assertFalse(indexes(jdbc, "appointments").contains("idx_appointments_patient"),
                 "đã có chỉ mục khác trên đúng cột này thì không tạo thêm");
-        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM roles", Long.class), "dữ liệu cũ còn nguyên");
+        assertEquals(List.of("1:PATIENT"), jdbc.queryForList(
+                "SELECT CONCAT(id, ':', code) FROM roles WHERE code <> 'RECEPTIONIST'", String.class),
+                "dữ liệu cũ còn nguyên");
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM roles WHERE code = 'RECEPTIONIST' "
+                + "AND name = 'Lễ tân'", Long.class), "CSDL đã có vai trò thì V3 thêm vai trò Lễ tân");
     }
 
     @Test
-    @DisplayName("AC-09.1 Dữ liệu demo: có cờ thì nạp đúng một lần (5 tài khoản, 3 vai trò, giờ trống 7 ngày tới); chạy lại không nạp chồng")
+    @DisplayName("AC-09.1 Dữ liệu demo: có cờ thì nạp đúng một lần (6 tài khoản, 4 vai trò, giờ trống 7 ngày tới); chạy lại không nạp chồng")
     void demoSeedLoadsOnceWhenEnabled() {
         DataSource dataSource = newDatabase();
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
@@ -192,9 +199,9 @@ class FlywayMigrationTest {
 
         assertTrue(runner.seedIfEmpty());
 
-        assertEquals(5, jdbc.queryForObject("SELECT COUNT(*) FROM users", Long.class));
-        assertEquals(3, jdbc.queryForObject("SELECT COUNT(*) FROM roles", Long.class));
-        assertEquals(List.of("ADMIN", "DOCTOR", "DOCTOR", "PATIENT", "PATIENT"), jdbc.queryForList(
+        assertEquals(6, jdbc.queryForObject("SELECT COUNT(*) FROM users", Long.class));
+        assertEquals(4, jdbc.queryForObject("SELECT COUNT(*) FROM roles", Long.class));
+        assertEquals(List.of("ADMIN", "DOCTOR", "DOCTOR", "PATIENT", "PATIENT", "RECEPTIONIST"), jdbc.queryForList(
                 "SELECT r.code FROM user_roles ur JOIN roles r ON r.id = ur.role_id ORDER BY r.code", String.class));
         assertEquals(2, jdbc.queryForObject("SELECT COUNT(*) FROM doctors", Long.class));
         assertEquals(2, jdbc.queryForObject("SELECT COUNT(*) FROM patients", Long.class));
@@ -204,11 +211,11 @@ class FlywayMigrationTest {
                 + "ON d.doctor_id = s.doctor_id AND d.work_date = s.slot_date AND s.start_time >= d.start_time "
                 + "AND s.end_time <= d.end_time WHERE s.slot_date > CURDATE()", Long.class),
                 "mọi giờ trống demo nằm trong một ca và ở tương lai");
-        assertEquals(5, jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE password_hash LIKE '$2a$12$%'",
+        assertEquals(6, jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE password_hash LIKE '$2a$12$%'",
                 Long.class), "mật khẩu demo được lưu dạng băm BCrypt cost 12");
 
         assertFalse(runner.seedIfEmpty(), "đã có tài khoản thì không nạp lại");
-        assertEquals(5, jdbc.queryForObject("SELECT COUNT(*) FROM users", Long.class));
+        assertEquals(6, jdbc.queryForObject("SELECT COUNT(*) FROM users", Long.class));
     }
 
     @Test
@@ -233,5 +240,34 @@ class FlywayMigrationTest {
                 .withUserConfiguration(DemoSeedRunner.class)
                 .withPropertyValues("medbook.seed.demo=true")
                 .run(context -> assertTrue(context.containsBean("demoSeedRunner")));
+    }
+
+    @Test
+    @DisplayName("V3 chạy lại nhiều lần không tạo vai trò trùng; CSDL đã có vai trò Lễ tân thì giữ nguyên")
+    void receptionistRoleMigrationIsRepeatable() throws Exception {
+        DataSource dataSource = newDatabase();
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        flyway(dataSource).migrate();
+        new DemoSeedRunner(dataSource, new ClassPathResource("db/seed/demo-seed.sql"), false).seedIfEmpty();
+        Long seededId = jdbc.queryForObject("SELECT id FROM roles WHERE code = 'RECEPTIONIST'", Long.class);
+
+        for (int i = 0; i < 2; i++) {
+            try (java.sql.Connection connection = dataSource.getConnection()) {
+                new V3__ReceptionistRole().migrate(new org.flywaydb.core.api.migration.Context() {
+                    @Override
+                    public org.flywaydb.core.api.configuration.Configuration getConfiguration() {
+                        return null;
+                    }
+
+                    @Override
+                    public java.sql.Connection getConnection() {
+                        return connection;
+                    }
+                });
+            }
+        }
+
+        assertEquals(4, jdbc.queryForObject("SELECT COUNT(*) FROM roles", Long.class));
+        assertEquals(seededId, jdbc.queryForObject("SELECT id FROM roles WHERE code = 'RECEPTIONIST'", Long.class));
     }
 }
