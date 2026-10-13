@@ -71,7 +71,7 @@ function openBooking() {
         <div class="max-w-3xl">
           <h1 class="text-4xl font-bold sm:text-5xl">MedBook</h1>
           <p class="mt-5 max-w-2xl text-lg text-slate-100">
-            Đặt lịch khám, theo dõi hồ sơ và quản lý lần khám trong một hệ thống mô phỏng thống nhất.
+            Đặt lịch khám trực tuyến với bác sĩ bạn chọn, theo dõi lịch hẹn, kết quả khám và đơn thuốc ở cùng một nơi.
           </p>
           <form class="mt-8 flex max-w-xl items-center rounded-md bg-white p-2 shadow-lg" role="search" @submit.prevent="search">
             <i class="fa-solid fa-magnifying-glass px-3 text-slate-500" aria-hidden="true"></i>
@@ -136,7 +136,7 @@ function openBooking() {
             </div>
             <h3 class="mt-4 font-semibold text-slate-950">{{ spec.name }}</h3>
           </RouterLink>
-          <p v-if="specialties.length === 0 && !loading" class="text-slate-600">Chưa có dữ liệu chuyên khoa.</p>
+          <p v-if="specialties.length === 0 && !loading" class="col-span-full text-slate-600">Danh sách chuyên khoa đang được cập nhật.</p>
         </div>
       </div>
     </section>
@@ -160,7 +160,7 @@ function openBooking() {
             <h3 class="mt-4 font-semibold text-slate-950">{{ doctor.fullName }}</h3>
             <p class="mt-1 text-sm text-slate-600">{{ doctor.specialtyName || 'Chưa có chuyên khoa' }}</p>
           </RouterLink>
-          <p v-if="doctors.length === 0 && !loading" class="text-slate-600">Chưa có dữ liệu bác sĩ.</p>
+          <p v-if="doctors.length === 0 && !loading" class="col-span-full text-slate-600">Danh sách bác sĩ đang được cập nhật.</p>
         </div>
       </div>
     </section>

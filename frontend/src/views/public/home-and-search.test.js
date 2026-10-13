@@ -93,21 +93,47 @@ describe('Trang chủ', () => {
   it('chân trang ghi tên đề tài, nhóm, lớp học phần và dòng dữ liệu mô phỏng', async () => {
     const wrapper = mount(Home)
     await flushPromises()
-    const footer = wrapper.find('footer').text()
-    expect(footer).toContain('Hệ thống quản lý bệnh án và đặt lịch khám bệnh')
-    expect(footer).toContain('Nhóm 03')
-    expect(footer).toContain('CSE702051')
+    const info = wrapper.find('footer [data-test="project-info"]').text()
+    expect(info).toContain('Đề tài: Hệ thống quản lý bệnh án và đặt lịch khám bệnh')
+    expect(info).toContain('Nhóm 03')
+    expect(info).toContain('Lớp học phần Thiết kế web nâng cao (CSE702051)')
     expect(wrapper.find('footer [data-test="data-notice"]').text()).toBe('Dữ liệu mô phỏng phục vụ mục đích học tập.')
   })
 
-  it('API lỗi thì báo chưa có dữ liệu thay vì để trang trống', async () => {
+  it('chân trang của khách: nút đặt lịch, liên kết khám phá, liên kết tài khoản và dòng bản quyền', async () => {
+    const wrapper = mount(Home)
+    await flushPromises()
+    const footer = wrapper.find('footer')
+    expect(footer.findAll('a').map((link) => link.attributes('href'))).toEqual([
+      '/', '/patient/booking',
+      '/', '/specialties', '/doctors', '/services',
+      '/login', '/register', '/forgot-password'
+    ])
+    expect(footer.find('[data-test="copyright"]').text()).toBe(`© ${new Date().getFullYear()} MedBook`)
+  })
+
+  it('chân trang của người đã đăng nhập dẫn về khu làm việc; chỉ khách và bệnh nhân có nút đặt lịch', async () => {
+    signIn(['DOCTOR'])
+    const doctorFooter = mount(Home).find('footer')
+    const doctorLinks = doctorFooter.findAll('a').map((link) => link.attributes('href'))
+    expect(doctorLinks).toEqual(expect.arrayContaining(['/doctor/dashboard', '/account/profile', '/account/change-password']))
+    expect(doctorLinks).not.toContain('/login')
+    expect(doctorFooter.find('[data-test="footer-booking"]').exists()).toBe(false)
+
+    signIn(['PATIENT'])
+    const patientFooter = mount(Home).find('footer')
+    expect(patientFooter.find('[data-test="footer-booking"]').attributes('href')).toBe('/patient/booking')
+    expect(patientFooter.findAll('a').map((link) => link.attributes('href'))).toContain('/patient/dashboard')
+  })
+
+  it('API lỗi thì báo danh sách đang được cập nhật thay vì để trang trống', async () => {
     doctorsApi.list.mockRejectedValue(new Error('mất mạng'))
     catalogApi.specialties.list.mockRejectedValue(new Error('mất mạng'))
     const wrapper = mount(Home)
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Chưa có dữ liệu chuyên khoa.')
-    expect(wrapper.text()).toContain('Chưa có dữ liệu bác sĩ.')
+    expect(wrapper.text()).toContain('Danh sách chuyên khoa đang được cập nhật.')
+    expect(wrapper.text()).toContain('Danh sách bác sĩ đang được cập nhật.')
   })
 })
 
