@@ -66,6 +66,10 @@ spring.servlet.multipart:
 medbook:
   openapi:
     enabled: ${MEDBOOK_OPENAPI_ENABLED:false}
+  admin:
+    # Mật khẩu ban đầu của admin1, admin2, admin3. Chỉ được dùng khi CSDL chưa có tài khoản nào (InitialAdminRunner);
+    # để trống thì không tạo tài khoản. Áp dụng cho mọi hồ sơ.
+    initial-password: ${MEDBOOK_ADMIN_INITIAL_PASSWORD:}
 
 springdoc:
   api-docs:

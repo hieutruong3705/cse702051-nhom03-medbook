@@ -93,6 +93,19 @@ Mở **http://localhost:8080/**. Lần build đầu cần Internet và mất và
 
 Đã có volume `db_data` dựng từ bản cũ (trước khi có Flyway)? Giữ nguyên mật khẩu cũ trong `.env` rồi `docker compose up -d --build`: Flyway coi lược đồ hiện có là bản V1 và chỉ chạy các migration cộng thêm, dữ liệu được giữ nguyên.
 
+### Khởi tạo với dữ liệu sạch (không dùng dữ liệu demo)
+
+Dùng cho bản triển khai thử hoặc thật: CSDL chỉ có bốn vai trò và ba tài khoản quản trị `admin1`, `admin2`, `admin3`. Chuyên khoa, dịch vụ, thuốc, tài khoản bác sĩ và lễ tân do quản trị viên tạo trên giao diện; bệnh nhân tự đăng ký.
+
+1. Đặt `MEDBOOK_ADMIN_INITIAL_PASSWORD` (8–100 ký tự, có chữ cái và chữ số; không dùng lại mật khẩu demo) và để `MEDBOOK_SEED_DEMO=false`.
+2. Cho ứng dụng một CSDL chưa có tài khoản nào:
+   - CSDL rỗng, Flyway bật (Docker Compose lần chạy đầu, hồ sơ `prod`): không phải làm gì, Flyway tự tạo lược đồ.
+   - CSDL rỗng, Flyway tắt (hồ sơ `online`): nạp `database/schema.sql`.
+   - CSDL đang có bảng và dữ liệu cũ: sao lưu nếu còn cần, chạy `scripts/reset-database.mysql.sql` (xóa toàn bộ bảng của MedBook cùng dữ liệu, không hoàn tác được), rồi làm như CSDL rỗng ở hai dòng trên.
+3. Khởi động ứng dụng. Log có dòng `Đã tạo 3 tài khoản quản trị ban đầu: admin1, admin2, admin3`. Đăng nhập bằng một trong ba tài khoản với mật khẩu ở bước 1, rồi mỗi người tự đổi mật khẩu ở **Đổi mật khẩu**.
+
+Ba tài khoản này chỉ được tạo khi bảng `users` còn trống: khởi động lại hay đổi giá trị biến không tạo thêm tài khoản và không đặt lại mật khẩu của ai, nên sau lần chạy đầu có thể gỡ biến khỏi môi trường. Thiếu biến thì ứng dụng vẫn chạy và ghi cảnh báo `CSDL chưa có tài khoản nào`; mật khẩu không đạt yêu cầu thì ứng dụng dừng và nêu lý do.
+
 ## 6. Biến môi trường
 
 | Biến | Dùng ở | Ý nghĩa |
@@ -107,6 +120,7 @@ Mở **http://localhost:8080/**. Lần build đầu cần Internet và mất và
 | `MEDBOOK_CORS_ALLOWED_ORIGINS` | `docker`, `prod` | Nguồn được phép gọi API từ trình duyệt, cách nhau bằng dấu phẩy |
 | `MEDBOOK_SEED_DEMO` | `docker` | `true`: nạp dữ liệu demo khi CSDL trống. Bị bỏ qua ở `prod` |
 | `MEDBOOK_SEED_ACTIVITY` | mọi nơi trừ `prod` | `true`: nạp lịch khám và hóa đơn mẫu 28 ngày gần nhất cho báo cáo khi CSDL chưa có hoạt động. Không đặt thì đi theo `MEDBOOK_SEED_DEMO` |
+| `MEDBOOK_ADMIN_INITIAL_PASSWORD` | mọi nơi | Mật khẩu ban đầu của `admin1`, `admin2`, `admin3`. Chỉ được dùng khi CSDL chưa có tài khoản nào (xem "Khởi tạo với dữ liệu sạch" ở mục 5); để trống thì không tạo tài khoản |
 | `MEDBOOK_OPENAPI_ENABLED` | mọi nơi | `true`: mở `/swagger-ui.html` và `/v3/api-docs`. Mặc định tắt |
 | `MEDBOOK_BOOKING_HOLD_MINUTES` | mọi nơi | Số phút giữ chỗ một khung giờ sau khi người dùng chọn, mặc định 10 |
 | `MEDBOOK_TIME_ZONE` | mọi nơi | Múi giờ của phòng khám, mặc định `Asia/Ho_Chi_Minh`. Ứng dụng tính "hôm nay", khung giờ đã qua và hạn hủy trước giờ khám theo múi giờ này dù máy chủ chạy giờ nào (container thường chạy UTC); ngày giờ trong MySQL được lưu và đọc theo cùng múi giờ. Tên sai thì ứng dụng không khởi động |
@@ -165,6 +179,7 @@ Sau khi sửa giao diện phải `npm run build` rồi chạy lại backend thì
 | Việc | Cách làm |
 |---|---|
 | Dựng CSDL bằng tay (phpMyAdmin, máy chủ không chạy được Flyway) | Nạp `database/schema.sql` vào một CSDL MySQL 8 rỗng, rồi `database/seed.sql` nếu cần dữ liệu mẫu. Đây là **hai tệp chính thức** của lược đồ và dữ liệu mẫu; sau khi nạp, ứng dụng chạy được cả khi Flyway bật lẫn tắt |
+| Dựng lại từ đầu với dữ liệu sạch | `scripts/reset-database.mysql.sql` xóa toàn bộ bảng của MedBook cùng dữ liệu; các bước tiếp theo ở "Khởi tạo với dữ liệu sạch", mục 5 |
 | Thêm thay đổi lược đồ | Thêm tệp `V5__mo_ta.sql` vào `src/main/resources/db/migration`, hoặc một lớp Java trong `config/migration` (V2, V3 và V4 đã dùng cách này); chỉ cộng thêm, không sửa migration đã phát hành |
 | Nâng cấp CSDL đang chạy với Flyway tắt (hồ sơ `online`, `v4mysql`) | Chạy lần lượt `scripts/cx-additive-schema.mysql.sql`, `scripts/receptionist-role.mysql.sql`, `scripts/slot-holds-schema.mysql.sql` (cả ba chạy lại nhiều lần được) **trước khi** triển khai bản ứng dụng mới |
 | Nâng cấp từ bản chạy giờ UTC (trước khi có `MEDBOOK_TIME_ZONE`) | Không cần đổi dữ liệu: ngày khám và giờ khám đã lưu giữ nguyên ý nghĩa. Hai điều sẽ thấy sau khi nâng cấp: các mốc thời gian ghi trước đó (ngày tạo, nhật ký) hiển thị sớm hơn thực tế 7 giờ, và mọi phiên đăng nhập cũ hết hạn nên người dùng phải đăng nhập lại. Nếu `MEDBOOK_DB_URL` tự đặt có `serverTimezone=UTC` thì nên đổi thành `serverTimezone=Asia/Ho_Chi_Minh` |

@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import com.phenikaa.cse702051.medbook.config.InitialAdminRunner;
 import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 
 /**
@@ -21,6 +22,9 @@ class DevSeedTest extends AbstractApiTest {
 
     @Autowired
     private JdbcTemplate jdbc;
+
+    @Autowired
+    private InitialAdminRunner initialAdmins;
 
     @Value("${spring.sql.init.data-locations}")
     private String dataLocations;
@@ -67,5 +71,13 @@ class DevSeedTest extends AbstractApiTest {
         assertTrue(userId >= 1000, "ID sinh sau seed phải từ 1000, nhận " + userId);
         assertEquals(0, jdbc.queryForObject("select count(*) from users where id between 7 and 999", Long.class),
                 "seed có 6 tài khoản (id 1-6); không còn id nào khác dưới 1000");
+    }
+
+    @Test
+    @DisplayName("Chế độ phát triển đã có tài khoản demo: bộ khởi tạo quản trị viên không tạo thêm admin2, admin3")
+    void initialAdminsAreNotCreatedOverTheDevSeed() {
+        assertEquals(List.of(), initialAdmins.createIfNoUsers());
+        assertEquals(0, jdbc.queryForObject("select count(*) from users where username in ('admin2', 'admin3')",
+                Long.class));
     }
 }

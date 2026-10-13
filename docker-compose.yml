@@ -54,6 +54,8 @@ services:
       MEDBOOK_PUBLIC_BASE_URL: ${MEDBOOK_PUBLIC_BASE_URL:-}
       MEDBOOK_SEED_DEMO: ${MEDBOOK_SEED_DEMO:-false}
       MEDBOOK_SEED_ACTIVITY: ${MEDBOOK_SEED_ACTIVITY:-${MEDBOOK_SEED_DEMO:-false}}
+      # Mật khẩu ban đầu của admin1, admin2, admin3; chỉ dùng khi CSDL chưa có tài khoản nào
+      MEDBOOK_ADMIN_INITIAL_PASSWORD: ${MEDBOOK_ADMIN_INITIAL_PASSWORD:-}
       MEDBOOK_OPENAPI_ENABLED: ${MEDBOOK_OPENAPI_ENABLED:-false}
     volumes:
       - uploads:/app/uploads

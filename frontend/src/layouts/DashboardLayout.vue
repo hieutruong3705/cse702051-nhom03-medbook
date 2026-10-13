@@ -61,8 +61,7 @@
       </div>
 
       <footer class="border-t border-slate-200 px-4 py-4 text-xs text-slate-600 sm:px-6 lg:px-8">
-        <p>{{ PROJECT.name }} · {{ PROJECT.topic }} · {{ PROJECT.group }} · Lớp học phần {{ PROJECT.classSection }}</p>
-        <p class="mt-1" data-test="data-notice">{{ PROJECT.dataNotice }}.</p>
+        <p data-test="copyright">© {{ year }} MedBook</p>
       </footer>
     </div>
   </div>
@@ -72,7 +71,6 @@
 import { ref } from 'vue'
 import UserMenu from '@/components/auth/UserMenu.vue'
 import NotificationBell from '@/components/notifications/NotificationBell.vue'
-import { PROJECT } from '@/config/project'
 
 // `profilePath` được giữ để tương thích với các layout khu vực; hồ sơ/đổi mật khẩu/đăng xuất nằm
 // trong UserMenu (hồ sơ tài khoản dùng chung cho mọi vai trò ở /account/profile).
@@ -86,4 +84,5 @@ defineProps({
 })
 
 const mobileOpen = ref(false)
+const year = new Date().getFullYear()
 </script>
