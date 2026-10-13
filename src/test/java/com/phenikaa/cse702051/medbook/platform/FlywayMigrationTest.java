@@ -58,13 +58,13 @@ class FlywayMigrationTest {
      * CSDL H2 mới ở chế độ MySQL. Dùng MỘT kết nối cho cả test: H2 gắn biểu thức CHECK với phiên đã tạo ra nó, nên
      * nếu Flyway đóng kết nối của mình thì CHECK so sánh chuỗi sẽ báo lỗi "database has been closed" ở phiên sau.
      */
-    private static DataSource newDatabase() {
+    static DataSource newDatabase() {
         return new SingleConnectionDataSource("jdbc:h2:mem:flyway_" + UUID.randomUUID().toString().replace("-", "")
                 + ";MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE;DB_CLOSE_DELAY=-1", "sa", "",
                 true);
     }
 
-    private static Flyway flyway(DataSource dataSource) {
+    static Flyway flyway(DataSource dataSource) {
         return Flyway.configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
