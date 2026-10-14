@@ -25,6 +25,12 @@ export const validateEmail = (value) => {
   return EMAIL_RULE.test(value.trim()) && value.trim().length <= 190 ? '' : 'Định dạng email không hợp lệ'
 }
 
+/** Email đăng ký không bắt buộc; nếu có nhập thì vẫn phải đúng định dạng và độ dài. */
+export const validateOptionalEmail = (value) => {
+  if (!String(value ?? '').trim()) return ''
+  return EMAIL_RULE.test(value.trim()) && value.trim().length <= 190 ? '' : 'Định dạng email không hợp lệ'
+}
+
 export const validatePhone = (value) => {
   if (!String(value ?? '').trim()) return 'Số điện thoại không được để trống'
   return PHONE_RULE.test(value.trim()) ? '' : 'Số điện thoại không hợp lệ'

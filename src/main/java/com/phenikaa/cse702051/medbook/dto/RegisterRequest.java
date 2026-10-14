@@ -40,7 +40,6 @@ public class RegisterRequest {
     @Size(max = 150, message = "Họ và tên tối đa 150 ký tự")
     private String fullName;
 
-    @NotBlank(message = "Email không được để trống")
     @Email(message = "Định dạng email không hợp lệ")
     @Size(max = 190, message = "Email tối đa 190 ký tự")
     private String email;

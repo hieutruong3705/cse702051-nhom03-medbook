@@ -8,7 +8,7 @@
         <div class="mt-6 grid gap-4 sm:grid-cols-2">
           <BaseInput id="register-full-name" v-model="values.fullName" label="Họ và tên" required autocomplete="name" :error="errors.fullName" />
           <BaseInput id="register-phone" v-model="values.phone" label="Số điện thoại" required autocomplete="tel" :error="errors.phone" />
-          <BaseInput id="register-email" v-model="values.email" label="Email" type="email" required autocomplete="email" :error="errors.email" />
+          <BaseInput id="register-email" v-model="values.email" label="Email (không bắt buộc)" type="email" autocomplete="email" :error="errors.email" />
           <BaseInput id="register-username" v-model="values.username" label="Tên đăng nhập" required autocomplete="username" :error="errors.username" />
           <BaseInput
             id="register-password"
@@ -16,6 +16,7 @@
             label="Mật khẩu"
             type="password"
             required
+            revealable
             autocomplete="new-password"
             hint="Từ 8 đến 100 ký tự, gồm chữ cái và chữ số."
             :error="errors.password"
@@ -26,6 +27,7 @@
             label="Nhập lại mật khẩu"
             type="password"
             required
+            revealable
             autocomplete="new-password"
             :error="errors.confirmPassword"
           />
@@ -57,7 +59,7 @@ import {
   required,
   validateBirthDate,
   validateConfirm,
-  validateEmail,
+  validateOptionalEmail,
   validatePassword,
   validatePhone,
   validateUsername
@@ -71,7 +73,7 @@ const { values, errors, submitting, validate, applyApiErrors } = useForm(
   {
     fullName: required('Họ và tên'),
     phone: validatePhone,
-    email: validateEmail,
+    email: validateOptionalEmail,
     username: validateUsername,
     password: validatePassword,
     confirmPassword: validateConfirm('password'),
@@ -97,9 +99,9 @@ const submit = async () => {
       username: values.username.trim(),
       password: values.password,
       fullName: values.fullName.trim(),
-      email: values.email.trim(),
       phone: values.phone.trim()
     }
+    if (values.email.trim()) payload.email = values.email.trim()
     if (values.dateOfBirth) payload.dateOfBirth = values.dateOfBirth
     await authApi.register(payload)
     router.replace({ path: '/login', query: { reason: 'registered', username: payload.username } })

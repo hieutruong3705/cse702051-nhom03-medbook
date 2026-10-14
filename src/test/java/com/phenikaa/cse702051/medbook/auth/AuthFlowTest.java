@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -166,6 +167,36 @@ class AuthFlowTest extends AbstractApiTest {
         int cost = Integer.parseInt(saved.getPasswordHash().split("\\$")[2]);
         assertTrue(cost >= 10, "BCrypt cost phải ≥ 10, nhận " + cost);
         assertNotEquals(PASSWORD, saved.getPasswordHash());
+    }
+
+    @Test
+    @DisplayName("Đăng ký: email không bắt buộc; bỏ trống vẫn tạo tài khoản và đăng nhập bằng username")
+    void registerAllowsMissingEmail() throws Exception {
+        String username = newName();
+        String payload = """
+                {"username":"%s","password":"%s","fullName":"Không Email","phone":"0912345000"}
+                """.formatted(username, PASSWORD);
+
+        postJson("/api/v1/auth/register", payload, null)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.username").value(username));
+
+        assertNull(reload(username).getEmail());
+        login(username, PASSWORD).andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Đăng ký: email có nhập nhưng sai định dạng → 400")
+    void registerRejectsInvalidOptionalEmail() throws Exception {
+        String username = newName();
+        String payload = """
+                {"username":"%s","password":"%s","fullName":"Email Sai","email":"sai-dinh-dang","phone":"0912345000"}
+                """.formatted(username, PASSWORD);
+
+        postJson("/api/v1/auth/register", payload, null)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.email").exists());
+        assertFalse(users.existsByUsername(username));
     }
 
     @ParameterizedTest(name = "mật khẩu \"{0}\" bị từ chối")

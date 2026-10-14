@@ -63,6 +63,52 @@ describe('Đăng ký bệnh nhân', () => {
     'register-confirm-password': VALID_PASSWORD
   }
 
+  it('hiện từng ô mật khẩu độc lập và giữ nguyên giá trị đã nhập', async () => {
+    const wrapper = mount(RegisterView)
+    await fill(wrapper, {
+      'register-password': VALID_PASSWORD,
+      'register-confirm-password': VALID_PASSWORD
+    })
+
+    const password = wrapper.find('#register-password')
+    const confirmPassword = wrapper.find('#register-confirm-password')
+    const revealButtons = wrapper.findAll('button[aria-label="Hiện mật khẩu"]')
+
+    expect(revealButtons).toHaveLength(2)
+    expect(revealButtons.every((button) => button.attributes('type') === 'button')).toBe(true)
+    expect(password.attributes('type')).toBe('password')
+    expect(confirmPassword.attributes('type')).toBe('password')
+
+    await revealButtons[0].trigger('click')
+    expect(password.attributes('type')).toBe('text')
+    expect(password.element.value).toBe(VALID_PASSWORD)
+    expect(confirmPassword.attributes('type')).toBe('password')
+    expect(confirmPassword.element.value).toBe(VALID_PASSWORD)
+    expect(wrapper.find('button[aria-label="Ẩn mật khẩu"]').attributes('aria-pressed')).toBe('true')
+
+    await wrapper.findAll('button[aria-label="Hiện mật khẩu"]')[0].trigger('click')
+    expect(confirmPassword.attributes('type')).toBe('text')
+    expect(password.attributes('type')).toBe('text')
+  })
+
+  it('cho đăng ký khi bỏ trống email, nhưng vẫn từ chối email sai định dạng', async () => {
+    authApi.register.mockResolvedValue({})
+    const withoutEmail = mount(RegisterView)
+    await fill(withoutEmail, { ...validForm, 'register-email': '   ' })
+    await submit(withoutEmail)
+
+    expect(authApi.register).toHaveBeenCalledTimes(1)
+    expect(authApi.register.mock.calls[0][0]).not.toHaveProperty('email')
+
+    authApi.register.mockClear()
+    const invalidEmail = mount(RegisterView)
+    await fill(invalidEmail, { ...validForm, 'register-email': 'sai-dinh-dang' })
+    await submit(invalidEmail)
+
+    expect(authApi.register).not.toHaveBeenCalled()
+    expect(invalidEmail.text()).toContain('Định dạng email không hợp lệ')
+  })
+
   it('không gọi API khi dữ liệu sai và báo lỗi đúng trường bằng tiếng Việt', async () => {
     const wrapper = mount(RegisterView)
     await fill(wrapper, { ...validForm, 'register-phone': '', 'register-password': 'abc123', 'register-confirm-password': 'khac' })
@@ -129,6 +175,37 @@ describe('Đăng ký bệnh nhân', () => {
 })
 
 describe('Đăng nhập', () => {
+  it('hiện, che lại mật khẩu và gửi nguyên giá trị tới API', async () => {
+    authApi.login.mockResolvedValue({
+      token: 'jwt.token.value',
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+      userId: 7,
+      username: 'user7',
+      fullName: 'Người Dùng',
+      roles: ['PATIENT']
+    })
+    const wrapper = mount(LoginView)
+    await fill(wrapper, { 'login-identity': 'user7', 'login-password': VALID_PASSWORD })
+
+    const password = wrapper.find('#login-password')
+    const reveal = wrapper.find('button[aria-label="Hiện mật khẩu"]')
+    expect(reveal.attributes('type')).toBe('button')
+    expect(reveal.attributes('aria-pressed')).toBe('false')
+    expect(password.attributes('type')).toBe('password')
+
+    await reveal.trigger('click')
+    expect(password.attributes('type')).toBe('text')
+    expect(password.element.value).toBe(VALID_PASSWORD)
+    expect(wrapper.find('button[aria-label="Ẩn mật khẩu"]').attributes('aria-pressed')).toBe('true')
+
+    await wrapper.find('button[aria-label="Ẩn mật khẩu"]').trigger('click')
+    expect(password.attributes('type')).toBe('password')
+    expect(password.element.value).toBe(VALID_PASSWORD)
+
+    await submit(wrapper)
+    expect(authApi.login).toHaveBeenCalledWith({ usernameOrEmail: 'user7', password: VALID_PASSWORD })
+  })
+
   it.each([
     ['PATIENT', '/patient/dashboard'],
     ['DOCTOR', '/doctor/dashboard'],

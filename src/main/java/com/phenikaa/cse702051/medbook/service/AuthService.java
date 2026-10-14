@@ -111,13 +111,15 @@ public class AuthService {
     @Transactional
     public RegisterResponse registerPatient(RegisterRequest request) {
         String username = request.getUsername().trim();
-        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+        String email = request.getEmail() == null || request.getEmail().isBlank()
+                ? null
+                : request.getEmail().trim().toLowerCase(Locale.ROOT);
 
         if (userRepository.existsByUsername(username)) {
             throw new ConflictException("Tên đăng nhập '" + username + "' đã được sử dụng!");
         }
 
-        if (userRepository.existsByEmail(email)) {
+        if (email != null && userRepository.existsByEmail(email)) {
             throw new ConflictException("Email '" + email + "' đã được đăng ký tài khoản khác!");
         }
 

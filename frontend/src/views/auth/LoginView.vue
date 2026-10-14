@@ -18,7 +18,7 @@
             {{ sessionMessage.text }}
           </p>
           <BaseInput id="login-identity" v-model="form.usernameOrEmail" label="Tên đăng nhập hoặc email" required autocomplete="username" />
-          <BaseInput id="login-password" v-model="form.password" label="Mật khẩu" type="password" required autocomplete="current-password" />
+          <BaseInput id="login-password" v-model="form.password" label="Mật khẩu" type="password" required revealable autocomplete="current-password" />
           <p v-if="error" class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{{ error }}</p>
           <BaseButton class="w-full" type="submit" :loading="loading" icon="fa-solid fa-right-to-bracket">Đăng nhập</BaseButton>
         </div>
