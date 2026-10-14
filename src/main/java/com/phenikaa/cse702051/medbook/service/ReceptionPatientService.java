@@ -62,7 +62,7 @@ public class ReceptionPatientService {
     @Transactional(readOnly = true)
     public ReceptionPatientDTO get(Long id) {
         currentUserService.requireRole(ROLE);
-        return ReceptionPatientDTO.from(patientRepository.findById(id)
+        return ReceptionPatientDTO.from(patientRepository.findForReceptionById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bệnh nhân ID: " + id)));
     }
 

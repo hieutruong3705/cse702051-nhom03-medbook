@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -26,8 +27,12 @@ import org.springframework.test.web.servlet.ResultActions;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.phenikaa.cse702051.medbook.model.Patient;
+import com.phenikaa.cse702051.medbook.model.UserRole;
+import com.phenikaa.cse702051.medbook.model.UserRoleId;
 import com.phenikaa.cse702051.medbook.repository.MedicalRecordRepository;
 import com.phenikaa.cse702051.medbook.repository.PatientRepository;
+import com.phenikaa.cse702051.medbook.repository.RoleRepository;
+import com.phenikaa.cse702051.medbook.repository.UserRoleRepository;
 import com.phenikaa.cse702051.medbook.service.AuditActions;
 import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
@@ -46,6 +51,10 @@ class ReceptionPatientTest extends AbstractApiTest {
     private PatientRepository patients;
     @Autowired
     private MedicalRecordRepository medicalRecords;
+    @Autowired
+    private UserRoleRepository userRoles;
+    @Autowired
+    private RoleRepository roles;
 
     private static String unique() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 10).toLowerCase();
@@ -219,6 +228,35 @@ class ReceptionPatientTest extends AbstractApiTest {
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.content[0].id").value(withAccount.patientId()))
                 .andExpect(jsonPath("$.content[0].hasAccount").value(true));
+    }
+
+    @Test
+    @DisplayName("Tài khoản bỏ vai trò PATIENT không còn hiện trong tra cứu lễ tân nhưng hồ sơ lịch sử vẫn được giữ")
+    void accountChangedFromPatientIsHiddenFromReception() throws Exception {
+        String marker = "rolehide" + unique();
+        IsolatedPatient patient = data.isolatedPatient(marker);
+
+        search(marker)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1));
+
+        var user = patients.findById(patient.patientId()).orElseThrow().getUser();
+        userRoles.deleteAll(userRoles.findByUserIdWithRole(patient.userId()));
+        var doctorRole = roles.findByCode("DOCTOR").orElseThrow();
+        userRoles.saveAndFlush(UserRole.builder()
+                .id(new UserRoleId(patient.userId(), doctorRole.getId()))
+                .user(user)
+                .role(doctorRole)
+                .createdAt(LocalDateTime.now())
+                .build());
+
+        search(marker)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(get(URL + "/" + patient.patientId()).header("Authorization", receptionistToken()))
+                .andExpect(status().isNotFound());
+        assertTrue(patients.findById(patient.patientId()).isPresent(),
+                "giữ hồ sơ để không làm mất lịch sử khám và các khóa ngoại");
     }
 
     @Test

@@ -50,11 +50,27 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
      */
     @Query("""
             select p from Patient p
-            where lower(p.fullName) like :pattern escape '!'
-               or lower(p.patientCode) like :pattern escape '!'
-               or p.phone like :pattern escape '!'
+            where (p.user is null or p.user.id in (
+                       select ur.user.id from UserRole ur where ur.role.code = 'PATIENT'
+                   ))
+              and (lower(p.fullName) like :pattern escape '!'
+                   or lower(p.patientCode) like :pattern escape '!'
+                   or p.phone like :pattern escape '!')
             """)
     Page<Patient> searchForReception(@Param("pattern") String pattern, Pageable pageable);
+
+    /**
+     * Hồ sơ hợp lệ trong luồng lễ tân: bệnh nhân tạo tại quầy chưa có tài khoản, hoặc tài khoản vẫn mang vai trò
+     * PATIENT. Hồ sơ lịch sử được giữ lại khi tài khoản đổi vai trò nhưng không còn xuất hiện để đặt lịch mới.
+     */
+    @Query("""
+            select p from Patient p
+            where p.id = :id
+              and (p.user is null or p.user.id in (
+                       select ur.user.id from UserRole ur where ur.role.code = 'PATIENT'
+                   ))
+            """)
+    Optional<Patient> findForReceptionById(@Param("id") Long id);
 
     /** Đã có hồ sơ trùng họ tên (so chữ thường), ngày sinh và số điện thoại hay chưa. */
     @Query("""

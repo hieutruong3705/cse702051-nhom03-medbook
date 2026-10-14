@@ -89,7 +89,7 @@ public class ReceptionAppointmentService {
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public ReceptionAppointmentDTO book(ReceptionBookRequest request) {
         currentUserService.requireRole(ROLE);
-        Patient patient = patientRepository.findById(request.patientId())
+        Patient patient = patientRepository.findForReceptionById(request.patientId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bệnh nhân ID: " + request.patientId()));
         if (!"ACTIVE".equalsIgnoreCase(patient.getStatus())) {
             throw new UnprocessableEntityException("Hồ sơ bệnh nhân đang ngừng hoạt động nên không đặt lịch được!");
