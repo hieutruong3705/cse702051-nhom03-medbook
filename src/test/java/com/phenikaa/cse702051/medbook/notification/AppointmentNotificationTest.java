@@ -63,7 +63,7 @@ class AppointmentNotificationTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-05.1 Đặt lịch thành công: đúng một thông báo cho bệnh nhân và một cho bác sĩ, nêu giờ khám")
+    @DisplayName("Đặt lịch thành công: đúng một thông báo cho bệnh nhân và một cho bác sĩ, nêu giờ khám")
     void bookingNotifiesPatientAndDoctor() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("ntf_book_doc");
         IsolatedPatient patient = data.isolatedPatient("ntf_book_pat");
@@ -91,7 +91,7 @@ class AppointmentNotificationTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-05.2 Đặt lịch thất bại vì slot vừa bị đặt (409): không tạo thêm thông báo nào")
+    @DisplayName("Đặt lịch thất bại vì slot vừa bị đặt (409): không tạo thêm thông báo nào")
     void failedBookingCreatesNoNotification() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("ntf_fail_doc");
         IsolatedPatient winner = data.isolatedPatient("ntf_fail_win");
@@ -108,7 +108,7 @@ class AppointmentNotificationTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-05.3 Hủy lịch: bác sĩ nhận thông báo hủy; bệnh nhân (người hủy) không nhận thêm")
+    @DisplayName("Hủy lịch: bác sĩ nhận thông báo hủy; bệnh nhân (người hủy) không nhận thêm")
     void cancellationNotifiesDoctor() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("ntf_cancel_doc");
         IsolatedPatient patient = data.isolatedPatient("ntf_cancel_pat");
@@ -128,7 +128,7 @@ class AppointmentNotificationTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-05.3 Đổi lịch: cả bệnh nhân và bác sĩ nhận thông báo nêu giờ mới")
+    @DisplayName("Đổi lịch: cả bệnh nhân và bác sĩ nhận thông báo nêu giờ mới")
     void rescheduleNotifiesBothWithNewTime() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("ntf_move_doc");
         IsolatedPatient patient = data.isolatedPatient("ntf_move_pat");
@@ -155,7 +155,7 @@ class AppointmentNotificationTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-05.9 Không thông báo nào chứa ghi chú của lịch hẹn hay lý do hủy")
+    @DisplayName("Không thông báo nào chứa ghi chú của lịch hẹn hay lý do hủy")
     void notificationsNeverContainNotesOrCancelReason() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("ntf_clean_doc");
         IsolatedPatient patient = data.isolatedPatient("ntf_clean_pat");

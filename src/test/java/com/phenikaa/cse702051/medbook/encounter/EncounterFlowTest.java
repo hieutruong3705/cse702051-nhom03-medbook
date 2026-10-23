@@ -32,7 +32,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * BE-04 (YCCN-17, 18, 19): luồng lần khám gắn trạng thái lịch hẹn, quyền theo bản ghi và audit.
+ * YCCN-17, 18, 19: luồng lần khám gắn trạng thái lịch hẹn, quyền theo bản ghi và audit.
  * Mỗi test dùng bác sĩ/bệnh nhân riêng (khóa khác nhau) nên không phụ thuộc dữ liệu của test khác.
  */
 class EncounterFlowTest extends AbstractApiTest {

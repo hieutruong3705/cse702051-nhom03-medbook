@@ -28,7 +28,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * AC-04.7: {@code /users/me} cho cả ba vai trò. Người dùng luôn lấy từ JWT; chỉ sửa được họ tên, điện thoại, email
+ * {@code /users/me} cho cả ba vai trò. Người dùng luôn lấy từ JWT; chỉ sửa được họ tên, điện thoại, email
  * và thay đổi được đồng bộ sang hồ sơ bệnh nhân/bác sĩ mà không làm mất phiên đăng nhập.
  */
 class UserProfileApiTest extends AbstractApiTest {
@@ -52,7 +52,7 @@ class UserProfileApiTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-04.7 GET /users/me: mỗi vai trò thấy đúng tài khoản của mình kèm patientId/doctorId, không lộ băm mật khẩu")
+    @DisplayName("GET /users/me: mỗi vai trò thấy đúng tài khoản của mình kèm patientId/doctorId, không lộ băm mật khẩu")
     void eachRoleSeesOwnAccount() throws Exception {
         mvc.perform(get(ME).header("Authorization", patientToken()))
                 .andExpect(status().isOk())
@@ -82,7 +82,7 @@ class UserProfileApiTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-04.7 Bệnh nhân sửa hồ sơ tài khoản: đồng bộ sang hồ sơ bệnh nhân, phiên vẫn dùng được, ghi audit")
+    @DisplayName("Bệnh nhân sửa hồ sơ tài khoản: đồng bộ sang hồ sơ bệnh nhân, phiên vẫn dùng được, ghi audit")
     void patientUpdatesOwnContactAndProfileIsSynced() throws Exception {
         String key = unique();
         IsolatedPatient patient = data.isolatedPatient("me" + key);
@@ -115,7 +115,7 @@ class UserProfileApiTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-04.7 Bác sĩ sửa hồ sơ tài khoản: họ tên và điện thoại hiện ở hồ sơ bác sĩ công khai")
+    @DisplayName("Bác sĩ sửa hồ sơ tài khoản: họ tên và điện thoại hiện ở hồ sơ bác sĩ công khai")
     void doctorUpdateIsSyncedToDoctorProfile() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("me" + key);
@@ -134,7 +134,7 @@ class UserProfileApiTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-04.7 Không đổi được tên đăng nhập, vai trò, trạng thái, mật khẩu qua /users/me (các trường đó bị bỏ qua)")
+    @DisplayName("Không đổi được tên đăng nhập, vai trò, trạng thái, mật khẩu qua /users/me (các trường đó bị bỏ qua)")
     void protectedFieldsAreIgnored() throws Exception {
         String key = unique();
         IsolatedPatient patient = data.isolatedPatient("me" + key);
@@ -162,7 +162,7 @@ class UserProfileApiTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-04.6 Email trùng tài khoản khác (không phân biệt hoa thường) 409; đổi kiểu chữ email của chính mình thì được")
+    @DisplayName("Email trùng tài khoản khác (không phân biệt hoa thường) 409; đổi kiểu chữ email của chính mình thì được")
     void duplicateEmailIsConflictButOwnEmailIsFine() throws Exception {
         String key = unique();
         IsolatedPatient patient = data.isolatedPatient("me" + key);
@@ -184,7 +184,7 @@ class UserProfileApiTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-04.6 Họ tên rỗng, email sai, điện thoại sai, quá dài: 400 kèm tên trường; bỏ trống điện thoại thì xóa số")
+    @DisplayName("Họ tên rỗng, email sai, điện thoại sai, quá dài: 400 kèm tên trường; bỏ trống điện thoại thì xóa số")
     void validatesFieldsAndAllowsClearingPhone() throws Exception {
         String key = unique();
         IsolatedPatient patient = data.isolatedPatient("me" + key);

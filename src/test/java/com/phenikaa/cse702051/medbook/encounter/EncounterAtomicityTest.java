@@ -23,7 +23,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * BE-04 (mục 2): bắt đầu khám là một giao dịch. Nếu bước sau khi lịch đã chuyển IN_PROGRESS thất bại (ở đây:
+ * Bắt đầu khám là một giao dịch. Nếu bước sau khi lịch đã chuyển IN_PROGRESS thất bại (ở đây:
  * tạo/lấy bệnh án), lịch phải trở lại BOOKED và không có lần khám nào được lưu. Cần spy nên chạy trong
  * context riêng.
  */

@@ -27,7 +27,7 @@ import com.phenikaa.cse702051.medbook.service.AttachmentService;
 import com.phenikaa.cse702051.medbook.service.AttachmentService.StoredFile;
 
 /**
- * Tệp đính kèm của lần khám (BE-04). Quyền theo vai trò ở {@code SecurityConfig}; quyền theo bản ghi, kiểm tra
+ * Tệp đính kèm của lần khám. Quyền theo vai trò ở {@code SecurityConfig}; quyền theo bản ghi, kiểm tra
  * loại/kích thước và audit ở {@link AttachmentService}.
  */
 @RestController

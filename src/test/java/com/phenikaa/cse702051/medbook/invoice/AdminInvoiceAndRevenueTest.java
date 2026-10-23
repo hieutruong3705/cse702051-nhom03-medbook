@@ -45,7 +45,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * AC-08.5…08.10: Admin thu và hủy hóa đơn bằng chuyển trạng thái có điều kiện, danh sách có phân trang, báo cáo
+ * Admin thu và hủy hóa đơn bằng chuyển trạng thái có điều kiện, danh sách có phân trang, báo cáo
  * doanh thu luôn đối soát được (giá trị lập = đã thu + chưa thu), mỗi thao tác có audit, đường dẫn cũ đã gỡ.
  */
 class AdminInvoiceAndRevenueTest extends AbstractApiTest {
@@ -108,7 +108,7 @@ class AdminInvoiceAndRevenueTest extends AbstractApiTest {
     // ---------- thu và hủy ----------
 
     @Test
-    @DisplayName("AC-08.5 Thu: UNPAID → PAID và đặt paidAt; thu lần hai 409; hủy hóa đơn đã thu 409")
+    @DisplayName("Thu: UNPAID → PAID và đặt paidAt; thu lần hai 409; hủy hóa đơn đã thu 409")
     void collectsUnpaidInvoiceOnce() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("adminv_collect_doc");
         IsolatedPatient patient = data.isolatedPatient("adminv_collect_pat");
@@ -144,7 +144,7 @@ class AdminInvoiceAndRevenueTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-08.5 Hủy: bắt buộc lý do; UNPAID → VOID kèm voidedAt và voidReason; hủy lại và thu sau khi hủy đều 409")
+    @DisplayName("Hủy: bắt buộc lý do; UNPAID → VOID kèm voidedAt và voidReason; hủy lại và thu sau khi hủy đều 409")
     void voidsUnpaidInvoiceWithReason() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("adminv_void_doc");
         IsolatedPatient patient = data.isolatedPatient("adminv_void_pat");
@@ -174,7 +174,7 @@ class AdminInvoiceAndRevenueTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-08.5 Thu và hủy: hóa đơn không tồn tại 404; bệnh nhân và bác sĩ 403, khách 401; hóa đơn không đổi")
+    @DisplayName("Thu và hủy: hóa đơn không tồn tại 404; bệnh nhân và bác sĩ 403, khách 401; hóa đơn không đổi")
     void onlyAdminCollectsAndVoids() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("adminv_role_doc");
         IsolatedPatient patient = data.isolatedPatient("adminv_role_pat");
@@ -199,7 +199,7 @@ class AdminInvoiceAndRevenueTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-08.6 Thu và hủy cùng một hóa đơn song song: đúng một yêu cầu thành công, yêu cầu kia 409, trạng thái cuối nhất quán")
+    @DisplayName("Thu và hủy cùng một hóa đơn song song: đúng một yêu cầu thành công, yêu cầu kia 409, trạng thái cuối nhất quán")
     void collectAndVoidRaceHasOneWinner() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("adminv_race_doc");
         IsolatedPatient patient = data.isolatedPatient("adminv_race_pat");
@@ -250,7 +250,7 @@ class AdminInvoiceAndRevenueTest extends AbstractApiTest {
     // ---------- danh sách ----------
 
     @Test
-    @DisplayName("AC-08.7 Danh sách của bệnh nhân: chỉ hóa đơn của mình, lọc theo trạng thái và ngày lập, có phân trang")
+    @DisplayName("Danh sách của bệnh nhân: chỉ hóa đơn của mình, lọc theo trạng thái và ngày lập, có phân trang")
     void patientListsOnlyOwnInvoices() throws Exception {
         IsolatedPatient me = data.isolatedPatient("adminv_mine_me");
         IsolatedPatient other = data.isolatedPatient("adminv_mine_other");
@@ -293,7 +293,7 @@ class AdminInvoiceAndRevenueTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-08.7 Danh sách của Admin: lọc theo trạng thái, khoảng ngày lập và từ khóa (mã hóa đơn, tên, mã bệnh nhân), có phân trang")
+    @DisplayName("Danh sách của Admin: lọc theo trạng thái, khoảng ngày lập và từ khóa (mã hóa đơn, tên, mã bệnh nhân), có phân trang")
     void adminListFiltersAndPaginates() throws Exception {
         IsolatedPatient first = data.isolatedPatient("adminv_list_a");
         IsolatedPatient second = data.isolatedPatient("adminv_list_b");
@@ -339,7 +339,7 @@ class AdminInvoiceAndRevenueTest extends AbstractApiTest {
     // ---------- doanh thu ----------
 
     @Test
-    @DisplayName("AC-08.8 Doanh thu: giá trị lập = đã thu + chưa thu cho tổng và từng nhóm DAY, MONTH; hóa đơn VOID không vào giá trị lập")
+    @DisplayName("Doanh thu: giá trị lập = đã thu + chưa thu cho tổng và từng nhóm DAY, MONTH; hóa đơn VOID không vào giá trị lập")
     void revenueReconcilesOverallAndPerGroup() throws Exception {
         IsolatedPatient patient = data.isolatedPatient("adminv_rev_pat");
         long pid = patient.patientId();
@@ -434,7 +434,7 @@ class AdminInvoiceAndRevenueTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-08.8 Doanh thu: khoảng không có hóa đơn trả 0; quá 366 ngày, from sau to, groupBy lạ → 400; mặc định 30 ngày gần nhất")
+    @DisplayName("Doanh thu: khoảng không có hóa đơn trả 0; quá 366 ngày, from sau to, groupBy lạ → 400; mặc định 30 ngày gần nhất")
     void revenueValidatesRangeAndHandlesEmptyPeriods() throws Exception {
         JsonNode empty = adminGet(get(REVENUE).param("from", "1990-01-01").param("to", "1990-12-31")
                 .param("groupBy", "MONTH"));
@@ -465,7 +465,7 @@ class AdminInvoiceAndRevenueTest extends AbstractApiTest {
     // ---------- audit và đường dẫn cũ ----------
 
     @Test
-    @DisplayName("AC-08.9 Lập, thu, hủy: mỗi thao tác một bản audit, metadata chỉ có số tiền và mã định danh")
+    @DisplayName("Lập, thu, hủy: mỗi thao tác một bản audit, metadata chỉ có số tiền và mã định danh")
     void everyInvoiceChangeIsAudited() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("adminv_audit_doc");
         IsolatedPatient patient = data.isolatedPatient("adminv_audit_pat");
@@ -504,7 +504,7 @@ class AdminInvoiceAndRevenueTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-08.5, AC-08.10 Đường dẫn PUT /invoices/{id}/pay|void cũ trả 404 và không đổi hóa đơn; JSON không lộ trường của entity")
+    @DisplayName("Đường dẫn PUT /invoices/{id}/pay|void cũ trả 404 và không đổi hóa đơn; JSON không lộ trường của entity")
     void legacyEndpointsAreGone() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("adminv_legacy_doc");
         IsolatedPatient patient = data.isolatedPatient("adminv_legacy_pat");

@@ -41,7 +41,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedReceptionist;
 
 /**
- * BE-3: lịch hẹn tại quầy lễ tân. Xem lịch toàn phòng khám; đặt, hủy, đổi lịch hộ bệnh nhân; nhật ký ghi người làm
+ * Lịch hẹn tại quầy lễ tân. Xem lịch toàn phòng khám; đặt, hủy, đổi lịch hộ bệnh nhân; nhật ký ghi người làm
  * hộ; chỉ lễ tân gọi được. Mỗi test dựng bác sĩ, bệnh nhân, khung giờ riêng.
  */
 class ReceptionAppointmentTest extends AbstractApiTest {
@@ -152,7 +152,7 @@ class ReceptionAppointmentTest extends AbstractApiTest {
     // ---------- đặt hộ ----------
 
     @Test
-    @DisplayName("AC-B3.2 Đặt hộ cho bệnh nhân có tài khoản: 201, khung giờ BOOKED, một bản nhật ký của lễ tân, bệnh nhân nhận thông báo")
+    @DisplayName("Đặt hộ cho bệnh nhân có tài khoản: 201, khung giờ BOOKED, một bản nhật ký của lễ tân, bệnh nhân nhận thông báo")
     void booksForPatientWithAccount() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("rab" + key);
@@ -197,7 +197,7 @@ class ReceptionAppointmentTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B3.2 Đặt hộ cho bệnh nhân không có tài khoản: 201, không lỗi vì không có người nhận thông báo")
+    @DisplayName("Đặt hộ cho bệnh nhân không có tài khoản: 201, không lỗi vì không có người nhận thông báo")
     void booksForWalkInPatient() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("raw" + key);
@@ -212,7 +212,7 @@ class ReceptionAppointmentTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B3.4 Đặt hộ: thiếu trường 400 theo trường; ghi chú quá dài 400; dịch vụ không tồn tại 400")
+    @DisplayName("Đặt hộ: thiếu trường 400 theo trường; ghi chú quá dài 400; dịch vụ không tồn tại 400")
     void bookingValidatesInput() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("rav" + key);
@@ -235,7 +235,7 @@ class ReceptionAppointmentTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B3.4 Đặt hộ: bệnh nhân hoặc khung giờ không tồn tại 404; hồ sơ ngừng hoạt động 422; khung giờ đã đặt hoặc đã qua 409")
+    @DisplayName("Đặt hộ: bệnh nhân hoặc khung giờ không tồn tại 404; hồ sơ ngừng hoạt động 422; khung giờ đã đặt hoặc đã qua 409")
     void bookingRejectsUnusableTargets() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("rar" + key);
@@ -263,7 +263,7 @@ class ReceptionAppointmentTest extends AbstractApiTest {
     // ---------- danh sách ----------
 
     @Test
-    @DisplayName("AC-B3.1 Danh sách lọc theo ngày, bác sĩ, trạng thái, từ khóa bệnh nhân; có điện thoại, không có ghi chú hay lý do hủy")
+    @DisplayName("Danh sách lọc theo ngày, bác sĩ, trạng thái, từ khóa bệnh nhân; có điện thoại, không có ghi chú hay lý do hủy")
     void listFiltersAndHidesNotes() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("ral" + key);
@@ -313,7 +313,7 @@ class ReceptionAppointmentTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B3.1 Bỏ trống ngày thì chỉ có lịch hôm nay; from sau to hoặc trạng thái lạ trả 400")
+    @DisplayName("Bỏ trống ngày thì chỉ có lịch hôm nay; from sau to hoặc trạng thái lạ trả 400")
     void listDefaultsToTodayAndRejectsBadFilters() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("rat" + key);
@@ -356,7 +356,7 @@ class ReceptionAppointmentTest extends AbstractApiTest {
     // ---------- hủy hộ ----------
 
     @Test
-    @DisplayName("AC-B3.5 Hủy hộ: lịch CANCELLED, lý do được lưu, khung giờ được nhả và đặt lại được, một bản nhật ký của lễ tân")
+    @DisplayName("Hủy hộ: lịch CANCELLED, lý do được lưu, khung giờ được nhả và đặt lại được, một bản nhật ký của lễ tân")
     void cancelsOnBehalfAndReleasesSlot() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("rac" + key);
@@ -387,7 +387,7 @@ class ReceptionAppointmentTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B3.5 Trong 2 giờ trước giờ khám: bệnh nhân tự hủy bị 409, lễ tân hủy hộ được")
+    @DisplayName("Trong 2 giờ trước giờ khám: bệnh nhân tự hủy bị 409, lễ tân hủy hộ được")
     void receptionistMayCancelInsideThePatientCutoff() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("ra2" + key);
@@ -406,7 +406,7 @@ class ReceptionAppointmentTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B3.5 Hủy hộ: thiếu hoặc quá dài lý do 400; sai trạng thái 422; đã qua giờ bắt đầu 409; không tồn tại 404")
+    @DisplayName("Hủy hộ: thiếu hoặc quá dài lý do 400; sai trạng thái 422; đã qua giờ bắt đầu 409; không tồn tại 404")
     void cancelRejectsInvalidRequests() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("rax" + key);
@@ -438,7 +438,7 @@ class ReceptionAppointmentTest extends AbstractApiTest {
     // ---------- đổi hộ ----------
 
     @Test
-    @DisplayName("AC-B3.6 Đổi hộ: sang khung giờ mới, khung cũ được nhả, hai mốc nhắc lịch bị xóa, nhật ký ghi khung cũ và mới")
+    @DisplayName("Đổi hộ: sang khung giờ mới, khung cũ được nhả, hai mốc nhắc lịch bị xóa, nhật ký ghi khung cũ và mới")
     void reschedulesOnBehalf() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("rars" + key);
@@ -477,7 +477,7 @@ class ReceptionAppointmentTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B3.6 Đổi hộ thất bại thì lịch và khung giờ cũ giữ nguyên: trùng khung cũ 400, khung mới đã đặt 409, không tồn tại 404")
+    @DisplayName("Đổi hộ thất bại thì lịch và khung giờ cũ giữ nguyên: trùng khung cũ 400, khung mới đã đặt 409, không tồn tại 404")
     void failedRescheduleKeepsTheOldAppointment() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("rarf" + key);
@@ -508,7 +508,7 @@ class ReceptionAppointmentTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B3.6 Đổi hộ: sai trạng thái 422; lịch đã qua giờ bắt đầu 409")
+    @DisplayName("Đổi hộ: sai trạng thái 422; lịch đã qua giờ bắt đầu 409")
     void rescheduleRequiresABookedFutureAppointment() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("rarq" + key);
@@ -528,7 +528,7 @@ class ReceptionAppointmentTest extends AbstractApiTest {
     // ---------- quyền ----------
 
     @Test
-    @DisplayName("AC-B3.7 Khách 401; bệnh nhân, bác sĩ, quản trị viên 403 ở cả năm điểm cuối")
+    @DisplayName("Khách 401; bệnh nhân, bác sĩ, quản trị viên 403 ở cả năm điểm cuối")
     void onlyReceptionistsMayUseTheEndpoints() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("rap" + key);

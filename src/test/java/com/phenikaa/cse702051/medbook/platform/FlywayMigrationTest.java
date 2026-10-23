@@ -34,7 +34,7 @@ import com.phenikaa.cse702051.medbook.config.migration.V4__SlotHolds;
 import jakarta.persistence.Table;
 
 /**
- * AC-09.1, 09.8: toàn bộ migration Flyway chạy được trên H2 ở chế độ MySQL (không lỗi cú pháp), trên cả CSDL mới
+ * Toàn bộ migration Flyway chạy được trên H2 ở chế độ MySQL (không lỗi cú pháp), trên cả CSDL mới
  * lẫn CSDL đã có sẵn một phần thay đổi; dữ liệu demo chỉ được nạp khi có cờ, đúng một lần và không bao giờ ở prod.
  * Việc kiểm tra với MySQL thật (Hibernate {@code validate}) do {@code scripts/verify-mysql-schema.ps1} đảm nhận.
  */
@@ -94,7 +94,7 @@ class FlywayMigrationTest {
     }
 
     @Test
-    @DisplayName("AC-09.8 CSDL mới: V1 đến V4 chạy hết, đủ bảng cho mọi entity, đủ cột và chỉ mục mới; chạy lại không đổi gì")
+    @DisplayName("CSDL mới: V1 đến V4 chạy hết, đủ bảng cho mọi entity, đủ cột và chỉ mục mới; chạy lại không đổi gì")
     void migratesAnEmptyDatabase() throws Exception {
         DataSource dataSource = newDatabase();
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
@@ -161,7 +161,7 @@ class FlywayMigrationTest {
     }
 
     @Test
-    @DisplayName("AC-09.4 CSDL đã có (chưa có lịch sử Flyway, đã có sẵn một phần thay đổi): baseline V1 rồi chỉ chạy V2, V3 và V4, không lỗi")
+    @DisplayName("CSDL đã có (chưa có lịch sử Flyway, đã có sẵn một phần thay đổi): baseline V1 rồi chỉ chạy V2, V3 và V4, không lỗi")
     void upgradesAnExistingDatabaseWithoutHistory() throws Exception {
         DataSource dataSource = newDatabase();
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
@@ -194,7 +194,7 @@ class FlywayMigrationTest {
     }
 
     @Test
-    @DisplayName("AC-09.1 Dữ liệu demo: có cờ thì nạp đúng một lần (6 tài khoản, 4 vai trò, giờ trống 7 ngày tới); chạy lại không nạp chồng")
+    @DisplayName("Dữ liệu demo: có cờ thì nạp đúng một lần (6 tài khoản, 4 vai trò, giờ trống 7 ngày tới); chạy lại không nạp chồng")
     void demoSeedLoadsOnceWhenEnabled() {
         DataSource dataSource = newDatabase();
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
@@ -218,7 +218,7 @@ class FlywayMigrationTest {
         assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM services sv WHERE NOT EXISTS (SELECT 1 "
                 + "FROM appointment_slots s WHERE TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) "
                 + ">= sv.duration_minutes)", Long.class),
-                "AC-S2.5: dịch vụ demo nào cũng có ít nhất một khung giờ đủ dài để đặt");
+                "Dịch vụ demo nào cũng có ít nhất một khung giờ đủ dài để đặt");
         assertEquals(6, jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE password_hash LIKE '$2a$12$%'",
                 Long.class), "mật khẩu demo được lưu dạng băm BCrypt cost 12");
 
@@ -227,7 +227,7 @@ class FlywayMigrationTest {
     }
 
     @Test
-    @DisplayName("AC-09.1 Không có cờ thì không có dữ liệu mẫu; ở hồ sơ prod thì dù có cờ cũng không nạp")
+    @DisplayName("Không có cờ thì không có dữ liệu mẫu; ở hồ sơ prod thì dù có cờ cũng không nạp")
     void demoSeedIsSkippedWithoutFlagOrInProduction() {
         DataSource dataSource = newDatabase();
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
@@ -251,7 +251,7 @@ class FlywayMigrationTest {
     }
 
     @Test
-    @DisplayName("AC-S1.10 V4 chạy lại nhiều lần không lỗi và không đụng dữ liệu; slot_holds chỉ nhận một bản giữ cho mỗi khung giờ, gỡ khung giờ thì bản giữ đi theo")
+    @DisplayName("V4 chạy lại nhiều lần không lỗi và không đụng dữ liệu; slot_holds chỉ nhận một bản giữ cho mỗi khung giờ, gỡ khung giờ thì bản giữ đi theo")
     void slotHoldsMigrationIsRepeatableAndEnforcesOneHoldPerSlot() throws Exception {
         DataSource dataSource = newDatabase();
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);

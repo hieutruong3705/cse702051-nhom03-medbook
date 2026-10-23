@@ -89,7 +89,7 @@ class CatalogAdminCrudTest extends AbstractApiTest {
     // ---------- chuyên khoa ----------
 
     @Test
-    @DisplayName("AC-01.3 Chuyên khoa: tạo chuẩn hóa mã, mặc định ACTIVE; mã trùng khác hoa thường → 409 details.code")
+    @DisplayName("Chuyên khoa: tạo chuẩn hóa mã, mặc định ACTIVE; mã trùng khác hoa thường → 409 details.code")
     void createSpecialtyAndRejectDuplicateCode() throws Exception {
         String token = unique();
         send(post("/api/v1/admin/specialties"),
@@ -113,7 +113,7 @@ class CatalogAdminCrudTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-01.3 Chuyên khoa: sửa được tên, mô tả, trạng thái; đổi mã → 400 trường code; không tồn tại → 404")
+    @DisplayName("Chuyên khoa: sửa được tên, mô tả, trạng thái; đổi mã → 400 trường code; không tồn tại → 404")
     void updateSpecialtyButNotItsCode() throws Exception {
         String token = unique();
         long id = created("specialties", "{\"code\":\"UP%s\",\"name\":\"Tên cũ\"}".formatted(token)).get("id").asLong();
@@ -145,7 +145,7 @@ class CatalogAdminCrudTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-01.4, AC-01.5 Chuyên khoa: xóa bản chưa tham chiếu → 204 và biến mất; dữ liệu sai → 400 đúng trường")
+    @DisplayName("Chuyên khoa: xóa bản chưa tham chiếu → 204 và biến mất; dữ liệu sai → 400 đúng trường")
     void deleteUnreferencedSpecialtyAndValidate() throws Exception {
         String token = unique();
         long id = created("specialties", "{\"code\":\"DL%s\",\"name\":\"Sẽ xóa\"}".formatted(token)).get("id").asLong();
@@ -176,7 +176,7 @@ class CatalogAdminCrudTest extends AbstractApiTest {
     // ---------- dịch vụ khám ----------
 
     @Test
-    @DisplayName("AC-01.3 Dịch vụ: tạo với giá scale 2; mã trùng → 409 details.code")
+    @DisplayName("Dịch vụ: tạo với giá scale 2; mã trùng → 409 details.code")
     void createServiceAndRejectDuplicateCode() throws Exception {
         String token = unique();
         long id = created("medical-services", """
@@ -197,7 +197,7 @@ class CatalogAdminCrudTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-01.3 Dịch vụ: sửa giá, thời lượng, trạng thái; đổi mã → 400")
+    @DisplayName("Dịch vụ: sửa giá, thời lượng, trạng thái; đổi mã → 400")
     void updateService() throws Exception {
         String token = unique();
         long id = created("medical-services",
@@ -223,7 +223,7 @@ class CatalogAdminCrudTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-01.4, AC-01.5 Dịch vụ: xóa hẳn khi chưa dùng; giá âm, thời lượng ngoài 5–480, giá quá lớn → 400 đúng trường")
+    @DisplayName("Dịch vụ: xóa hẳn khi chưa dùng; giá âm, thời lượng ngoài 5–480, giá quá lớn → 400 đúng trường")
     void deleteUnreferencedServiceAndValidate() throws Exception {
         String token = unique();
         long id = created("medical-services",
@@ -258,7 +258,7 @@ class CatalogAdminCrudTest extends AbstractApiTest {
     // ---------- thuốc ----------
 
     @Test
-    @DisplayName("AC-01.3 Thuốc: tạo; mã trùng → 409 details.code")
+    @DisplayName("Thuốc: tạo; mã trùng → 409 details.code")
     void createMedicineAndRejectDuplicateCode() throws Exception {
         String token = unique();
         created("medicines", "{\"code\":\"md%s\",\"name\":\"Thuốc %s\",\"unit\":\"Viên\",\"description\":\"Hạ sốt\"}"
@@ -276,7 +276,7 @@ class CatalogAdminCrudTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-01.3 Thuốc: sửa tên, đơn vị, trạng thái; đổi mã → 400")
+    @DisplayName("Thuốc: sửa tên, đơn vị, trạng thái; đổi mã → 400")
     void updateMedicine() throws Exception {
         String token = unique();
         long id = created("medicines", "{\"code\":\"UM%s\",\"name\":\"Tên cũ\",\"unit\":\"Viên\"}".formatted(token))
@@ -294,7 +294,7 @@ class CatalogAdminCrudTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-01.4, AC-01.5 Thuốc: xóa hẳn khi chưa kê; tên rỗng, đơn vị quá dài → 400 đúng trường")
+    @DisplayName("Thuốc: xóa hẳn khi chưa kê; tên rỗng, đơn vị quá dài → 400 đúng trường")
     void deleteUnreferencedMedicineAndValidate() throws Exception {
         String token = unique();
         long id = created("medicines", "{\"code\":\"DM%s\",\"name\":\"Sẽ xóa\"}".formatted(token)).get("id").asLong();
@@ -316,7 +316,7 @@ class CatalogAdminCrudTest extends AbstractApiTest {
     // ---------- xóa mềm khi đang được tham chiếu ----------
 
     @Test
-    @DisplayName("AC-01.4 Chuyên khoa đang có bác sĩ: DELETE → 200, chuyển INACTIVE, bản ghi và hồ sơ bác sĩ còn nguyên")
+    @DisplayName("Chuyên khoa đang có bác sĩ: DELETE → 200, chuyển INACTIVE, bản ghi và hồ sơ bác sĩ còn nguyên")
     void specialtyInUseIsOnlyDeactivated() throws Exception {
         String token = unique();
         long id = created("specialties", "{\"code\":\"RS%s\",\"name\":\"Đang dùng\"}".formatted(token)).get("id").asLong();
@@ -335,7 +335,7 @@ class CatalogAdminCrudTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-01.4 Dịch vụ đã có lịch hẹn: DELETE → 200, chuyển INACTIVE, bản ghi còn nguyên")
+    @DisplayName("Dịch vụ đã có lịch hẹn: DELETE → 200, chuyển INACTIVE, bản ghi còn nguyên")
     void serviceInUseIsOnlyDeactivated() throws Exception {
         String token = unique();
         long id = created("medical-services",
@@ -355,7 +355,7 @@ class CatalogAdminCrudTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-01.4 Thuốc đã được kê trong đơn: DELETE → 200, chuyển INACTIVE, bản ghi còn nguyên")
+    @DisplayName("Thuốc đã được kê trong đơn: DELETE → 200, chuyển INACTIVE, bản ghi còn nguyên")
     void medicineInUseIsOnlyDeactivated() throws Exception {
         String token = unique();
         long id = created("medicines", "{\"code\":\"RM%s\",\"name\":\"Đang dùng %s\"}".formatted(token, token))
@@ -389,7 +389,7 @@ class CatalogAdminCrudTest extends AbstractApiTest {
     // ---------- audit ----------
 
     @Test
-    @DisplayName("AC-01.7 Tạo, sửa, xóa danh mục: mỗi thao tác ghi đúng một bản audit với entityType và entityId đúng")
+    @DisplayName("Tạo, sửa, xóa danh mục: mỗi thao tác ghi đúng một bản audit với entityType và entityId đúng")
     void everyAdminChangeIsAudited() throws Exception {
         String token = unique();
         long specialtyId = created("specialties", "{\"code\":\"AU%s\",\"name\":\"Audit\"}".formatted(token))

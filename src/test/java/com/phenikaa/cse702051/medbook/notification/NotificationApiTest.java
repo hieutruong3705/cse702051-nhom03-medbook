@@ -65,7 +65,7 @@ class NotificationApiTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-05.7 Danh sách của tôi: mới nhất trước, phân trang, lọc chưa đọc, đếm chưa đọc")
+    @DisplayName("Danh sách của tôi: mới nhất trước, phân trang, lọc chưa đọc, đếm chưa đọc")
     void listsOwnNotificationsNewestFirst() throws Exception {
         IsolatedPatient patient = data.isolatedPatient("ntf_api_list");
         LocalDateTime base = LocalDateTime.now().minusDays(1);
@@ -94,7 +94,7 @@ class NotificationApiTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-05.7 Đánh dấu đã đọc một thông báo: 204, giảm số chưa đọc; đánh dấu lại không đổi thời điểm đọc")
+    @DisplayName("Đánh dấu đã đọc một thông báo: 204, giảm số chưa đọc; đánh dấu lại không đổi thời điểm đọc")
     void marksOneAsRead() throws Exception {
         IsolatedPatient patient = data.isolatedPatient("ntf_api_read");
         long first = seed(patient.userId(), "Một", LocalDateTime.now().minusHours(2), false);
@@ -115,7 +115,7 @@ class NotificationApiTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-05.7 Đánh dấu tất cả đã đọc: chỉ thông báo của chính mình")
+    @DisplayName("Đánh dấu tất cả đã đọc: chỉ thông báo của chính mình")
     void marksAllOwnAsRead() throws Exception {
         IsolatedPatient me = data.isolatedPatient("ntf_api_all_me");
         IsolatedPatient other = data.isolatedPatient("ntf_api_all_other");
@@ -133,7 +133,7 @@ class NotificationApiTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-05.6 Thông báo của người khác: không có trong danh sách; đánh dấu đã đọc trả 404 và không đổi gì")
+    @DisplayName("Thông báo của người khác: không có trong danh sách; đánh dấu đã đọc trả 404 và không đổi gì")
     void cannotSeeOrMarkOthersNotifications() throws Exception {
         IsolatedPatient owner = data.isolatedPatient("ntf_api_owner");
         IsolatedPatient intruder = data.isolatedPatient("ntf_api_intruder");
@@ -152,7 +152,7 @@ class NotificationApiTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-05.7 Quyền: khách 401, Admin 403 ở mọi đường dẫn thông báo; bác sĩ dùng được")
+    @DisplayName("Quyền: khách 401, Admin 403 ở mọi đường dẫn thông báo; bác sĩ dùng được")
     void onlyPatientsAndDoctorsUseNotifications() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("ntf_api_role_doc");
         seed(doctor.userId(), "Cho bác sĩ", LocalDateTime.now().minusMinutes(1), false);

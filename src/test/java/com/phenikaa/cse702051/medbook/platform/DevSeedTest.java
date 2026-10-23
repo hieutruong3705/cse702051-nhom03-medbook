@@ -15,7 +15,7 @@ import com.phenikaa.cse702051.medbook.config.InitialAdminRunner;
 import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 
 /**
- * AC-09.2: chế độ phát triển (H2) nạp {@code data-h2.sql} như trước: đủ tài khoản demo, danh mục, ca và giờ trống
+ * Chế độ phát triển (H2) nạp {@code data-h2.sql} như trước: đủ tài khoản demo, danh mục, ca và giờ trống
  * mẫu; bộ đếm khóa chính đã được đặt lại nên bản ghi tạo sau không đụng ID cố định của seed.
  */
 class DevSeedTest extends AbstractApiTest {
@@ -36,7 +36,7 @@ class DevSeedTest extends AbstractApiTest {
     private boolean flywayEnabled;
 
     @Test
-    @DisplayName("AC-09.2 H2 nạp data-h2.sql: 5 tài khoản demo đúng vai trò, danh mục và ca mẫu có sẵn")
+    @DisplayName("H2 nạp data-h2.sql: 5 tài khoản demo đúng vai trò, danh mục và ca mẫu có sẵn")
     void h2SeedIsLoaded() {
         assertEquals("classpath:data-h2.sql", dataLocations);
         assertEquals("h2", platform);
@@ -58,7 +58,7 @@ class DevSeedTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-09.2 Ca mẫu có độ dài slot 30 phút cho 4 ngày; bộ đếm khóa chính bắt đầu từ 1000 sau seed")
+    @DisplayName("Ca mẫu có độ dài slot 30 phút cho 4 ngày; bộ đếm khóa chính bắt đầu từ 1000 sau seed")
     void seedSchedulesAndIdentityRestart() {
         Long seededShifts = jdbc.queryForObject("""
                 select count(*) from doctor_schedules

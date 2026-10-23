@@ -31,7 +31,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * AC-06.1, AC-06.7: Admin xem danh sách lịch hẹn ở mức hành chính, lọc theo ngày khám, bác sĩ, chuyên khoa,
+ * Admin xem danh sách lịch hẹn ở mức hành chính, lọc theo ngày khám, bác sĩ, chuyên khoa,
  * trạng thái; JSON không bao giờ có ghi chú hay lý do hủy.
  */
 class AdminAppointmentListTest extends AbstractApiTest {
@@ -177,7 +177,7 @@ class AdminAppointmentListTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-06.7 Quyền: khách 401; bệnh nhân và bác sĩ 403 ở danh sách, báo cáo và xuất tệp")
+    @DisplayName("Quyền: khách 401; bệnh nhân và bác sĩ 403 ở danh sách, báo cáo và xuất tệp")
     void onlyAdminCanUseReportEndpoints() throws Exception {
         for (String url : new String[] { URL, "/api/v1/admin/reports/appointments",
                 "/api/v1/admin/reports/appointments/export" }) {

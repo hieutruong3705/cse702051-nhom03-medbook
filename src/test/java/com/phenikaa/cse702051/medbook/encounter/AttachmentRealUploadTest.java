@@ -27,7 +27,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * BE-04 (mục 7) trên Tomcat THẬT (không phải MockMvc): MockMvc bỏ qua giới hạn multipart của container nên không
+ * Tệp đính kèm trên Tomcat THẬT (không phải MockMvc): MockMvc bỏ qua giới hạn multipart của container nên không
  * phát hiện được việc tệp 1–10 MB hợp lệ bị từ chối (mặc định Spring chỉ cho 1 MB) hay tệp > 10 MB không trả 413.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)

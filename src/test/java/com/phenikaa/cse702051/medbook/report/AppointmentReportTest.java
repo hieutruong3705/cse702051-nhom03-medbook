@@ -41,7 +41,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 import jakarta.persistence.EntityManagerFactory;
 
 /**
- * AC-06.2…06.4, AC-06.8: báo cáo lịch khám đúng số liệu với dữ liệu có số lượng đã biết, các bất biến luôn giữ,
+ * Báo cáo lịch khám đúng số liệu với dữ liệu có số lượng đã biết, các bất biến luôn giữ,
  * khoảng ngày được kiểm, và tổng hợp chạy ở CSDL (đếm số truy vấn bằng thống kê Hibernate).
  */
 class AppointmentReportTest extends AbstractApiTest {
@@ -101,7 +101,7 @@ class AppointmentReportTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-06.2 Không nhóm: đếm đúng từng trạng thái, total bằng tổng bốn trạng thái, tỷ lệ hủy làm tròn 2 chữ số")
+    @DisplayName("Không nhóm: đếm đúng từng trạng thái, total bằng tổng bốn trạng thái, tỷ lệ hủy làm tròn 2 chữ số")
     void totalsByStatus() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("rpt_total_doc");
         IsolatedPatient patient = data.isolatedPatient("rpt_total_pat");
@@ -129,7 +129,7 @@ class AppointmentReportTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-06.2 Không có lịch nào trong khoảng: mọi số bằng 0, tỷ lệ hủy bằng 0, không lỗi chia cho 0")
+    @DisplayName("Không có lịch nào trong khoảng: mọi số bằng 0, tỷ lệ hủy bằng 0, không lỗi chia cho 0")
     void emptyRangeGivesZeros() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("rpt_empty_doc");
         LocalDate day = ReportFixtures.freshDay();
@@ -145,7 +145,7 @@ class AppointmentReportTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-06.3 Nhóm theo ngày: mỗi ngày một nhóm theo thứ tự tăng dần, nhãn dd/MM/yyyy, số liệu đúng")
+    @DisplayName("Nhóm theo ngày: mỗi ngày một nhóm theo thứ tự tăng dần, nhãn dd/MM/yyyy, số liệu đúng")
     void groupsByDay() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("rpt_day_doc");
         IsolatedPatient patient = data.isolatedPatient("rpt_day_pat");
@@ -178,7 +178,7 @@ class AppointmentReportTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-06.3 Nhóm theo bác sĩ và theo chuyên khoa: nhãn là tên, số liệu đúng, tổng các nhóm bằng tổng chung")
+    @DisplayName("Nhóm theo bác sĩ và theo chuyên khoa: nhãn là tên, số liệu đúng, tổng các nhóm bằng tổng chung")
     void groupsByDoctorAndSpecialty() throws Exception {
         String token = UUID.randomUUID().toString().replace("-", "").substring(0, 10).toUpperCase();
         Specialty specialty = specialties.save(Specialty.builder().code("RGS" + token).name("Khoa nhóm " + token)
@@ -226,7 +226,7 @@ class AppointmentReportTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-06.4 Khoảng ngày: quá 366 ngày, from sau to, groupBy lạ → 400; không truyền ngày → 30 ngày gần nhất")
+    @DisplayName("Khoảng ngày: quá 366 ngày, from sau to, groupBy lạ → 400; không truyền ngày → 30 ngày gần nhất")
     void validatesRangeAndDefaultsToLast30Days() throws Exception {
         LocalDate today = LocalDate.now();
         mvc.perform(get(URL).param("from", "2026-01-01").param("to", "2027-01-02")
@@ -257,7 +257,7 @@ class AppointmentReportTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-06.8 Báo cáo trên hơn 1.000 lịch hẹn dùng không quá 5 câu truy vấn, số liệu vẫn đúng")
+    @DisplayName("Báo cáo trên hơn 1.000 lịch hẹn dùng không quá 5 câu truy vấn, số liệu vẫn đúng")
     void reportOverThousandAppointmentsUsesFewQueries() {
         IsolatedDoctor doctorA = data.isolatedDoctor("rpt_perf_a");
         IsolatedDoctor doctorB = data.isolatedDoctor("rpt_perf_b");

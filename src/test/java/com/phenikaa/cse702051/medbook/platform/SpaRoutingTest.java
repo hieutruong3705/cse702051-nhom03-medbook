@@ -29,7 +29,7 @@ import com.phenikaa.cse702051.medbook.controller.SeoController;
 import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 
 /**
- * SV-4: địa chỉ trang của giao diện ({@code /doctors}, {@code /patient/dashboard}) gõ thẳng hay tải lại đều nhận
+ * Địa chỉ trang của giao diện ({@code /doctors}, {@code /patient/dashboard}) gõ thẳng hay tải lại đều nhận
  * {@code index.html}; API và tệp tĩnh không bao giờ rơi vào đường này; bản đồ trang và robots dùng địa chỉ tuyệt đối.
  */
 class SpaRoutingTest extends AbstractApiTest {
@@ -37,7 +37,7 @@ class SpaRoutingTest extends AbstractApiTest {
     private static final Pattern LOC = Pattern.compile("<loc>([^<]*)</loc>");
 
     @Test
-    @DisplayName("AC-S4.1 Gõ thẳng hoặc tải lại một địa chỉ trang: 200 và được chuyển tiếp tới index.html, không cần token")
+    @DisplayName("Gõ thẳng hoặc tải lại một địa chỉ trang: 200 và được chuyển tiếp tới index.html, không cần token")
     void pageAddressesAreForwardedToTheApp() throws Exception {
         for (String path : List.of("/doctors", "/specialties", "/services", "/login", "/register", "/reset-password",
                 "/patient/dashboard", "/receptionist/patients", "/admin/audit-logs", "/account/change-password",
@@ -54,7 +54,7 @@ class SpaRoutingTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S4.3 Địa chỉ không tồn tại vẫn nhận index.html để ứng dụng hiện trang 404 của mình")
+    @DisplayName("Địa chỉ không tồn tại vẫn nhận index.html để ứng dụng hiện trang 404 của mình")
     void unknownPageAddressesShowTheAppNotFoundPage() throws Exception {
         for (String path : List.of("/abc/xyz", "/khong-co-trang-nay", "/patient/khong-co/1/2")) {
             mvc.perform(get(path)).andExpect(status().isOk()).andExpect(forwardedUrl("/index.html"));
@@ -62,7 +62,7 @@ class SpaRoutingTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S4.3 Yêu cầu tới tệp không có trả 404 thật, không trả index.html")
+    @DisplayName("Yêu cầu tới tệp không có trả 404 thật, không trả index.html")
     void missingFilesAreRealNotFound() throws Exception {
         for (String path : List.of("/assets/khong-co.js", "/khong-co.css", "/doctors/anh.png", "/abc/xyz.map")) {
             mvc.perform(get(path).header("Authorization", patientToken()))
@@ -75,7 +75,7 @@ class SpaRoutingTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S4.2 Không đường /api nào trả về HTML: chưa đăng nhập 401, có token 404 dạng JSON")
+    @DisplayName("Không đường /api nào trả về HTML: chưa đăng nhập 401, có token 404 dạng JSON")
     void apiPathsNeverFallBackToTheApp() throws Exception {
         for (String path : List.of("/api", "/api/khong-ton-tai", "/api/v1", "/api/v1/khong-ton-tai",
                 "/api/v2/doctors", "/api/v1/khong/ton/tai/sau")) {
@@ -93,7 +93,7 @@ class SpaRoutingTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S4.2 Viết /api dưới dạng mã hóa phần trăm không lách được yêu cầu đăng nhập")
+    @DisplayName("Viết /api dưới dạng mã hóa phần trăm không lách được yêu cầu đăng nhập")
     void percentEncodedApiPathIsStillProtected() throws Exception {
         for (String path : List.of("/%61pi/v1/users", "/%61pi/v1/admin/users", "/%61pi/v1/khong-ton-tai")) {
             int status = mvc.perform(get(URI.create(path))).andReturn().getResponse().getStatus();
@@ -110,7 +110,7 @@ class SpaRoutingTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S4.8 Trang được chuyển tiếp vẫn mang đủ năm tiêu đề bảo mật")
+    @DisplayName("Trang được chuyển tiếp vẫn mang đủ năm tiêu đề bảo mật")
     void forwardedPagesKeepSecurityHeaders() throws Exception {
         for (String path : List.of("/doctors", "/patient/dashboard", "/abc/xyz")) {
             mvc.perform(get(path))
@@ -123,7 +123,7 @@ class SpaRoutingTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S4.5 /sitemap.xml: mọi <loc> là địa chỉ tuyệt đối, đủ sáu trang công khai, không có trang sau đăng nhập")
+    @DisplayName("/sitemap.xml: mọi <loc> là địa chỉ tuyệt đối, đủ sáu trang công khai, không có trang sau đăng nhập")
     void sitemapListsPublicPagesWithAbsoluteAddresses() throws Exception {
         String xml = mvc.perform(get("/sitemap.xml"))
                 .andExpect(status().isOk())
@@ -142,7 +142,7 @@ class SpaRoutingTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S4.5 /robots.txt trỏ tới bản đồ trang bằng địa chỉ tuyệt đối và vẫn chặn /api/")
+    @DisplayName("/robots.txt trỏ tới bản đồ trang bằng địa chỉ tuyệt đối và vẫn chặn /api/")
     void robotsPointsToTheAbsoluteSitemap() throws Exception {
         mvc.perform(get("/robots.txt"))
                 .andExpect(status().isOk())
@@ -153,7 +153,7 @@ class SpaRoutingTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S4.5 Có MEDBOOK_PUBLIC_BASE_URL thì bản đồ trang và robots dùng đúng địa chỉ đó, bỏ dấu / thừa ở cuối")
+    @DisplayName("Có MEDBOOK_PUBLIC_BASE_URL thì bản đồ trang và robots dùng đúng địa chỉ đó, bỏ dấu / thừa ở cuối")
     void configuredBaseUrlWinsOverTheRequestAddress() {
         SeoController controller = new SeoController(" https://medbook.example/ ");
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/sitemap.xml");

@@ -45,7 +45,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * SV-2: khung giờ trống phụ thuộc loại dịch vụ và gợi ý giờ sớm nhất. CSDL dùng chung giữa các test, nên mỗi test
+ * Khung giờ trống phụ thuộc loại dịch vụ và gợi ý giờ sớm nhất. CSDL dùng chung giữa các test, nên mỗi test
  * dựng bác sĩ, chuyên khoa và ngày riêng rồi luôn lọc theo bác sĩ hoặc chuyên khoa đó. Dịch vụ 30 phút là dịch vụ
  * mẫu số 1; dịch vụ 45 phút và dịch vụ đã ngừng do lớp test này tạo.
  */
@@ -159,7 +159,7 @@ class ServiceAwareSlotTest extends AbstractApiTest {
     // ---------- danh sách giờ trống theo dịch vụ ----------
 
     @Test
-    @DisplayName("AC-S2.1 Ca 30 phút: dịch vụ 30 phút ra đủ khung giờ, dịch vụ 45 phút ra danh sách rỗng, không truyền serviceId ra như cũ")
+    @DisplayName("Ca 30 phút: dịch vụ 30 phút ra đủ khung giờ, dịch vụ 45 phút ra danh sách rỗng, không truyền serviceId ra như cũ")
     void listingDependsOnServiceDuration() throws Exception {
         List<Long> all = List.of(slot("08:00", 30).getId(), slot("08:30", 30).getId(), slot("09:00", 30).getId());
 
@@ -169,7 +169,7 @@ class ServiceAwareSlotTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S2.1 Ngày có khung giờ dài ngắn khác nhau: dịch vụ 45 phút chỉ thấy khung giờ từ 45 phút trở lên")
+    @DisplayName("Ngày có khung giờ dài ngắn khác nhau: dịch vụ 45 phút chỉ thấy khung giờ từ 45 phút trở lên")
     void listingKeepsOnlySlotsLongEnough() throws Exception {
         long half = slot("08:00", 30).getId();
         long exact = slot("09:00", 45).getId();
@@ -193,7 +193,7 @@ class ServiceAwareSlotTest extends AbstractApiTest {
     // ---------- đặt và đổi lịch ----------
 
     @Test
-    @DisplayName("AC-S2.2 Đặt dịch vụ 45 phút vào khung 30 phút: 422 nêu rõ số phút, không tạo lịch; vào khung 45 phút thì 201")
+    @DisplayName("Đặt dịch vụ 45 phút vào khung 30 phút: 422 nêu rõ số phút, không tạo lịch; vào khung 45 phút thì 201")
     void bookingRejectsAServiceLongerThanTheSlot() throws Exception {
         AppointmentSlot half = slot("08:00", 30);
         AppointmentSlot exact = slot("09:00", 45);
@@ -214,7 +214,7 @@ class ServiceAwareSlotTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S2.2 Đổi lịch sang khung ngắn hơn thời lượng dịch vụ: 422, lịch cũ và hai khung giờ giữ nguyên (bệnh nhân và lễ tân)")
+    @DisplayName("Đổi lịch sang khung ngắn hơn thời lượng dịch vụ: 422, lịch cũ và hai khung giờ giữ nguyên (bệnh nhân và lễ tân)")
     void rescheduleRejectsASlotShorterThanTheService() throws Exception {
         AppointmentSlot current = slot("09:00", 45);
         AppointmentSlot shorter = slot("10:00", 30);
@@ -243,7 +243,7 @@ class ServiceAwareSlotTest extends AbstractApiTest {
     // ---------- giờ sớm nhất ----------
 
     @Test
-    @DisplayName("AC-S2.3 Giờ sớm nhất: đúng thứ tự thời gian qua nhiều bác sĩ, đủ trường của hợp đồng, chỉ khung giờ đủ dài")
+    @DisplayName("Giờ sớm nhất: đúng thứ tự thời gian qua nhiều bác sĩ, đủ trường của hợp đồng, chỉ khung giờ đủ dài")
     void earliestIsOrderedAcrossDoctors() throws Exception {
         String key = unique();
         Specialty specialty = specialty(key);
@@ -274,7 +274,7 @@ class ServiceAwareSlotTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S2.3 Giờ sớm nhất lọc đúng theo chuyên khoa và theo bác sĩ")
+    @DisplayName("Giờ sớm nhất lọc đúng theo chuyên khoa và theo bác sĩ")
     void earliestFiltersBySpecialtyAndDoctor() throws Exception {
         String key = unique();
         Specialty mine = specialty(key + "a");
@@ -300,7 +300,7 @@ class ServiceAwareSlotTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S2.3 Giờ sớm nhất bỏ khung giờ đã qua, đã đặt, đã gỡ, chạm giờ nghỉ, đang bị người khác giữ; khung giờ do chính mình giữ vẫn có")
+    @DisplayName("Giờ sớm nhất bỏ khung giờ đã qua, đã đặt, đã gỡ, chạm giờ nghỉ, đang bị người khác giữ; khung giờ do chính mình giữ vẫn có")
     void earliestSkipsSlotsThatCannotBeBooked() throws Exception {
         slot(doctor.doctorId(), LocalDate.now().minusDays(1), "08:00", 30);
         AppointmentSlot booked = slot("08:00", 30);
@@ -331,7 +331,7 @@ class ServiceAwareSlotTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S2.3 Bác sĩ ngừng nhận lịch không có trong giờ sớm nhất")
+    @DisplayName("Bác sĩ ngừng nhận lịch không có trong giờ sớm nhất")
     void earliestSkipsInactiveDoctors() throws Exception {
         long id = slot("08:00", 30).getId();
         assertEquals(List.of(id), ids(json(mvc.perform(earliest(patient.token(), SERVICE_30)
@@ -346,7 +346,7 @@ class ServiceAwareSlotTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S2.3 limit mặc định 5, lớn hơn 20 bị cắt còn 20; from lùi mốc bắt đầu; ngoài 30 ngày kể từ from thì không lấy")
+    @DisplayName("Limit mặc định 5, lớn hơn 20 bị cắt còn 20; from lùi mốc bắt đầu; ngoài 30 ngày kể từ from thì không lấy")
     void earliestHonoursLimitAndWindow() throws Exception {
         LocalTime start = LocalTime.of(7, 0);
         for (int i = 0; i < 24; i++) {
@@ -374,7 +374,7 @@ class ServiceAwareSlotTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S2.4 Giờ sớm nhất: thiếu, sai hoặc ngừng serviceId 400; khách 401; bác sĩ và quản trị viên 403; lễ tân 200")
+    @DisplayName("Giờ sớm nhất: thiếu, sai hoặc ngừng serviceId 400; khách 401; bác sĩ và quản trị viên 403; lễ tân 200")
     void earliestValidatesInputAndRoles() throws Exception {
         String url = "/api/v1/appointment-slots/earliest";
         mvc.perform(get(url).header("Authorization", patient.token())).andExpect(status().isBadRequest());
@@ -393,7 +393,7 @@ class ServiceAwareSlotTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S2.5 Dữ liệu mẫu: cả bốn dịch vụ mẫu đều có ít nhất một bác sĩ mẫu với khung giờ đặt được")
+    @DisplayName("Dữ liệu mẫu: cả bốn dịch vụ mẫu đều có ít nhất một bác sĩ mẫu với khung giờ đặt được")
     void everySeededServiceIsBookableWithASeededDoctor() throws Exception {
         for (long serviceId = 1; serviceId <= 4; serviceId++) {
             MedicalService service = services.findById(serviceId).orElseThrow();
