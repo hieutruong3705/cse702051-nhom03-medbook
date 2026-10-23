@@ -32,11 +32,24 @@ function Invoke-InContainer([string]$command) {
     finally { $ErrorActionPreference = $previous }
 }
 
+# Câu SQL đi qua stdin: Windows PowerShell 5.1 làm hỏng dấu nháy kép lồng trong đối số gửi cho docker,
+# nên lệnh -e "SELECT ..." bị tách thành nhiều đối số. Phép gán biến trong sh không tách từ nên không cần nháy.
+function Invoke-Sql([string]$db, [string]$sql) {
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = $sql | docker exec -i $Container sh -c "MYSQL_PWD=`$MYSQL_ROOT_PASSWORD mysql -uroot -N -B $db" 2>$null
+        if ($LASTEXITCODE -ne 0) { throw "Truy vấn trên '$db' thất bại: $sql" }
+        return $output
+    }
+    finally { $ErrorActionPreference = $previous }
+}
+
 function Get-RowCounts([string]$db) {
-    $tables = Invoke-InContainer "MYSQL_PWD=`"`$MYSQL_ROOT_PASSWORD`" mysql -uroot -N -B -e `"SELECT table_name FROM information_schema.tables WHERE table_schema='$db' AND table_type='BASE TABLE' ORDER BY table_name`""
+    $tables = Invoke-Sql $db "SELECT table_name FROM information_schema.tables WHERE table_schema='$db' AND table_type='BASE TABLE' ORDER BY table_name"
     $counts = [ordered]@{}
     foreach ($table in $tables) {
-        $counts[$table] = [long](Invoke-InContainer "MYSQL_PWD=`"`$MYSQL_ROOT_PASSWORD`" mysql -uroot -N -B -e 'SELECT COUNT(*) FROM ``$table``' $db")
+        $counts[$table] = [long](Invoke-Sql $db "SELECT COUNT(*) FROM ``$table``")
     }
     return $counts
 }
