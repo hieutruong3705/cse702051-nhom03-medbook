@@ -56,7 +56,7 @@ import com.phenikaa.cse702051.medbook.security.CurrentUserService;
  * <li>Thông báo chỉ phát qua sự kiện {@code AFTER_COMMIT}.</li>
  * </ol>
  *
- * <h3>Trạng thái (D3)</h3>
+ * <h3>Trạng thái</h3>
  * {@code BOOKED → IN_PROGRESS → COMPLETED}, nhánh {@code CANCELLED} (chỉ từ BOOKED). Chuyển
  * sai thứ tự → 409.
  */

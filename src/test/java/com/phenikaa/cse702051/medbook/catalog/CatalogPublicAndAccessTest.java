@@ -55,7 +55,7 @@ class CatalogPublicAndAccessTest extends AbstractApiTest {
     // ---------- công khai ----------
 
     @Test
-    @DisplayName("AC-01.1 Khách xem chuyên khoa: 200 dạng trang, chỉ có bản ACTIVE kể cả khi tìm bằng từ khóa")
+    @DisplayName("Khách xem chuyên khoa: 200 dạng trang, chỉ có bản ACTIVE kể cả khi tìm bằng từ khóa")
     void guestSeesOnlyActiveSpecialties() throws Exception {
         String token = unique();
         long active = adminCreate("specialties",
@@ -84,7 +84,7 @@ class CatalogPublicAndAccessTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-01.1, AC-01.9 Khách xem dịch vụ: trang gồm đủ trường mà màn hình đặt lịch dùng, ẩn dịch vụ đã ngừng")
+    @DisplayName("Khách xem dịch vụ: trang gồm đủ trường mà màn hình đặt lịch dùng, ẩn dịch vụ đã ngừng")
     void guestSeesOnlyActiveServicesWithBookingFields() throws Exception {
         String token = unique();
         long active = adminCreate("medical-services", """
@@ -114,7 +114,7 @@ class CatalogPublicAndAccessTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-01.10 Từ khóa % và _ là ký tự thường: không khớp mọi bản ghi")
+    @DisplayName("Từ khóa % và _ là ký tự thường: không khớp mọi bản ghi")
     void wildcardCharactersAreLiteral() throws Exception {
         String token = unique();
         adminCreate("specialties", "{\"code\":\"WPC%s\",\"name\":\"Giảm 50%% phí %s\"}".formatted(token, token));
@@ -151,7 +151,7 @@ class CatalogPublicAndAccessTest extends AbstractApiTest {
     // ---------- quyền theo vai trò ----------
 
     @Test
-    @DisplayName("AC-01.2 Thuốc: khách 401, bệnh nhân 403, bác sĩ chỉ thấy ACTIVE, Admin lọc được INACTIVE")
+    @DisplayName("Thuốc: khách 401, bệnh nhân 403, bác sĩ chỉ thấy ACTIVE, Admin lọc được INACTIVE")
     void medicinesVisibilityByRole() throws Exception {
         String token = unique();
         long active = adminCreate("medicines",

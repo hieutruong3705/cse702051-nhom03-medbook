@@ -70,7 +70,7 @@ class AppointmentReminderJobTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-05.4 Chạy hai lần liên tiếp chỉ tạo một thông báo cho mỗi mốc 24 giờ và 2 giờ; chỉ bệnh nhân được nhắc")
+    @DisplayName("Chạy hai lần liên tiếp chỉ tạo một thông báo cho mỗi mốc 24 giờ và 2 giờ; chỉ bệnh nhân được nhắc")
     void eachMilestoneRemindedExactlyOnce() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("rem_once_doc");
         IsolatedPatient patient = data.isolatedPatient("rem_once_pat");
@@ -108,7 +108,7 @@ class AppointmentReminderJobTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-05.4 Lịch ngoài cửa sổ không được nhắc: còn quá xa, đúng giờ khám, đã qua giờ; biên 2 giờ thuộc mốc 2 giờ")
+    @DisplayName("Lịch ngoài cửa sổ không được nhắc: còn quá xa, đúng giờ khám, đã qua giờ; biên 2 giờ thuộc mốc 2 giờ")
     void appointmentsOutsideWindowsAreNotReminded() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("rem_window_doc");
         IsolatedPatient patient = data.isolatedPatient("rem_window_pat");
@@ -134,7 +134,7 @@ class AppointmentReminderJobTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-05.4 Lịch đã hủy, đang khám hoặc đã hoàn thành không được nhắc")
+    @DisplayName("Lịch đã hủy, đang khám hoặc đã hoàn thành không được nhắc")
     void onlyBookedAppointmentsAreReminded() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("rem_status_doc");
         IsolatedPatient patient = data.isolatedPatient("rem_status_pat");
@@ -163,7 +163,7 @@ class AppointmentReminderJobTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-05.5 Đổi lịch rồi chạy nhắc: lịch được nhắc lại theo giờ mới")
+    @DisplayName("Đổi lịch rồi chạy nhắc: lịch được nhắc lại theo giờ mới")
     void rescheduledAppointmentIsRemindedAgain() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("rem_move_doc");
         IsolatedPatient patient = data.isolatedPatient("rem_move_pat");

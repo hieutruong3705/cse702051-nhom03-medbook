@@ -42,7 +42,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedReceptionist;
 
 /**
- * BE-4: hóa đơn tại quầy lễ tân. Tìm hóa đơn, xem các dòng, ghi nhận đã thu (chỉ từ UNPAID, hai yêu cầu đồng thời
+ * Hóa đơn tại quầy lễ tân. Tìm hóa đơn, xem các dòng, ghi nhận đã thu (chỉ từ UNPAID, hai yêu cầu đồng thời
  * chỉ một thành công); không hủy được; chỉ lễ tân gọi được.
  */
 class ReceptionInvoiceTest extends AbstractApiTest {
@@ -105,7 +105,7 @@ class ReceptionInvoiceTest extends AbstractApiTest {
     // ---------- danh sách ----------
 
     @Test
-    @DisplayName("AC-B4.1 Danh sách lọc theo trạng thái, khoảng ngày lập, từ khóa; mới nhất trước; không có lý do hủy")
+    @DisplayName("Danh sách lọc theo trạng thái, khoảng ngày lập, từ khóa; mới nhất trước; không có lý do hủy")
     void listFiltersAndHidesVoidReason() throws Exception {
         String key = unique();
         IsolatedPatient patient = data.isolatedPatient("rinv" + key);
@@ -146,7 +146,7 @@ class ReceptionInvoiceTest extends AbstractApiTest {
     // ---------- dòng hóa đơn ----------
 
     @Test
-    @DisplayName("AC-B4.2 Dòng hóa đơn trả đủ tên dịch vụ, số lượng, đơn giá, thành tiền; hóa đơn không tồn tại 404")
+    @DisplayName("Dòng hóa đơn trả đủ tên dịch vụ, số lượng, đơn giá, thành tiền; hóa đơn không tồn tại 404")
     void listsInvoiceItems() throws Exception {
         String key = unique();
         long id = issue(data.isolatedDoctor("rinvi" + key), data.isolatedPatient("rinvi" + key));
@@ -171,7 +171,7 @@ class ReceptionInvoiceTest extends AbstractApiTest {
     // ---------- thu tiền ----------
 
     @Test
-    @DisplayName("AC-B4.3 Thu hóa đơn UNPAID: 200, PAID, có paidAt, một bản nhật ký của lễ tân; thu lần hai 409")
+    @DisplayName("Thu hóa đơn UNPAID: 200, PAID, có paidAt, một bản nhật ký của lễ tân; thu lần hai 409")
     void collectsUnpaidInvoiceOnce() throws Exception {
         String key = unique();
         IsolatedReceptionist receptionist = data.isolatedReceptionist("rinvc" + key);
@@ -202,7 +202,7 @@ class ReceptionInvoiceTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B4.3 Thu hóa đơn đã hủy 409; hóa đơn không tồn tại 404")
+    @DisplayName("Thu hóa đơn đã hủy 409; hóa đơn không tồn tại 404")
     void collectRejectsVoidedOrUnknownInvoices() throws Exception {
         String key = unique();
         long id = issue(data.isolatedDoctor("rinvv" + key), data.isolatedPatient("rinvv" + key));
@@ -219,7 +219,7 @@ class ReceptionInvoiceTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B4.4 Các yêu cầu thu đồng thời cùng một hóa đơn: đúng một 200, còn lại 409, một bản nhật ký")
+    @DisplayName("Các yêu cầu thu đồng thời cùng một hóa đơn: đúng một 200, còn lại 409, một bản nhật ký")
     void concurrentCollectionsOnlyOneSucceeds() throws Exception {
         String key = unique();
         long id = issue(data.isolatedDoctor("rinvr" + key), data.isolatedPatient("rinvr" + key));
@@ -258,7 +258,7 @@ class ReceptionInvoiceTest extends AbstractApiTest {
     // ---------- quyền ----------
 
     @Test
-    @DisplayName("AC-B4.5 Lễ tân không dùng được đường thu và hủy của quản trị; quản trị viên vẫn thu và hủy như cũ")
+    @DisplayName("Lễ tân không dùng được đường thu và hủy của quản trị; quản trị viên vẫn thu và hủy như cũ")
     void receptionistCannotUseAdminInvoiceRoutes() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("rinva" + key);
@@ -282,7 +282,7 @@ class ReceptionInvoiceTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B4.7 Khách 401; bệnh nhân chủ hóa đơn, bác sĩ phụ trách, quản trị viên đều 403 ở ba điểm cuối hóa đơn của quầy")
+    @DisplayName("Khách 401; bệnh nhân chủ hóa đơn, bác sĩ phụ trách, quản trị viên đều 403 ở ba điểm cuối hóa đơn của quầy")
     void onlyReceptionistsMayUseTheEndpoints() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("rinvp" + key);

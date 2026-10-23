@@ -27,7 +27,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData;
 import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 
 /**
- * BE-02: kiểm soát truy cập bệnh án theo từng bản ghi (YCCN-07) và audit mọi lần đọc (YCCN-23).
+ * Kiểm soát truy cập bệnh án theo từng bản ghi (YCCN-07) và audit mọi lần đọc (YCCN-23).
  *
  * <p>Dựng sẵn: bác sĩ 1 phụ trách bệnh nhân 1 (lịch hẹn chưa hủy); bác sĩ 2 phụ trách bệnh nhân 2;
  * bệnh nhân X chỉ có lịch hẹn ĐÃ HỦY với bác sĩ 1; bệnh nhân Y chỉ có lần khám (không có lịch) với

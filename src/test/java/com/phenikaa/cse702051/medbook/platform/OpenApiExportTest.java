@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 
 /**
- * AC-09.5: khi bật {@code medbook.openapi.enabled}, {@code /v3/api-docs} trả tài liệu OpenAPI hợp lệ liệt kê mọi
+ * Khi bật {@code medbook.openapi.enabled}, {@code /v3/api-docs} trả tài liệu OpenAPI hợp lệ liệt kê mọi
  * endpoint {@code /api/v1}. Test này đồng thời xuất tài liệu ra {@code docs/openapi.json} (bản để nộp và đọc ngoại
  * tuyến) và {@code target/openapi.json}.
  */
@@ -47,7 +47,7 @@ class OpenApiExportTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-09.5 /v3/api-docs hợp lệ, liệt kê mọi endpoint /api/v1, khai báo xác thực Bearer; xuất docs/openapi.json")
+    @DisplayName("/v3/api-docs hợp lệ, liệt kê mọi endpoint /api/v1, khai báo xác thực Bearer; xuất docs/openapi.json")
     void exportsOpenApiDocument() throws Exception {
         String raw = mvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);

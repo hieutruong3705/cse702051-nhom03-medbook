@@ -24,7 +24,7 @@ import com.phenikaa.cse702051.medbook.service.AuditLogService;
 import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 
 /**
- * AC-01.8: Admin tra cứu nhật ký audit theo từng bộ lọc và theo tổ hợp, có phân trang, mới nhất trước. Mỗi test
+ * Admin tra cứu nhật ký audit theo từng bộ lọc và theo tổ hợp, có phân trang, mới nhất trước. Mỗi test
  * ghi sự kiện với {@code entityType} riêng để không lẫn với audit do test khác sinh ra.
  */
 class AuditLogQueryTest extends AbstractApiTest {

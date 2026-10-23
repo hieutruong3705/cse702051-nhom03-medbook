@@ -33,7 +33,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * AC-07.2…07.4: dòng thuốc lấy từ danh mục phải là thuốc đang hoạt động và chép tên tại thời điểm kê; dữ liệu sai
+ * Dòng thuốc lấy từ danh mục phải là thuốc đang hoạt động và chép tên tại thời điểm kê; dữ liệu sai
  * bị từ chối với 400 đúng trường và không để lại bản ghi dở.
  */
 class PrescriptionCatalogAndValidationTest extends AbstractApiTest {
@@ -81,7 +81,7 @@ class PrescriptionCatalogAndValidationTest extends AbstractApiTest {
     // ---------- thuốc trong danh mục ----------
 
     @Test
-    @DisplayName("AC-07.2 Kê thuốc trong danh mục: lưu medicineId và chép tên từ danh mục (bỏ qua tên client gửi)")
+    @DisplayName("Kê thuốc trong danh mục: lưu medicineId và chép tên từ danh mục (bỏ qua tên client gửi)")
     void catalogMedicineIsSnapshotted() throws Exception {
         String token = unique();
         Medicine medicine = medicine(token, "Cefixime 200mg " + token, "ACTIVE");
@@ -111,7 +111,7 @@ class PrescriptionCatalogAndValidationTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-07.2 medicineId không tồn tại hoặc INACTIVE → 400 details.medicineId; thiếu cả mã lẫn tên → 400; không lưu dở")
+    @DisplayName("MedicineId không tồn tại hoặc INACTIVE → 400 details.medicineId; thiếu cả mã lẫn tên → 400; không lưu dở")
     void rejectsUnknownOrInactiveMedicine() throws Exception {
         String token = unique();
         Medicine inactive = medicine(token, "Đã ngừng " + token, "INACTIVE");
@@ -138,7 +138,7 @@ class PrescriptionCatalogAndValidationTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-07.3 Không kê lặp một thuốc trong danh mục trong cùng đơn (400 details.medicineId); đơn khác thì được")
+    @DisplayName("Không kê lặp một thuốc trong danh mục trong cùng đơn (400 details.medicineId); đơn khác thì được")
     void sameCatalogMedicineOncePerPrescription() throws Exception {
         String token = unique();
         Medicine medicine = medicine(token, "Losartan 50mg " + token, "ACTIVE");
@@ -171,7 +171,7 @@ class PrescriptionCatalogAndValidationTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-07.4 Đổi tên hoặc ngừng dùng thuốc trong danh mục sau khi kê: đơn cũ giữ nguyên tên cũ")
+    @DisplayName("Đổi tên hoặc ngừng dùng thuốc trong danh mục sau khi kê: đơn cũ giữ nguyên tên cũ")
     void oldPrescriptionsKeepTheNameAtPrescribingTime() throws Exception {
         String token = unique();
         Medicine medicine = medicine(token, "Tên lúc kê " + token, "ACTIVE");
@@ -204,7 +204,7 @@ class PrescriptionCatalogAndValidationTest extends AbstractApiTest {
     // ---------- ràng buộc dữ liệu ----------
 
     @Test
-    @DisplayName("AC-07.3 Số lượng: 0, âm, thập phân, lớn hơn 999 → 400 đúng thông báo; 1 và 999 hợp lệ")
+    @DisplayName("Số lượng: 0, âm, thập phân, lớn hơn 999 → 400 đúng thông báo; 1 và 999 hợp lệ")
     void validatesQuantity() throws Exception {
         Open open = open("qty");
         String url = open.itemsUrl();
@@ -239,7 +239,7 @@ class PrescriptionCatalogAndValidationTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-07.3 Số ngày ngoài 1–365, liều dùng/tần suất dài hơn 100, hướng dẫn dài hơn 500, tên dài hơn 200 → 400")
+    @DisplayName("Số ngày ngoài 1–365, liều dùng/tần suất dài hơn 100, hướng dẫn dài hơn 500, tên dài hơn 200 → 400")
     void validatesDurationAndTextLengths() throws Exception {
         Open open = open("len");
         String url = open.itemsUrl();
@@ -287,7 +287,7 @@ class PrescriptionCatalogAndValidationTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-07.3 Mỗi đơn tối đa 30 dòng thuốc: dòng thứ 31 → 400, xóa bớt rồi thêm lại được")
+    @DisplayName("Mỗi đơn tối đa 30 dòng thuốc: dòng thứ 31 → 400, xóa bớt rồi thêm lại được")
     void atMostThirtyItemsPerPrescription() throws Exception {
         Open open = open("max");
         String token = open.doctor().token();

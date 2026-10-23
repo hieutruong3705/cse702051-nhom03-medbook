@@ -46,7 +46,7 @@ import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 import com.phenikaa.cse702051.medbook.support.CapturingPasswordResetNotifier;
 
 /**
- * BE-01 (YCCN-01…04): đăng ký, đăng nhập, khóa 5 lần/15 phút, đăng xuất thu hồi token, đổi mật khẩu,
+ * YCCN-01…04: đăng ký, đăng nhập, khóa 5 lần/15 phút, đăng xuất thu hồi token, đổi mật khẩu,
  * quên/đặt lại mật khẩu, audit. Mỗi test dùng tài khoản riêng (tên duy nhất) để bộ đếm khóa không
  * ảnh hưởng lẫn nhau.
  */

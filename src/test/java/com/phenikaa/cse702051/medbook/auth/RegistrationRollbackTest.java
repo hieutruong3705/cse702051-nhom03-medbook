@@ -19,7 +19,7 @@ import com.phenikaa.cse702051.medbook.repository.UserRepository;
 import com.phenikaa.cse702051.medbook.service.PatientService;
 
 /**
- * BE-01 (YCCN-01, YCPCN-12): lỗi ở giữa luồng đăng ký (tạo Patient/MedicalRecord) phải hoàn tác cả
+ * YCCN-01, YCPCN-12: lỗi ở giữa luồng đăng ký (tạo Patient/MedicalRecord) phải hoàn tác cả
  * tài khoản, không để lại User hay gán quyền dở dang. Cần spy nên chạy trong context riêng.
  */
 @SpringBootTest

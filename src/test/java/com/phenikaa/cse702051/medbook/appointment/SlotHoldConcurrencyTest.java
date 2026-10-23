@@ -38,7 +38,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * SV-1, AC-S1.1: giữ chỗ dưới tải đồng thời. Các yêu cầu cùng xuất phát một lúc và chạy qua toàn bộ tầng controller,
+ * Giữ chỗ dưới tải đồng thời. Các yêu cầu cùng xuất phát một lúc và chạy qua toàn bộ tầng controller,
  * service, repository trên CSDL thật của test, không dùng mock. Bảo đảm cần giữ: một khung giờ có tối đa một bản
  * giữ còn hạn, và một khung giờ đang bị giữ không bị người khác đặt mất.
  */
@@ -137,7 +137,7 @@ class SlotHoldConcurrencyTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S1.1 50 người dùng khác nhau cùng giữ một khung giờ: đúng 1 nhận 200, 49 nhận 409, đúng một dòng slot_holds, không lỗi 5xx")
+    @DisplayName("50 người dùng khác nhau cùng giữ một khung giờ: đúng 1 nhận 200, 49 nhận 409, đúng một dòng slot_holds, không lỗi 5xx")
     void fiftyUsersHoldingOneSlotOnlyOneSucceeds() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("shc" + key);

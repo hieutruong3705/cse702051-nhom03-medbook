@@ -26,7 +26,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * AC-03.6, 03.8: ngày nghỉ của bác sĩ. Đăng ký nghỉ gỡ giờ trống của ngày đó nhưng không bao giờ làm mất lịch đã
+ * Ngày nghỉ của bác sĩ. Đăng ký nghỉ gỡ giờ trống của ngày đó nhưng không bao giờ làm mất lịch đã
  * đặt; xóa ngày nghỉ sinh lại giờ trống theo các ca đang có.
  */
 class ScheduleDayOffTest extends AbstractScheduleTest {
@@ -48,7 +48,7 @@ class ScheduleDayOffTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.6 Đăng ký nghỉ: 201, gỡ mọi giờ trống của ngày đó, ca làm việc vẫn còn; có trong danh sách ngày nghỉ")
+    @DisplayName("Đăng ký nghỉ: 201, gỡ mọi giờ trống của ngày đó, ca làm việc vẫn còn; có trong danh sách ngày nghỉ")
     void dayOffRemovesFreeSlotsButKeepsShifts() throws Exception {
         IsolatedDoctor doctor = newDoctor();
         LocalDate day = freshDay();
@@ -81,7 +81,7 @@ class ScheduleDayOffTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.6 Ngày đã có lịch hẹn được đặt: 409 kèm số lượng, không gỡ slot nào và không lưu ngày nghỉ")
+    @DisplayName("Ngày đã có lịch hẹn được đặt: 409 kèm số lượng, không gỡ slot nào và không lưu ngày nghỉ")
     void dayWithBookedAppointmentCannotBecomeDayOff() throws Exception {
         IsolatedDoctor doctor = newDoctor();
         IsolatedPatient patient = data.isolatedPatient("off" + unique());
@@ -100,7 +100,7 @@ class ScheduleDayOffTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.6 Xóa ngày nghỉ: 204 và sinh lại đúng các giờ trống (vẫn bỏ giờ nghỉ trong ca); xóa lần nữa 404")
+    @DisplayName("Xóa ngày nghỉ: 204 và sinh lại đúng các giờ trống (vẫn bỏ giờ nghỉ trong ca); xóa lần nữa 404")
     void removingDayOffRegeneratesSlots() throws Exception {
         IsolatedDoctor doctor = newDoctor();
         LocalDate day = freshDay();
@@ -122,7 +122,7 @@ class ScheduleDayOffTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.6 Slot từng có lịch đã hủy được giữ làm lịch sử khi nghỉ; hết nghỉ thì có slot mới đặt lại được")
+    @DisplayName("Slot từng có lịch đã hủy được giữ làm lịch sử khi nghỉ; hết nghỉ thì có slot mới đặt lại được")
     void cancelledHistoryIsKeptAcrossDayOff() throws Exception {
         IsolatedDoctor doctor = newDoctor();
         IsolatedPatient patient = data.isolatedPatient("off" + unique());
@@ -146,7 +146,7 @@ class ScheduleDayOffTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.6 Ngày nghỉ ở quá khứ hoặc thiếu ngày 400; trùng ngày 422; tạo ca vào ngày nghỉ 422")
+    @DisplayName("Ngày nghỉ ở quá khứ hoặc thiếu ngày 400; trùng ngày 422; tạo ca vào ngày nghỉ 422")
     void invalidDaysOffAndShiftsOnDaysOffAreRejected() throws Exception {
         IsolatedDoctor doctor = newDoctor();
         LocalDate day = freshDay();
@@ -177,7 +177,7 @@ class ScheduleDayOffTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.8 Ngày nghỉ chỉ của mình: bác sĩ khác không thấy và không xóa được (403); bệnh nhân và Admin 403")
+    @DisplayName("Ngày nghỉ chỉ của mình: bác sĩ khác không thấy và không xóa được (403); bệnh nhân và Admin 403")
     void daysOffAreScopedToTheOwningDoctor() throws Exception {
         IsolatedDoctor a = newDoctor();
         IsolatedDoctor b = newDoctor();

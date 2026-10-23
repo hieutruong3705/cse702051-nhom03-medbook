@@ -17,7 +17,7 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 
 /**
- * SV-3: thời hạn lưu đệm của giao diện tĩnh. Tệp có mã băm trong {@code /assets} được giữ một năm, trang gốc luôn
+ * Thời hạn lưu đệm của giao diện tĩnh. Tệp có mã băm trong {@code /assets} được giữ một năm, trang gốc luôn
  * được kiểm lại, phản hồi API không đổi. Việc nén (tầng máy chủ web, MockMvc không đi qua) được kiểm trên ứng dụng
  * chạy thật; kết quả ghi ở tài liệu hiệu năng.
  */
@@ -38,7 +38,7 @@ class StaticResourceHeadersTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S3.1 Tệp JS và CSS trong /assets: lưu đệm công khai một năm, immutable; không còn Pragma hay Expires")
+    @DisplayName("Tệp JS và CSS trong /assets: lưu đệm công khai một năm, immutable; không còn Pragma hay Expires")
     void hashedAssetsAreCachedForAYear() throws Exception {
         for (String path : new String[] { assetPath(".js"), assetPath(".css"), assetPath(".woff2") }) {
             mvc.perform(get(path))
@@ -50,7 +50,7 @@ class StaticResourceHeadersTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S3.1 Trang gốc: / chuyển tới index.html, và index.html trả no-cache để luôn được kiểm lại")
+    @DisplayName("Trang gốc: / chuyển tới index.html, và index.html trả no-cache để luôn được kiểm lại")
     void rootPageIsAlwaysRevalidated() throws Exception {
         mvc.perform(get("/")).andExpect(status().isOk()).andExpect(forwardedUrl("index.html"));
         mvc.perform(get("/index.html"))
@@ -71,7 +71,7 @@ class StaticResourceHeadersTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S3.3 Tệp tĩnh và trang gốc vẫn mang đủ tiêu đề bảo mật")
+    @DisplayName("Tệp tĩnh và trang gốc vẫn mang đủ tiêu đề bảo mật")
     void staticResponsesKeepSecurityHeaders() throws Exception {
         for (String path : new String[] { assetPath(".js"), "/index.html" }) {
             mvc.perform(get(path))

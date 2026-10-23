@@ -37,7 +37,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * AC-07.5…07.8: hợp đồng JSON của đơn thuốc (chỉ các trường của DTO), mã đơn đúng định dạng và duy nhất, audit
+ * Hợp đồng JSON của đơn thuốc (chỉ các trường của DTO), mã đơn đúng định dạng và duy nhất, audit
  * đầy đủ cho ghi và đúng một bản cho mỗi yêu cầu đọc, và đường dẫn tra cứu cũ đã bị gỡ.
  */
 class PrescriptionContractAndAuditTest extends AbstractApiTest {
@@ -73,7 +73,7 @@ class PrescriptionContractAndAuditTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-07.6 Response chỉ có các trường của DTO; client gửi id, encounterId, mã đơn đều bị bỏ qua")
+    @DisplayName("Response chỉ có các trường của DTO; client gửi id, encounterId, mã đơn đều bị bỏ qua")
     void responseHasExactlyTheContractFields() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("rxk_fields_doc");
         IsolatedPatient patient = data.isolatedPatient("rxk_fields_pat");
@@ -122,7 +122,7 @@ class PrescriptionContractAndAuditTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-07.8 Mã đơn có dạng RX-yyyyMMdd-XXXXXX (chữ hoa và số) và không trùng khi kê nhiều đơn liên tiếp")
+    @DisplayName("Mã đơn có dạng RX-yyyyMMdd-XXXXXX (chữ hoa và số) và không trùng khi kê nhiều đơn liên tiếp")
     void prescriptionCodesAreWellFormedAndUnique() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("rxk_code_doc");
         IsolatedPatient patient = data.isolatedPatient("rxk_code_pat");
@@ -143,7 +143,7 @@ class PrescriptionContractAndAuditTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-07.5 Mỗi lần ghi có một bản audit: PRESCRIPTION_CREATE khi kê, PRESCRIPTION_UPDATE khi sửa đơn, thêm/sửa/xóa dòng")
+    @DisplayName("Mỗi lần ghi có một bản audit: PRESCRIPTION_CREATE khi kê, PRESCRIPTION_UPDATE khi sửa đơn, thêm/sửa/xóa dòng")
     void everyWriteIsAudited() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("rxk_write_doc");
         IsolatedPatient patient = data.isolatedPatient("rxk_write_pat");
@@ -183,7 +183,7 @@ class PrescriptionContractAndAuditTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-07.5 Mỗi yêu cầu đọc ghi đúng một bản PRESCRIPTION_VIEW gắn với lần khám, dù lần khám có nhiều đơn")
+    @DisplayName("Mỗi yêu cầu đọc ghi đúng một bản PRESCRIPTION_VIEW gắn với lần khám, dù lần khám có nhiều đơn")
     void everyReadWritesExactlyOneViewAudit() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("rxk_view_doc");
         IsolatedPatient patient = data.isolatedPatient("rxk_view_pat");
@@ -220,7 +220,7 @@ class PrescriptionContractAndAuditTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-07.5 Bệnh nhân khác, bác sĩ khác, Admin đọc đơn → 403 kèm audit ACCESS_DENIED, không có audit đọc")
+    @DisplayName("Bệnh nhân khác, bác sĩ khác, Admin đọc đơn → 403 kèm audit ACCESS_DENIED, không có audit đọc")
     void deniedReadsAreAuditedAsAccessDenied() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("rxk_deny_doc");
         IsolatedDoctor otherDoctor = data.isolatedDoctor("rxk_deny_other");
@@ -255,7 +255,7 @@ class PrescriptionContractAndAuditTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-07.7 GET /prescription-items/search đã bị gỡ: 404 với mọi vai trò; khách vẫn 401")
+    @DisplayName("GET /prescription-items/search đã bị gỡ: 404 với mọi vai trò; khách vẫn 401")
     void searchEndpointIsGone() throws Exception {
         for (String token : new String[] { patientToken(), doctorToken(), adminToken() }) {
             mvc.perform(get("/api/v1/prescription-items/search").param("medicineName", "para")

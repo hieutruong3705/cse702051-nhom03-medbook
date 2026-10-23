@@ -59,7 +59,7 @@ class ReceptionistRoleTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B1.3 Admin tạo lễ tân: 201, không sinh hồ sơ bệnh nhân hay bác sĩ; đăng nhập được, vào được khu lễ tân, "
+    @DisplayName("Admin tạo lễ tân: 201, không sinh hồ sơ bệnh nhân hay bác sĩ; đăng nhập được, vào được khu lễ tân, "
             + "không vào được khu quản trị")
     void adminCreatesReceptionistWithoutProfiles() throws Exception {
         String username = "lt_" + unique();
@@ -86,7 +86,7 @@ class ReceptionistRoleTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B1.3 Lễ tân gửi kèm hồ sơ bác sĩ 400 theo trường; vai trò lạ vẫn 400; không còn lại tài khoản")
+    @DisplayName("Lễ tân gửi kèm hồ sơ bác sĩ 400 theo trường; vai trò lạ vẫn 400; không còn lại tài khoản")
     void receptionistWithDoctorProfileIsRejected() throws Exception {
         String username = "lt_" + unique();
         mvc.perform(post(USERS).header("Authorization", adminToken()).contentType(MediaType.APPLICATION_JSON)
@@ -104,7 +104,7 @@ class ReceptionistRoleTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B1.3 Gán rồi gỡ vai trò lễ tân qua đổi vai trò; lọc danh sách tài khoản theo vai trò lễ tân")
+    @DisplayName("Gán rồi gỡ vai trò lễ tân qua đổi vai trò; lọc danh sách tài khoản theo vai trò lễ tân")
     void adminAssignsAndRemovesReceptionistRole() throws Exception {
         User account = data.user("ltrole_" + unique(), "Iso#Pass123", "PATIENT");
         String rolesUrl = USERS + "/" + account.getId() + "/roles";
@@ -136,7 +136,7 @@ class ReceptionistRoleTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B1.5 Lễ tân gọi thẳng bệnh án, lần khám, đơn thuốc, tệp, hóa đơn, lịch hẹn của bệnh nhân: đều 403; "
+    @DisplayName("Lễ tân gọi thẳng bệnh án, lần khám, đơn thuốc, tệp, hóa đơn, lịch hẹn của bệnh nhân: đều 403; "
             + "lần gọi bệnh án bị từ chối có nhật ký ACCESS_DENIED với danh tính lễ tân")
     void receptionistCannotReadClinicalData() throws Exception {
         String key = unique();

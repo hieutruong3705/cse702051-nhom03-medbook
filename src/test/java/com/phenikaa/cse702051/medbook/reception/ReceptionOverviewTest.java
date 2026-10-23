@@ -29,7 +29,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * BE-4: số liệu trong ngày của quầy lễ tân. CSDL dùng chung giữa các test nên các số toàn cục được kiểm bằng chênh
+ * Số liệu trong ngày của quầy lễ tân. CSDL dùng chung giữa các test nên các số toàn cục được kiểm bằng chênh
  * lệch trước và sau; số theo ngày được kiểm trên một ngày riêng của test.
  */
 class ReceptionOverviewTest extends AbstractApiTest {
@@ -61,7 +61,7 @@ class ReceptionOverviewTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B4.6 Số lịch hẹn theo trạng thái đúng với ngày được hỏi và không lẫn ngày khác")
+    @DisplayName("Số lịch hẹn theo trạng thái đúng với ngày được hỏi và không lẫn ngày khác")
     void countsAppointmentsOfTheDayByStatus() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("rov" + key);
@@ -89,7 +89,7 @@ class ReceptionOverviewTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B4.6 Thu một hóa đơn: số và tiền chưa thu giảm, số và tiền đã thu hôm nay tăng đúng bằng hóa đơn đó")
+    @DisplayName("Thu một hóa đơn: số và tiền chưa thu giảm, số và tiền đã thu hôm nay tăng đúng bằng hóa đơn đó")
     void collectingMovesMoneyFromUnpaidToCollectedToday() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("rovm" + key);
@@ -116,7 +116,7 @@ class ReceptionOverviewTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B4.6 Ngày không có gì: bốn số đếm bằng 0, đã thu là 0 và 0.00 (không phải null); tiền luôn có hai chữ số thập phân")
+    @DisplayName("Ngày không có gì: bốn số đếm bằng 0, đã thu là 0 và 0.00 (không phải null); tiền luôn có hai chữ số thập phân")
     void emptyDayReturnsZeros() throws Exception {
         String raw = mvc.perform(get(URL).param("date", "2099-12-31").header("Authorization", receptionistToken()))
                 .andExpect(status().isOk())
@@ -134,7 +134,7 @@ class ReceptionOverviewTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B4.6 Lịch đang khám và đã hoàn thành của ngày được đếm đúng cột")
+    @DisplayName("Lịch đang khám và đã hoàn thành của ngày được đếm đúng cột")
     void countsInProgressAndCompleted() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("rovs" + key);
@@ -154,7 +154,7 @@ class ReceptionOverviewTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B4.7 Ngày sai định dạng 400; khách 401; bệnh nhân, bác sĩ, quản trị viên 403")
+    @DisplayName("Ngày sai định dạng 400; khách 401; bệnh nhân, bác sĩ, quản trị viên 403")
     void rejectsBadDateAndOtherRoles() throws Exception {
         mvc.perform(get(URL).param("date", "31/12/2026").header("Authorization", receptionistToken()))
                 .andExpect(status().isBadRequest());

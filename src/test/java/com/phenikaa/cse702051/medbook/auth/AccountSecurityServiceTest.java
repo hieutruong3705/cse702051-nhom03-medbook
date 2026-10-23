@@ -35,7 +35,7 @@ import com.phenikaa.cse702051.medbook.service.AuditActions;
 import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 
 /**
- * BE-01 (YCCN-05, 06): khóa/mở tài khoản và gán quyền — vô hiệu hóa token ngay, chống tự khóa, chống
+ * YCCN-05, 06: khóa/mở tài khoản và gán quyền — vô hiệu hóa token ngay, chống tự khóa, chống
  * làm mất quản trị viên cuối cùng, ghi audit kèm trước/sau.
  */
 class AccountSecurityServiceTest extends AbstractApiTest {

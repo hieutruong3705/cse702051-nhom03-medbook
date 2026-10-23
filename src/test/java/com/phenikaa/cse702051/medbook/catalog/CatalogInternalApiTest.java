@@ -25,7 +25,7 @@ import com.phenikaa.cse702051.medbook.service.SpecialtyService;
 import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 
 /**
- * AC-01.6: các hàm nội bộ mà module khác (hóa đơn, đơn thuốc, hồ sơ bác sĩ) gọi không bao giờ trả {@code null};
+ * Các hàm nội bộ mà module khác (hóa đơn, đơn thuốc, hồ sơ bác sĩ) gọi không bao giờ trả {@code null};
  * bản ghi không tồn tại hoặc đã ngừng sử dụng ném {@link FieldValidationException} kèm đúng tên trường.
  */
 class CatalogInternalApiTest extends AbstractApiTest {

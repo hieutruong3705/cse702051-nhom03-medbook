@@ -29,7 +29,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 import com.phenikaa.cse702051.medbook.util.CsvWriter;
 
 /**
- * AC-06.5, AC-06.6: xuất CSV có BOM UTF-8, đúng tiêu đề, đúng số dòng, tên tệp đúng; ô nguy hiểm được vô hiệu
+ * Xuất CSV có BOM UTF-8, đúng tiêu đề, đúng số dòng, tên tệp đúng; ô nguy hiểm được vô hiệu
  * hóa; mỗi lần xuất ghi một bản audit không chứa dữ liệu bệnh nhân.
  */
 class AppointmentReportExportTest extends AbstractApiTest {
@@ -43,7 +43,7 @@ class AppointmentReportExportTest extends AbstractApiTest {
     private PatientRepository patients;
 
     @Test
-    @DisplayName("AC-06.5 CSV: BOM UTF-8, tiêu đề tiếng Việt, mỗi lịch một dòng, tên tệp và Content-Disposition đúng")
+    @DisplayName("CSV: BOM UTF-8, tiêu đề tiếng Việt, mỗi lịch một dòng, tên tệp và Content-Disposition đúng")
     void exportsCsvWithBomHeaderAndRows() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("exp_csv_doc");
         IsolatedPatient patient = data.isolatedPatient("exp_csv_pat");
@@ -91,7 +91,7 @@ class AppointmentReportExportTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-06.5 Chống chèn công thức: tên bệnh nhân bắt đầu bằng = được thêm dấu ' và dấu nháy kép được nhân đôi")
+    @DisplayName("Chống chèn công thức: tên bệnh nhân bắt đầu bằng = được thêm dấu ' và dấu nháy kép được nhân đôi")
     void neutralisesFormulaCells() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("exp_inj_doc");
         Patient attacker = data.extraPatient("EXPINJ01");
@@ -125,7 +125,7 @@ class AppointmentReportExportTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-06.6 Mỗi lần xuất ghi đúng một bản audit REPORT_EXPORT gồm bộ lọc và số dòng, không có dữ liệu bệnh nhân")
+    @DisplayName("Mỗi lần xuất ghi đúng một bản audit REPORT_EXPORT gồm bộ lọc và số dòng, không có dữ liệu bệnh nhân")
     void everyExportIsAudited() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("exp_audit_doc");
         IsolatedPatient patient = data.isolatedPatient("exp_audit_pat");

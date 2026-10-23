@@ -14,7 +14,7 @@ import com.phenikaa.cse702051.medbook.service.DoctorScopePolicy;
 import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 import com.phenikaa.cse702051.medbook.support.ApiTestData;
 
-/** BE-02: quy tắc "bác sĩ phụ trách bệnh nhân" (D7). */
+/** Quy tắc "bác sĩ phụ trách bệnh nhân". */
 class DoctorScopeServiceTest extends AbstractApiTest {
 
     @Autowired

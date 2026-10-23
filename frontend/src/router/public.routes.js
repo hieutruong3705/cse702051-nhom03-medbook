@@ -1,6 +1,6 @@
 // Route con của khu công khai (Dev 5). Đường dẫn tương đối so với `/`.
 // Các view dưới đây TỰ bọc `PublicLayout`/`DashboardLayout` trong template nên khai báo trực tiếp.
-// Còn thiếu (FE-01): chi tiết bác sĩ `doctors/:id`.
+// Còn thiếu: chi tiết bác sĩ `doctors/:id`.
 export default [
   {
     path: '',

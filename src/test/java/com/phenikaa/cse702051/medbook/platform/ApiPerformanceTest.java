@@ -37,7 +37,7 @@ import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * AC-09.6 và sổ tay Buổi 9: đo thời gian phản hồi của các điểm cuối đọc nhiều nhất với hơn 5.000 bản ghi ở mỗi bảng
+ * Sổ tay Buổi 9: đo thời gian phản hồi của các điểm cuối đọc nhiều nhất với hơn 5.000 bản ghi ở mỗi bảng
  * chính, TRƯỚC và SAU tối ưu (chỉ mục của migration V2 và bộ nhớ đệm danh mục). Mỗi điểm cuối được gọi 50 lần, lấy
  * trung vị và phân vị 95. Kết quả ghi ra {@code target/performance-report.md}.
  *
@@ -173,7 +173,7 @@ class ApiPerformanceTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-09.6 Hơn 5.000 bản ghi: trung vị của 50 yêu cầu dưới 400 ms; tìm bác sĩ và giờ trống có p95 dưới 1 giây")
+    @DisplayName("Hơn 5.000 bản ghi: trung vị của 50 yêu cầu dưới 400 ms; tìm bác sĩ và giờ trống có p95 dưới 1 giây")
     void measuresHotEndpointsBeforeAndAfterOptimisation() throws Exception {
         String key = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
         IsolatedPatient heavy = data.isolatedPatient("perf" + key);
