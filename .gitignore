@@ -1,3 +1,51 @@
-node_modules/
-.DS_Store
+HELP.md
+target/
+docs/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+# ===== Environment =====
 .env
+.env.local
+.env.*.local
+!.env.example
+
+# Local verification output
+*.log
+
+# Bản sao lưu CSDL (chứa dữ liệu bệnh nhân) và tệp đính kèm tải lên khi chạy tại máy
+backups/
+uploads/
+
+# Phụ thuộc và kết quả chạy thử của giao diện
+node_modules/
+frontend/test-results/
+frontend/playwright-report/

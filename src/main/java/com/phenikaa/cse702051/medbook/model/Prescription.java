@@ -1,27 +1,8 @@
 package com.phenikaa.cse702051.medbook.model;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-@Getter
-@Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
 @Table(name = "prescriptions")
 public class Prescription {
@@ -30,9 +11,8 @@ public class Prescription {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "encounter_id", nullable = false)
-    private Encounter encounter;
+    @Column(name = "encounter_id", nullable = false)
+    private Long encounterId;
 
     @Column(name = "prescription_code", nullable = false, unique = true, length = 40)
     private String prescriptionCode;
@@ -40,10 +20,10 @@ public class Prescription {
     @Column(name = "issued_at", nullable = false)
     private LocalDateTime issuedAt;
 
-    @Column(length = 500)
+    @Column(name = "notes", length = 500)
     private String notes;
 
-    @Column(nullable = false, length = 20)
+    @Column(name = "status", nullable = false, length = 20)
     private String status;
 
     @Column(name = "created_at", nullable = false)
@@ -51,4 +31,71 @@ public class Prescription {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    public Prescription() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getEncounterId() {
+        return encounterId;
+    }
+
+    public void setEncounterId(Long encounterId) {
+        this.encounterId = encounterId;
+    }
+
+    public String getPrescriptionCode() {
+        return prescriptionCode;
+    }
+
+    public void setPrescriptionCode(String prescriptionCode) {
+        this.prescriptionCode = prescriptionCode;
+    }
+
+    public LocalDateTime getIssuedAt() {
+        return issuedAt;
+    }
+
+    public void setIssuedAt(LocalDateTime issuedAt) {
+        this.issuedAt = issuedAt;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 }

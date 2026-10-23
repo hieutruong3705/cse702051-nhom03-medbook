@@ -5,6 +5,8 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 
+import com.phenikaa.cse702051.medbook.config.RequestIdFilter;
+
 public record ApiError(
         Instant timestamp,
         int status,
@@ -12,7 +14,9 @@ public record ApiError(
         String code,
         String message,
         String path,
-        Map<String, String> details
+        Map<String, String> details,
+        /** Mã định danh của yêu cầu, trùng với tiêu đề {@code X-Request-Id} và với log phía máy chủ. */
+        String requestId
 ) {
     public static ApiError of(ErrorCode errorCode, String message, String path) {
         return of(errorCode, message, path, Map.of());
@@ -31,6 +35,7 @@ public record ApiError(
                 errorCode.name(),
                 responseMessage,
                 path,
-                Map.copyOf(details));
+                Map.copyOf(details),
+                RequestIdFilter.currentRequestId());
     }
 }

@@ -8,8 +8,10 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -50,8 +52,9 @@ public class AuditLog {
     @Column(name = "user_agent", length = 500)
     private String userAgent;
 
-    @Lob
-    @Column(name = "metadata_json", columnDefinition = "json")
+    // Hibernate ánh xạ String sang kiểu JSON gốc của từng CSDL (H2 và MySQL JSON).
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "metadata_json")
     private String metadataJson;
 
     @Column(name = "created_at", nullable = false)

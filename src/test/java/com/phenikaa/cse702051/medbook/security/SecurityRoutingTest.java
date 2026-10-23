@@ -1,0 +1,321 @@
+package com.phenikaa.cse702051.medbook.security;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.stream.Stream;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+
+import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
+
+/**
+ * Ma trận vai trò × route của {@code /api/v1}.
+ * Với route "cho qua" ở tầng route nhưng service tự quyết (ví dụ bệnh án), test
+ * khẳng định KHÔNG bị 401/403 chặn ở tầng route (dữ liệu seed chưa có bệnh án
+ * nên nhận 404).
+ */
+class SecurityRoutingTest extends AbstractApiTest {
+
+    private static final String NONE = "NONE";
+    private static final String PATIENT = "PATIENT";
+    private static final String DOCTOR = "DOCTOR";
+    private static final String ADMIN = "ADMIN";
+    private static final String RECEPTIONIST = "RECEPTIONIST";
+
+    static Stream<Arguments> routeMatrix() {
+        return Stream.of(
+                // --- Admin ---
+                Arguments.of(NONE, "GET", "/api/v1/admin/invoices", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/admin/invoices", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/admin/invoices", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/invoices", 200),
+                Arguments.of(PATIENT, "GET", "/api/v1/admin/data-metrics", 403),
+                Arguments.of(NONE, "GET", "/api/v1/admin/audit-logs", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/admin/audit-logs", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/admin/audit-logs", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/audit-logs", 200),
+                Arguments.of(DOCTOR, "GET", "/api/v1/admin/audit-logs/action-codes", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/audit-logs/action-codes", 200),
+                Arguments.of(NONE, "GET", "/api/v1/audit-logs", 401), // đường dẫn cũ đã gỡ
+                Arguments.of(ADMIN, "GET", "/api/v1/audit-logs", 404),
+                // --- Quản trị danh mục ---
+                Arguments.of(NONE, "GET", "/api/v1/admin/specialties", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/admin/specialties", 403),
+                Arguments.of(DOCTOR, "POST", "/api/v1/admin/medical-services", 403),
+                Arguments.of(DOCTOR, "DELETE", "/api/v1/admin/medicines/1", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/specialties", 200),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/medical-services", 200),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/medicines", 200),
+                Arguments.of(ADMIN, "POST", "/api/v1/admin/specialties", 400), // qua route; body rỗng bị validate
+                // --- Lịch hẹn và báo cáo cho Admin ---
+                Arguments.of(NONE, "GET", "/api/v1/admin/appointments", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/admin/appointments", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/admin/appointments", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/appointments", 200),
+                Arguments.of(NONE, "GET", "/api/v1/admin/reports/appointments", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/admin/reports/appointments", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/admin/reports/appointments", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/reports/appointments", 200),
+                Arguments.of(DOCTOR, "GET", "/api/v1/admin/reports/appointments/export", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/reports/appointments/export", 200),
+                Arguments.of(PATIENT, "GET", "/api/v1/system/metrics", 403),
+                // --- Tài khoản: quản trị chỉ Admin; /users/me cho mọi vai trò; /roles và /user-roles đã gỡ ---
+                Arguments.of(NONE, "GET", "/api/v1/admin/users", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/admin/users", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/admin/users", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/users", 200),
+                Arguments.of(DOCTOR, "POST", "/api/v1/admin/users", 403),
+                Arguments.of(ADMIN, "POST", "/api/v1/admin/users", 400), // qua route; body rỗng bị validate
+                Arguments.of(PATIENT, "PATCH", "/api/v1/admin/users/1/status", 403),
+                Arguments.of(DOCTOR, "PUT", "/api/v1/admin/users/1/roles", 403),
+                Arguments.of(NONE, "GET", "/api/v1/users/me", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/users/me", 200),
+                Arguments.of(DOCTOR, "GET", "/api/v1/users/me", 200),
+                Arguments.of(ADMIN, "GET", "/api/v1/users/me", 200),
+                Arguments.of(PATIENT, "GET", "/api/v1/users", 403),
+                Arguments.of(PATIENT, "GET", "/api/v1/users/1", 403),
+                Arguments.of(NONE, "GET", "/api/v1/roles", 401),
+                Arguments.of(ADMIN, "GET", "/api/v1/roles", 404),
+                Arguments.of(ADMIN, "GET", "/api/v1/user-roles", 404),
+
+                // --- Ghi vào hồ sơ bác sĩ/danh mục (đường dẫn cũ) chỉ Admin ---
+                Arguments.of(PATIENT, "POST", "/api/v1/doctors/admin", 403),
+                Arguments.of(DOCTOR, "POST", "/api/v1/doctors/admin", 403),
+                Arguments.of(PATIENT, "PUT", "/api/v1/doctors/admin/1", 403),
+                Arguments.of(PATIENT, "DELETE", "/api/v1/doctors/admin/1", 403),
+                Arguments.of(NONE, "POST", "/api/v1/doctors/admin", 401),
+
+                // --- Hóa đơn: chỉ Admin thu tiền/hủy và xem doanh thu; đường dẫn PUT cũ đã gỡ ---
+                Arguments.of(NONE, "PATCH", "/api/v1/admin/invoices/1/collect", 401),
+                Arguments.of(PATIENT, "PATCH", "/api/v1/admin/invoices/1/collect", 403),
+                Arguments.of(DOCTOR, "PATCH", "/api/v1/admin/invoices/1/collect", 403),
+                Arguments.of(PATIENT, "PATCH", "/api/v1/admin/invoices/1/void", 403),
+                Arguments.of(DOCTOR, "PATCH", "/api/v1/admin/invoices/1/void", 403),
+                Arguments.of(ADMIN, "PATCH", "/api/v1/admin/invoices/999999/collect", 404),
+                Arguments.of(ADMIN, "PATCH", "/api/v1/admin/invoices/999999/void", 400), // qua route; thiếu lý do hủy
+                Arguments.of(NONE, "GET", "/api/v1/admin/reports/revenue", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/admin/reports/revenue", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/admin/reports/revenue", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/admin/reports/revenue", 200),
+                Arguments.of(NONE, "PUT", "/api/v1/invoices/1/pay", 401),
+                Arguments.of(PATIENT, "PUT", "/api/v1/invoices/1/pay", 404),
+                Arguments.of(ADMIN, "PUT", "/api/v1/invoices/1/pay", 404),
+                Arguments.of(ADMIN, "PUT", "/api/v1/invoices/1/void", 404),
+                Arguments.of(DOCTOR, "GET", "/api/v1/invoices/me", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/invoices/999999", 404),
+
+                // --- Lịch hẹn ---
+                Arguments.of(DOCTOR, "POST", "/api/v1/appointments?patientId=4&slotId=1", 403),
+                Arguments.of(ADMIN, "POST", "/api/v1/appointments?patientId=4&slotId=1", 403),
+                Arguments.of(NONE, "POST", "/api/v1/appointments?patientId=4&slotId=1", 401),
+                Arguments.of(PATIENT, "POST", "/api/v1/appointments", 400), // qua route, thiếu tham số
+                Arguments.of(PATIENT, "PATCH", "/api/v1/appointments/1/status?status=COMPLETED&doctorId=1", 403),
+                Arguments.of(ADMIN, "PATCH", "/api/v1/appointments/1/status?status=COMPLETED&doctorId=1", 403),
+                Arguments.of(DOCTOR, "PATCH", "/api/v1/appointments/1/cancel?patientId=4", 403),
+                Arguments.of(DOCTOR, "PATCH", "/api/v1/appointments/1/reschedule?newSlotId=2&patientId=4", 403),
+                Arguments.of(NONE, "GET", "/api/v1/appointments/1", 401),
+
+                // --- Bác sĩ ---
+                Arguments.of(PATIENT, "GET", "/api/v1/doctor-schedules", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/doctor-schedules", 403),
+                Arguments.of(NONE, "GET", "/api/v1/doctor-schedules", 401),
+                Arguments.of(DOCTOR, "GET", "/api/v1/doctor-schedules", 200),
+                Arguments.of(DOCTOR, "GET", "/api/v1/doctor-schedules/slots", 200),
+                Arguments.of(PATIENT, "POST", "/api/v1/doctor-schedules", 403),
+                Arguments.of(ADMIN, "DELETE", "/api/v1/doctor-schedules/1", 403),
+                Arguments.of(NONE, "GET", "/api/v1/doctor-schedules/days-off", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/doctor-schedules/days-off", 403),
+                Arguments.of(ADMIN, "POST", "/api/v1/doctor-schedules/days-off", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/doctor-schedules/days-off", 200),
+                Arguments.of(DOCTOR, "POST", "/api/v1/doctor-schedules/days-off", 400), // qua route; thiếu ngày
+                Arguments.of(PATIENT, "GET", "/api/v1/doctor-schedules/1/slots", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/doctor-schedules/999999/slots", 404),
+                Arguments.of(NONE, "GET", "/api/v1/schedule-breaks", 401), // đường dẫn cũ (rỗng) đã gỡ
+                Arguments.of(DOCTOR, "GET", "/api/v1/schedule-breaks", 404),
+                Arguments.of(NONE, "GET", "/api/v1/medicines", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/medicines", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/medicines", 200),
+                Arguments.of(ADMIN, "GET", "/api/v1/medicines", 200),
+
+                // --- Bệnh nhân ---
+                Arguments.of(NONE, "GET", "/api/v1/patients/me", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/patients/me", 200),
+                Arguments.of(DOCTOR, "GET", "/api/v1/patients/me", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/patients/me", 403),
+                Arguments.of(PATIENT, "GET", "/api/v1/patients", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/patients", 200),
+                Arguments.of(ADMIN, "GET", "/api/v1/patients", 200),
+                Arguments.of(PATIENT, "GET", "/api/v1/patients/1", 403),
+                Arguments.of(PATIENT, "GET", "/api/v1/patients/1/medical-records", 403),
+
+                // --- Bệnh án: route cho mọi người đã đăng nhập, service quyết định ---
+                // (999999: ID không tồn tại, để test không phụ thuộc dữ liệu do test khác tạo)
+                Arguments.of(NONE, "GET", "/api/v1/medical-records/999999", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/medical-records/999999", 404),
+                Arguments.of(DOCTOR, "GET", "/api/v1/medical-records/999999", 404),
+                Arguments.of(ADMIN, "GET", "/api/v1/medical-records/999999", 404),
+                Arguments.of(NONE, "GET", "/api/v1/medical-records/me", 401),
+                Arguments.of(DOCTOR, "GET", "/api/v1/medical-records/me", 403),
+
+                // --- Dữ liệu khám: bệnh nhân phải qua được route (service kiểm chủ sở hữu) ---
+                Arguments.of(NONE, "GET", "/api/v1/encounters/1", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/encounters/999999", 404), // qua route; service báo không tìm thấy
+                Arguments.of(ADMIN, "GET", "/api/v1/encounters/999999", 404),
+                Arguments.of(PATIENT, "GET", "/api/v1/prescriptions/999999", 404), // qua route; service báo không tìm thấy
+                Arguments.of(NONE, "GET", "/api/v1/encounters/1/invoice", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/encounters/999999/invoice", 404),
+                Arguments.of(ADMIN, "GET", "/api/v1/encounters/999999/invoice", 404),
+
+                // --- Lần khám/tệp: chỉ bác sĩ bắt đầu, sửa, tải lên, xóa, tra cứu; chỉ bệnh nhân xem lịch sử của mình ---
+                Arguments.of(PATIENT, "POST", "/api/v1/encounters", 403),
+                Arguments.of(ADMIN, "POST", "/api/v1/encounters", 403),
+                Arguments.of(NONE, "POST", "/api/v1/encounters", 401),
+                Arguments.of(DOCTOR, "POST", "/api/v1/encounters", 400), // qua route; thiếu appointmentId bị validate
+                Arguments.of(PATIENT, "PUT", "/api/v1/encounters/1", 403),
+                Arguments.of(ADMIN, "PUT", "/api/v1/encounters/1", 403),
+                Arguments.of(PATIENT, "GET", "/api/v1/encounters?appointmentId=1", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/encounters?appointmentId=1", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/encounters", 400), // qua route; thiếu bộ lọc
+                Arguments.of(DOCTOR, "GET", "/api/v1/encounters/me", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/encounters/me", 403),
+                Arguments.of(NONE, "GET", "/api/v1/encounters/me", 401),
+                Arguments.of(PATIENT, "DELETE", "/api/v1/attachments/1", 403),
+                Arguments.of(ADMIN, "DELETE", "/api/v1/attachments/1", 403),
+                Arguments.of(NONE, "DELETE", "/api/v1/attachments/1", 401),
+                Arguments.of(NONE, "GET", "/api/v1/attachments/1/download", 401),
+                Arguments.of(ADMIN, "GET", "/api/v1/attachments/999999/download", 404),
+                Arguments.of(NONE, "GET", "/api/v1/invoices/me", 401),
+
+                // --- Công khai ---
+                Arguments.of(NONE, "GET", "/api/v1/doctors", 200),
+                Arguments.of(NONE, "GET", "/api/v1/doctors/1/slots", 200), // giờ trống của bác sĩ: công khai
+                Arguments.of(NONE, "GET", "/api/v1/doctors/999999/slots", 404),
+                Arguments.of(NONE, "GET", "/api/v1/appointment-slots/available?doctorId=1", 401), // đường dẫn cũ cần đăng nhập
+                Arguments.of(PATIENT, "GET", "/api/v1/appointment-slots/available?doctorId=1", 200),
+                Arguments.of(NONE, "GET", "/api/v1/specialties", 200), // chuyên khoa ACTIVE công khai
+                Arguments.of(NONE, "GET", "/api/v1/specialties/999999", 404),
+                Arguments.of(NONE, "GET", "/api/v1/medical-services", 200), // danh mục dịch vụ ACTIVE công khai
+                Arguments.of(PATIENT, "POST", "/api/v1/specialties", 403), // ghi vào đường dẫn công khai: chỉ Admin
+                Arguments.of(PATIENT, "DELETE", "/api/v1/medical-services/1", 403),
+                Arguments.of(NONE, "GET", "/api/v1/system/status", 200),
+                Arguments.of(NONE, "POST", "/api/v1/auth/login", 400), // công khai, body rỗng bị validate
+                Arguments.of(NONE, "POST", "/api/v1/auth/register", 400),
+                Arguments.of(NONE, "POST", "/api/v1/auth/logout", 401),
+
+                // --- Lễ tân: chỉ khu /reception; không vào khu quản trị, khu bác sĩ, khu bệnh nhân, dữ liệu lâm sàng ---
+                Arguments.of(NONE, "GET", "/api/v1/reception/khong-ton-tai", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/reception/khong-ton-tai", 403),
+                Arguments.of(DOCTOR, "GET", "/api/v1/reception/khong-ton-tai", 403),
+                Arguments.of(ADMIN, "GET", "/api/v1/reception/khong-ton-tai", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/reception/khong-ton-tai", 404), // qua được lớp vai trò
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/admin/invoices", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/admin/users", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/admin/audit-logs", 403),
+                Arguments.of(RECEPTIONIST, "PATCH", "/api/v1/admin/invoices/1/collect", 403),
+                Arguments.of(RECEPTIONIST, "PATCH", "/api/v1/admin/invoices/1/void", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/doctor-schedules", 403),
+                Arguments.of(RECEPTIONIST, "POST", "/api/v1/appointments", 403),
+                Arguments.of(RECEPTIONIST, "PATCH", "/api/v1/appointments/1/cancel", 403),
+                Arguments.of(RECEPTIONIST, "PATCH", "/api/v1/appointments/1/status", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/appointments/me", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/patients", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/patients/me", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/patients/1/medical-records", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/medical-records/me", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/encounters", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/encounters/me", 403),
+                Arguments.of(RECEPTIONIST, "POST", "/api/v1/encounters", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/medicines", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/invoices/me", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/notifications/me", 403),
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/users/me", 200), // hồ sơ tài khoản của chính mình
+                Arguments.of(RECEPTIONIST, "GET", "/api/v1/appointment-slots/available?doctorId=1", 200), // cần để đặt hộ
+
+                // --- Giữ chỗ khung giờ: chỉ người đặt lịch (bệnh nhân, lễ tân) ---
+                Arguments.of(NONE, "POST", "/api/v1/appointment-slots/999999/hold", 401),
+                Arguments.of(NONE, "DELETE", "/api/v1/appointment-slots/999999/hold", 401),
+                Arguments.of(DOCTOR, "POST", "/api/v1/appointment-slots/999999/hold", 403),
+                Arguments.of(DOCTOR, "DELETE", "/api/v1/appointment-slots/999999/hold", 403),
+                Arguments.of(ADMIN, "POST", "/api/v1/appointment-slots/999999/hold", 403),
+                Arguments.of(ADMIN, "DELETE", "/api/v1/appointment-slots/999999/hold", 403),
+                Arguments.of(PATIENT, "POST", "/api/v1/appointment-slots/999999/hold", 404), // qua được lớp vai trò
+                Arguments.of(PATIENT, "DELETE", "/api/v1/appointment-slots/999999/hold", 204),
+                Arguments.of(RECEPTIONIST, "POST", "/api/v1/appointment-slots/999999/hold", 404),
+                Arguments.of(RECEPTIONIST, "DELETE", "/api/v1/appointment-slots/999999/hold", 204),
+
+                // --- Route chưa khai báo: mặc định phải đăng nhập ---
+                Arguments.of(NONE, "GET", "/api/v1/khong-ton-tai", 401),
+                Arguments.of(PATIENT, "GET", "/api/v1/khong-ton-tai", 404),
+
+                // --- Địa chỉ trang của giao diện: ai cũng đọc được (máy chủ chỉ trả index.html), ghi thì không ---
+                Arguments.of(NONE, "GET", "/doctors", 200),
+                Arguments.of(NONE, "GET", "/patient/dashboard", 200),
+                Arguments.of(NONE, "GET", "/admin/users", 200),
+                Arguments.of(PATIENT, "GET", "/admin/users", 200),
+                Arguments.of(NONE, "POST", "/admin/users", 401),
+                Arguments.of(NONE, "DELETE", "/patient/dashboard", 401),
+                // mở địa chỉ trang không mở theo đường /api cùng tên, kể cả đường chưa khai báo
+                Arguments.of(NONE, "GET", "/api/v1/admin/users", 401),
+                Arguments.of(NONE, "GET", "/api", 401),
+                Arguments.of(NONE, "GET", "/api/admin/users", 401),
+                Arguments.of(NONE, "GET", "/v3/api-docs", 401));
+    }
+
+    @ParameterizedTest(name = "{0} {1} {2} -> {3}")
+    @MethodSource("routeMatrix")
+    @DisplayName("Ma trận vai trò × route")
+    void routeMatrixIsEnforced(String who, String method, String path, int expectedStatus) throws Exception {
+        MockHttpServletRequestBuilder request = request(HttpMethod.valueOf(method), path);
+        if (!"GET".equals(method) && !"DELETE".equals(method)) {
+            request.contentType(MediaType.APPLICATION_JSON).content("{}");
+        }
+        switch (who) {
+            case PATIENT -> request.header("Authorization", patientToken());
+            case DOCTOR -> request.header("Authorization", doctorToken());
+            case ADMIN -> request.header("Authorization", adminToken());
+            case RECEPTIONIST -> request.header("Authorization", receptionistToken());
+            default -> {
+            }
+        }
+        mvc.perform(request).andExpect(status().is(expectedStatus));
+    }
+
+    @Test
+    @DisplayName("401 và 403 trả đúng định dạng ApiError")
+    void securityErrorsUseApiErrorFormat() throws Exception {
+        mvc.perform(request(HttpMethod.GET, "/api/v1/admin/invoices"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.error").value("Unauthorized"))
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.message").isNotEmpty())
+                .andExpect(jsonPath("$.path").value("/api/v1/admin/invoices"));
+
+        mvc.perform(request(HttpMethod.GET, "/api/v1/admin/invoices").header("Authorization", patientToken()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.error").value("Forbidden"))
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.path").value("/api/v1/admin/invoices"));
+    }
+
+    @Test
+    @DisplayName("Không tìm thấy đường dẫn trả 404 ApiError, không phải 500")
+    void unknownPathReturnsApiError404() throws Exception {
+        mvc.perform(request(HttpMethod.GET, "/api/v1/khong-ton-tai").header("Authorization", patientToken()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"))
+                .andExpect(jsonPath("$.path").value("/api/v1/khong-ton-tai"));
+    }
+}

@@ -65,4 +65,11 @@ public class MedicalRecord {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    /**
+     * Helper: lấy patientId từ quan hệ Patient cho Dev4AuthorizationService
+     */
+    public Long getPatientId() {
+        return patient != null ? patient.getId() : null;
+    }
 }
