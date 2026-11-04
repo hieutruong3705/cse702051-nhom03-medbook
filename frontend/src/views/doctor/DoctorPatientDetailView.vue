@@ -28,8 +28,8 @@
       <BaseButton class="mt-4" variant="secondary" icon="fa-solid fa-rotate-right" @click="load">Thử lại</BaseButton>
     </div>
 
-    <div v-else class="mt-4 grid gap-4 xl:grid-cols-2">
-      <section class="rounded-md border border-slate-200 bg-white p-5" aria-labelledby="patient-profile-title">
+    <div v-else class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <section class="min-w-0 rounded-md border border-slate-200 bg-white p-5" aria-labelledby="patient-profile-title">
         <h2 id="patient-profile-title" class="font-semibold text-slate-950">Hồ sơ</h2>
         <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-2">
           <div v-for="item in profileRows" :key="item.label">
@@ -39,7 +39,7 @@
         </dl>
       </section>
 
-      <section class="rounded-md border border-slate-200 bg-white p-5 xl:col-span-2" aria-labelledby="patient-self-reported-title">
+      <section class="min-w-0 rounded-md border border-slate-200 bg-white p-5 xl:col-span-2" aria-labelledby="patient-self-reported-title">
         <h2 id="patient-self-reported-title" class="font-semibold text-slate-950">Thông tin sức khỏe bệnh nhân tự khai</h2>
         <p class="mt-1 text-xs text-slate-600">Do bệnh nhân tự nhập ở trang hồ sơ, chưa được bác sĩ xác nhận; khác với phần Bệnh án do bác sĩ ghi.</p>
         <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-3">
@@ -50,7 +50,7 @@
         </dl>
       </section>
 
-      <section class="rounded-md border border-slate-200 bg-white p-5" aria-labelledby="patient-record-title">
+      <section class="min-w-0 rounded-md border border-slate-200 bg-white p-5" aria-labelledby="patient-record-title">
         <h2 id="patient-record-title" class="font-semibold text-slate-950">Bệnh án</h2>
         <p v-if="!record" class="mt-3 text-sm text-slate-500">Bệnh nhân chưa có bệnh án.</p>
         <dl v-else class="mt-3 grid gap-3 text-sm">
@@ -61,7 +61,7 @@
         </dl>
       </section>
 
-      <section class="xl:col-span-2" aria-labelledby="patient-encounters-title">
+      <section class="min-w-0 xl:col-span-2" aria-labelledby="patient-encounters-title">
         <h2 id="patient-encounters-title" class="mb-2 font-semibold text-slate-950">Lịch sử các lần khám với tôi</h2>
         <DataTable :columns="encounterColumns" :rows="encounters" :error="encountersError" empty-text="Chưa có lần khám nào">
           <template #cell-status="{ value }">

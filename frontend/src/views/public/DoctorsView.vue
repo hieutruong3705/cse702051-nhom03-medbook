@@ -2,7 +2,7 @@
   <PublicLayout>
     <PageHeader title="Bác sĩ" description="Tìm bác sĩ theo tên hoặc chuyên khoa rồi đặt lịch khám." />
     <section class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <form class="mb-6 grid gap-4 rounded-md border border-slate-200 bg-white p-4 sm:grid-cols-[1fr_240px_auto]" @submit.prevent="reload">
+      <form ref="filterForm" class="mb-6 grid gap-4 rounded-md border border-slate-200 bg-white p-4 sm:grid-cols-[1fr_240px_auto]" @submit.prevent="reload">
         <BaseInput id="doctor-keyword" v-model="filters.keyword" label="Từ khóa" placeholder="Tên bác sĩ hoặc chuyên khoa" />
         <BaseSelect id="doctor-specialty" v-model="filters.specialtyId" label="Chuyên khoa" placeholder="Tất cả chuyên khoa" :options="specialtyOptions" />
         <div class="flex items-end">
@@ -53,6 +53,7 @@ import { reveal as vReveal } from '@/utils/motion'
 import PublicLayout from '@/layouts/PublicLayout.vue'
 import { catalogApi } from '@/api/catalog'
 import { doctorsApi } from '@/api/doctors'
+import { prefersReducedMotion } from '@/utils/motion'
 import { usePagination } from '@/composables/usePagination'
 import { apiErrorMessage } from '@/utils/apiErrorMessage'
 import { cleanParams } from '@/utils/params'
@@ -72,7 +73,11 @@ const doctors = ref([])
 const specialtyOptions = ref([])
 const loading = ref(false)
 const error = ref('')
-const { page, size, totalPages, setPageResponse, reset } = usePagination({ size: 20 })
+// Mỗi thẻ có dải 7 ngày và giờ khám (một lời gọi API giờ trống mỗi thẻ), nên 8 thẻ mỗi trang để trang không quá dài
+// trên điện thoại và không gọi quá nhiều API cùng lúc.
+const PAGE_SIZE = 8
+const filterForm = ref(null)
+const { page, size, totalPages, setPageResponse, reset } = usePagination({ size: PAGE_SIZE })
 
 async function loadDoctors() {
   loading.value = true
@@ -97,6 +102,8 @@ function reload() {
 function changePage(next) {
   page.value = next
   loadDoctors()
+  // Đưa người dùng về đầu danh sách thay vì để họ ở cuối trang sau khi bấm "Sau"
+  filterForm.value?.scrollIntoView?.({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' })
 }
 
 onMounted(async () => {

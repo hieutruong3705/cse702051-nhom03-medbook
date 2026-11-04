@@ -1,4 +1,5 @@
 <script setup>
+import { pickCarouselReviews } from '@/components/home/carouselReviews'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PublicLayout from '@/layouts/PublicLayout.vue'
@@ -49,12 +50,12 @@ onMounted(async () => {
       doctorsApi.list({ size: HOME_LIST_SIZE }).catch(() => null),
       clinicApi.get().catch(() => null),
       // Đánh giá công khai (VISIBLE) có điểm cao nhất cho băng chuyền
-      reviewsApi.listPublic({ size: 6, sort: 'rating,desc' }).catch(() => null)
+      reviewsApi.listPublic({ size: 20, sort: 'rating,desc' }).catch(() => null)
     ])
     specialties.value = listContent(specRes)
     doctors.value = listContent(docRes)
     clinic.value = clinicRes
-    reviews.value = listContent(reviewRes)
+    reviews.value = pickCarouselReviews(listContent(reviewRes))
   } finally {
     loading.value = false
   }

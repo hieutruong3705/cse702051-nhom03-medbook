@@ -76,7 +76,7 @@ describe('Trang chủ', () => {
     const wrapper = mount(Home)
     await flushPromises()
 
-    expect(reviewsApi.listPublic).toHaveBeenCalledWith({ size: 6, sort: 'rating,desc' })
+    expect(reviewsApi.listPublic).toHaveBeenCalledWith({ size: 20, sort: 'rating,desc' })
     expect(wrapper.find('[data-test="quick-booking"]').exists()).toBe(true)
     expect(wrapper.find('#quick-specialty').text()).toContain('Tim mạch')
     expect(wrapper.find('[data-test="stat-specialties"]').text()).toBe('5')

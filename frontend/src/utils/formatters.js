@@ -33,3 +33,10 @@ export const formatTime = (value) => {
 }
 
 export const formatCurrency = (value) => currencyFormatter.format(Number(value || 0))
+
+/**
+ * Ngày theo giờ máy người dùng, dạng YYYY-MM-DD. Không dùng toISOString(): hàm đó đổi sang UTC nên từ 0h đến 7h
+ * giờ Việt Nam sẽ ra ngày hôm trước.
+ */
+export const localIsoDate = (date = new Date()) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`

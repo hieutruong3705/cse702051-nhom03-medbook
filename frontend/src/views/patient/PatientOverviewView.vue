@@ -44,7 +44,7 @@ import PatientLayout from '@/layouts/PatientLayout.vue'
 import { appointmentsApi } from '@/api/appointments'
 import { useAuthStore } from '@/stores/auth'
 import { apiErrorMessage } from '@/utils/apiErrorMessage'
-import { formatDate, formatTime } from '@/utils/formatters'
+import { formatDate, formatTime, localIsoDate } from '@/utils/formatters'
 import { appointmentStatus } from '@/utils/statusLabels'
 
 const auth = useAuthStore()
@@ -52,7 +52,7 @@ const appointments = ref([])
 const loading = ref(true)
 const error = ref('')
 
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => localIsoDate()
 
 onMounted(async () => {
   try {

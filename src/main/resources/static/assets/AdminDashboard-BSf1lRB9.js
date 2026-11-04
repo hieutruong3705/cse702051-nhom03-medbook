@@ -1,1 +1,0 @@
-import{T as e,W as t}from"./useApi-BPuI6ZR9-rrpqi1CS.js";import n from"./AdminDashboardView-QM7xJkXm.js";var r={__name:`AdminDashboard`,setup(r){return(r,i)=>(t(),e(n))}};export{r as default};
