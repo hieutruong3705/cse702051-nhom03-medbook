@@ -11,12 +11,10 @@
       <Skeleton v-else-if="loading && !doctor" class="h-48" />
 
       <template v-else-if="doctor">
-        <article class="grid gap-6 lg:grid-cols-[2fr_1fr]">
+        <article class="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
           <div class="space-y-6">
             <header class="flex flex-col gap-4 rounded-md border border-slate-200 bg-white p-6 sm:flex-row sm:items-center">
-              <span class="inline-flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-primary-50 text-2xl font-bold text-primary-700" aria-hidden="true">
-                {{ initials }}
-              </span>
+              <DoctorAvatar :doctor-id="doctor.id" size="lg" />
               <div class="min-w-0">
                 <p v-if="doctor.academicTitle" class="text-sm font-semibold text-primary-700">{{ doctor.academicTitle }}</p>
                 <h1 class="text-2xl font-bold text-slate-950">{{ doctor.fullName }}</h1>
@@ -64,28 +62,22 @@
             </section>
           </div>
 
-          <aside class="space-y-4">
-            <section class="rounded-md border border-slate-200 bg-white p-6" aria-labelledby="doctor-slots">
-              <h2 id="doctor-slots" class="text-lg font-semibold text-slate-950">Giờ khám còn trống</h2>
-              <p class="mt-1 text-sm text-slate-600">Trong 7 ngày tới, theo lịch làm việc của bác sĩ.</p>
-              <ul v-if="slotDays.length" class="mt-3 space-y-2">
-                <li v-for="day in slotDays" :key="day.date" class="text-sm">
-                  <span class="font-medium text-slate-900">{{ formatDate(day.date) }}</span>
-                  <span class="text-slate-600"> · {{ day.count }} khung giờ, sớm nhất {{ day.first }}</span>
-                </li>
-              </ul>
-              <p v-else-if="!slotsLoading" class="mt-3 text-sm text-slate-600">Chưa có giờ trống trong 7 ngày tới.</p>
+          <aside class="order-first min-w-0 space-y-4 lg:order-last lg:sticky lg:top-24 lg:self-start">
+            <section ref="scheduleSection" class="scroll-mt-20 rounded-md border border-slate-200 bg-white p-6" aria-labelledby="doctor-slots">
+              <h2 id="doctor-slots" class="sr-only">Đặt lịch khám</h2>
+              <DoctorSchedulePicker :doctor-id="doctor.id" :day-count="SLOT_DAYS" @earliest="earliest = $event" />
+              <p v-if="!auth.isAuthenticated" class="mt-3 text-xs text-slate-600">Bạn sẽ được chuyển tới trang đăng nhập rồi quay lại đúng khung giờ đã chọn.</p>
               <RouterLink
                 v-if="canBook"
-                class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2"
+                class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md border border-primary-600 px-4 py-2 text-sm font-semibold text-primary-700 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2"
                 :to="`/patient/booking?doctorId=${doctor.id}`"
               >
-                <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i>Đặt lịch với bác sĩ
+                <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i>Tự chọn dịch vụ và ngày khác
               </RouterLink>
-              <p v-if="!auth.isAuthenticated" class="mt-2 text-xs text-slate-600">Bạn sẽ được chuyển tới trang đăng nhập trước khi đặt lịch.</p>
             </section>
           </aside>
         </article>
+        <MobileBookingBar :doctor="doctor" :earliest="earliest" :can-book="canBook" :target="scheduleSection" />
       </template>
     </section>
   </PublicLayout>
@@ -97,6 +89,9 @@ import { useRoute } from 'vue-router'
 import { BaseSelect, Pagination, Skeleton } from '@/components/ui'
 import ReviewList from '@/components/reviews/ReviewList.vue'
 import StarRating from '@/components/reviews/StarRating.vue'
+import DoctorAvatar from '@/components/booking/DoctorAvatar.vue'
+import DoctorSchedulePicker from '@/components/booking/DoctorSchedulePicker.vue'
+import MobileBookingBar from '@/components/booking/MobileBookingBar.vue'
 import PublicLayout from '@/layouts/PublicLayout.vue'
 import { doctorsApi } from '@/api/doctors'
 import { reviewsApi } from '@/api/reviews'
@@ -104,7 +99,6 @@ import { usePagination } from '@/composables/usePagination'
 import { updatePageMeta } from '@/router/guards'
 import { useAuthStore } from '@/stores/auth'
 import { apiErrorMessage } from '@/utils/apiErrorMessage'
-import { formatDate, formatTime } from '@/utils/formatters'
 import { cleanParams } from '@/utils/params'
 
 const SLOT_DAYS = 7
@@ -112,6 +106,9 @@ const SLOT_DAYS = 7
 const route = useRoute()
 const auth = useAuthStore()
 const doctor = ref(null)
+// Khung giờ sớm nhất của ngày đang xem và khối lịch khám, cho thanh đặt lịch trên điện thoại
+const earliest = ref(null)
+const scheduleSection = ref(null)
 const summary = ref(null)
 const loading = ref(false)
 const error = ref('')
@@ -119,20 +116,10 @@ const reviews = ref([])
 const reviewsLoading = ref(false)
 const reviewsError = ref('')
 const ratingFilter = ref('')
-const slotDays = ref([])
-const slotsLoading = ref(false)
 const { page, size, totalPages, setPageResponse, reset } = usePagination({ size: 5 })
 
 const ratingOptions = [5, 4, 3, 2, 1].map((stars) => ({ label: `${stars} sao`, value: String(stars) }))
 const canBook = computed(() => !auth.isAuthenticated || auth.hasRole('PATIENT'))
-const initials = computed(() =>
-  (doctor.value?.fullName || '')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(-2)
-    .map((part) => part[0].toUpperCase())
-    .join('')
-)
 const details = computed(() => [
   { label: 'Thế mạnh chuyên môn', value: doctor.value?.expertise },
   { label: 'Quá trình đào tạo', value: doctor.value?.education },
@@ -165,22 +152,6 @@ function changePage(next) {
   loadReviews()
 }
 
-// Gom giờ trống 7 ngày tới theo ngày; mỗi ngày một yêu cầu, chạy song song.
-async function loadSlots(doctorId) {
-  slotsLoading.value = true
-  const today = new Date()
-  const dates = Array.from({ length: SLOT_DAYS }, (_, i) => {
-    const day = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i)
-    return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`
-  })
-  const results = await Promise.all(dates.map((date) => doctorsApi.slots(doctorId, date).catch(() => [])))
-  slotDays.value = dates
-    .map((date, i) => ({ date, slots: Array.isArray(results[i]) ? results[i] : [] }))
-    .filter((day) => day.slots.length)
-    .map((day) => ({ date: day.date, count: day.slots.length, first: formatTime(day.slots[0].startTime) }))
-  slotsLoading.value = false
-}
-
 async function load() {
   loading.value = true
   error.value = ''
@@ -194,7 +165,6 @@ async function load() {
       description: `${profile.fullName}${profile.specialtyName ? `, ${profile.specialtyName}` : ''} tại phòng khám MedBook: giới thiệu, kinh nghiệm, đánh giá của bệnh nhân và giờ khám còn trống.`
     })
     loadReviews()
-    loadSlots(id)
   } catch (err) {
     doctor.value = null
     error.value = err?.status === 404 ? 'Không tìm thấy bác sĩ hoặc bác sĩ đã ngừng nhận lịch.' : apiErrorMessage(err)

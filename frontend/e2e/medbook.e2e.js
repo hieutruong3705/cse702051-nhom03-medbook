@@ -24,11 +24,11 @@ async function login(page, username) {
 const dialog = (page) => page.getByRole('dialog').last()
 
 test.describe('Trang công khai và bảo mật cơ bản', () => {
-  test('khách xem được danh sách bác sĩ; bấm Đặt lịch thì phải đăng nhập', async ({ page }) => {
+  test('khách xem được danh sách bác sĩ dạng thẻ có lịch khám; bấm khung giờ thì phải đăng nhập', async ({ page }) => {
     await page.goto('/doctors')
     await expect(page.getByRole('heading', { name: 'Bác sĩ', level: 1 })).toBeVisible()
     await expect(page.getByText('Bác sĩ Lan').first()).toBeVisible()
-    await expect(page.getByRole('table').getByText('Nội tổng quát').first()).toBeVisible()
+    await expect(page.locator('[data-test="doctor-card"]').getByText('Nội tổng quát').first()).toBeVisible()
     const footer = page.locator('footer')
     await expect(footer).toContainText('Dữ liệu mô phỏng phục vụ mục đích học tập')
     await expect(footer).toContainText('Hệ thống quản lý bệnh án và đặt lịch khám bệnh')
@@ -36,8 +36,8 @@ test.describe('Trang công khai và bảo mật cơ bản', () => {
     await expect(footer.getByRole('link', { name: 'Đặt lịch khám' })).toHaveAttribute('href', '/patient/booking')
     await expect(footer.getByRole('link', { name: 'Chuyên khoa' })).toHaveAttribute('href', '/specialties')
 
-    await page.getByRole('link', { name: 'Đặt lịch với Bác sĩ Lan' }).click()
-    await expect(page).toHaveURL(/^[^?#]*\/login/)
+    await page.locator('[data-test="doctor-card"]').filter({ hasText: 'Bác sĩ Lan' }).locator('[data-test="slot-link"]').first().click()
+    await expect(page).toHaveURL(/^[^?#]*\/login\?redirect=.*slotId/)
     await expect(page.locator('#login-identity')).toBeVisible()
   })
 

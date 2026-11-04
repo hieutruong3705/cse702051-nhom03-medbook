@@ -2,6 +2,7 @@ package com.phenikaa.cse702051.medbook.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -197,8 +198,8 @@ public class ReviewService {
     public PageResponse<ReviewPublicDTO> listForCurrentDoctor(int page, int size) {
         currentUserService.requireRole("DOCTOR");
         Long doctorId = currentActorService.requireCurrentDoctorId();
-        return PageResponse.from(reviewRepository.findAll(visible(doctorId, null, null),
-                PageRequests.of(page, size, NEWEST_FIRST)), ReviewPublicDTO::from);
+        return withVisitDates(reviewRepository.findAll(visible(doctorId, null, null),
+                PageRequests.of(page, size, NEWEST_FIRST)));
     }
 
     @Transactional(readOnly = true)
@@ -219,7 +220,7 @@ public class ReviewService {
         Sort order = PageRequests.parseSort(sort, PUBLIC_SORTS, NEWEST_FIRST);
         Page<DoctorReview> result = reviewRepository.findAll(visible(doctorId, specialtyId, rating),
                 PageRequests.of(page, size, order));
-        return PageResponse.from(result, ReviewPublicDTO::from);
+        return withVisitDates(result);
     }
 
     /** Đánh giá đang hiện của một bác sĩ đang hoạt động; bác sĩ không tồn tại hoặc ngừng hoạt động → 404. */
@@ -335,6 +336,18 @@ public class ReviewService {
     private DoctorReview findWithDetails(Long reviewId) {
         return reviewRepository.findWithDetailsById(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đánh giá!"));
+    }
+
+    /** Gắn ngày khám cho cả trang đánh giá bằng một truy vấn, không truy vấn lặp theo từng đánh giá. */
+    private PageResponse<ReviewPublicDTO> withVisitDates(Page<DoctorReview> result) {
+        Map<Long, LocalDate> dates = new HashMap<>();
+        if (!result.isEmpty()) {
+            for (Object[] row : appointmentRepository.findVisitDates(
+                    result.getContent().stream().map(DoctorReview::getAppointmentId).toList())) {
+                dates.put((Long) row[0], (LocalDate) row[1]);
+            }
+        }
+        return PageResponse.from(result, review -> ReviewPublicDTO.from(review, dates.get(review.getAppointmentId())));
     }
 
     private DoctorReview reload(Long reviewId) {

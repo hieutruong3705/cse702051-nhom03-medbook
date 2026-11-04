@@ -9,7 +9,11 @@
             <span class="text-sm font-semibold text-slate-900">{{ review.reviewerName }}</span>
           </div>
           <span class="text-xs text-slate-600">
-            {{ formatDate(review.createdAt) }}<span v-if="review.edited"> · đã sửa</span>
+            <template v-if="review.visitDate">
+              <i class="fa-solid fa-circle-check text-emerald-700" aria-hidden="true"></i> Đã khám ngày {{ formatDate(review.visitDate) }}
+            </template>
+            <template v-else>{{ formatDate(review.createdAt) }}</template>
+            <span v-if="review.edited"> · đã sửa</span>
           </span>
         </div>
         <p v-if="showDoctor" class="mt-1 text-sm text-slate-600">
@@ -21,7 +25,13 @@
         <p v-if="review.comment" class="mt-2 whitespace-pre-line text-sm text-slate-700">{{ review.comment }}</p>
       </li>
     </ul>
-    <EmptyState v-else-if="!loading" :title="emptyText" />
+    <EmptyState
+      v-else-if="!loading"
+      illustration="reviews"
+      heading-tag="h3"
+      :title="emptyText"
+      message="Đánh giá chỉ đến từ người bệnh đã hoàn thành lần khám, nên luôn là trải nghiệm thật."
+    />
   </div>
 </template>
 

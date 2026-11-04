@@ -52,6 +52,10 @@
           <BaseButton class="mt-2" variant="secondary" @click="loadServices">Thử lại</BaseButton>
         </div>
         <template v-else>
+          <p v-if="prechosen" class="rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900" role="status" data-test="prechosen-slot">
+            Bạn đã chọn khung giờ <strong>{{ formatTime(prechosen.startTime) }} – {{ formatTime(prechosen.endTime) }}</strong> ngày
+            <strong>{{ formatDate(prechosen.date) }}</strong> ở trang bác sĩ. Chọn dịch vụ rồi bấm Tiếp tục để giữ chỗ và xác nhận.
+          </p>
           <div class="max-w-md">
             <BaseSelect
               id="booking-service"
@@ -184,21 +188,7 @@
       </div>
 
       <!-- Hoàn tất -->
-      <div v-else class="mt-4" data-test="done">
-        <p class="rounded-md bg-emerald-50 px-3 py-3 text-sm text-emerald-800" role="status">
-          Đặt lịch thành công. Mã lịch hẹn: <strong>#{{ flow.confirmed.value?.id }}</strong>.
-        </p>
-        <p class="mt-3 text-sm text-slate-600">
-          {{ flow.confirmed.value?.doctorName }} · {{ formatDate(flow.confirmed.value?.date) }} ·
-          {{ formatTime(flow.confirmed.value?.startTime) }}–{{ formatTime(flow.confirmed.value?.endTime) }}
-        </p>
-        <div class="mt-4 flex flex-wrap gap-3">
-          <RouterLink class="rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700" :to="`/patient/appointments/${flow.confirmed.value?.id}`">
-            Xem chi tiết lịch hẹn
-          </RouterLink>
-          <BaseButton variant="secondary" @click="flow.restart">Đặt thêm lịch khác</BaseButton>
-        </div>
-      </div>
+      <BookingSuccess v-else :appointment="flow.confirmed.value" :service="flow.service.value" @restart="flow.restart" />
 
       <!-- Điều hướng bước -->
       <div v-if="flow.step.value <= 5" class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
@@ -233,6 +223,7 @@ import { slotsApi } from '@/api/slots'
 import { apiErrorMessage } from '@/utils/apiErrorMessage'
 import { formatCurrency, formatDate, formatTime } from '@/utils/formatters'
 import SlotPicker from './SlotPicker.vue'
+import BookingSuccess from './BookingSuccess.vue'
 import { doctorName, doctorSpecialty, isPastDate, normalizeList, slotLabel } from './bookingUtils'
 import { BOOKING_STEPS, CONFIRM_STEP, DONE_STEP, SLOT_STEP, useBookingFlow } from './useBookingFlow'
 import { formatHoldCountdown } from './useSlotHold'
@@ -258,6 +249,8 @@ const earliestError = ref('')
 const choosingEarliest = ref(false)
 // Bác sĩ được chọn sẵn qua `?doctorId=`: chọn xong dịch vụ thì bỏ qua bước chọn bác sĩ một lần
 let skipDoctorStep = false
+// Khung giờ chọn sẵn qua `?slotId=&date=&start=&end=` (bấm khung giờ ở trang chi tiết bác sĩ)
+const prechosen = ref(null)
 let earliestRequest = 0
 
 const stepTitles = {
@@ -298,8 +291,19 @@ function selectService(value) {
   flow.selectService(services.value.find((item) => String(item.id) === String(value)) ?? null)
 }
 
-function onNext() {
+async function onNext() {
   const leavingServiceStep = flow.step.value === 1
+  // Khung giờ chọn sẵn ở trang bác sĩ: giữ chỗ ngay và tới bước xác nhận; không giữ được thì đi tiếp như thường,
+  // ngày khám đã điền sẵn để người dùng chọn khung giờ khác.
+  if (leavingServiceStep && prechosen.value && flow.doctor.value && flow.service.value) {
+    const choice = prechosen.value
+    prechosen.value = null
+    skipDoctorStep = false
+    const held = await flow.chooseEarliest({ doctor: flow.doctor.value, date: choice.date, slot: choice })
+    // chooseEarliest đã điền bác sĩ, ngày và mở tới bước khung giờ; giữ nguyên thông báo lý do không giữ được
+    if (!held) flow.goTo(4)
+    return
+  }
   if (!flow.next()) return
   if (leavingServiceStep && skipDoctorStep && flow.doctor.value) {
     skipDoctorStep = false
@@ -340,6 +344,11 @@ async function preselectDoctor() {
   }
   flow.selectDoctor(found)
   skipDoctorStep = true
+  const pick = (key) => String((Array.isArray(route.query[key]) ? route.query[key][0] : route.query[key]) ?? '')
+  const slotId = pick('slotId')
+  if (/^\d+$/.test(slotId) && /^\d{4}-\d{2}-\d{2}$/.test(pick('date')) && !isPastDate(pick('date'))) {
+    prechosen.value = { id: Number(slotId), date: pick('date'), startTime: pick('start'), endTime: pick('end') }
+  }
 }
 
 async function loadServices() {

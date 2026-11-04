@@ -1,0 +1,1 @@
+import{t as e}from"./catalog-CuLn-iC0.js";import{t}from"./clinic-CBz9geQN.js";var n=null;function r(){return n||=Promise.all([t.get().catch(()=>null),e.services.list({size:100}).catch(()=>null)]).then(([e,t])=>{let n=(t?.content??[]).map(e=>Number(e.price)).filter(e=>e>0);return{name:e?.name??``,address:e?.address??``,minPrice:n.length?Math.min(...n):null}}),n}export{r as t};

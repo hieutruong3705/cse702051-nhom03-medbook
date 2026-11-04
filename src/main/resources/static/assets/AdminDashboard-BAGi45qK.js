@@ -1,1 +1,0 @@
-import{H as e,T as t}from"./useApi-BPuI6ZR9-bPFzr4Io.js";import n from"./AdminDashboardView-DJo_IYwi.js";var r={__name:`AdminDashboard`,setup(r){return(r,i)=>(e(),t(n))}};export{r as default};

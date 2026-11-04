@@ -52,6 +52,30 @@
           </section>
         </div>
 
+        <section class="mt-8" aria-labelledby="clinic-process">
+          <h2 id="clinic-process" class="text-lg font-semibold text-slate-950">Quy trình đi khám</h2>
+          <ol class="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <li v-for="(step, index) in processSteps" :key="step.title" class="rounded-md border border-slate-200 bg-white p-5">
+              <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary-600 text-sm font-bold text-white" aria-hidden="true">{{ index + 1 }}</span>
+              <h3 class="mt-3 font-semibold text-slate-950">{{ step.title }}</h3>
+              <p class="mt-1 text-sm text-slate-700">{{ step.text }}</p>
+            </li>
+          </ol>
+        </section>
+
+        <section class="mt-8" aria-labelledby="clinic-faq">
+          <h2 id="clinic-faq" class="text-lg font-semibold text-slate-950">Câu hỏi thường gặp</h2>
+          <div class="mt-3 divide-y divide-slate-200 rounded-md border border-slate-200 bg-white">
+            <details v-for="item in faqs" :key="item.q" class="group px-5 py-4">
+              <summary class="flex cursor-pointer list-none items-center justify-between gap-3 font-medium text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600">
+                {{ item.q }}
+                <i class="fa-solid fa-chevron-down text-sm text-slate-500 transition group-open:rotate-180" aria-hidden="true"></i>
+              </summary>
+              <p class="mt-2 text-sm text-slate-700">{{ item.a }}</p>
+            </details>
+          </div>
+        </section>
+
         <section class="mt-8" aria-labelledby="clinic-reviews">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <h2 id="clinic-reviews" class="text-lg font-semibold text-slate-950">Người bệnh nói gì về MedBook</h2>
@@ -77,6 +101,20 @@ const clinic = ref(null)
 const reviews = ref([])
 const loading = ref(false)
 const error = ref('')
+
+// Nội dung tĩnh, mô tả đúng luồng của MedBook (giữ chỗ 10 phút, hủy trước 2 giờ, thu tiền tại quầy)
+const processSteps = [
+  { title: 'Chọn bác sĩ và khung giờ', text: 'Xem hồ sơ, đánh giá và lịch khám của bác sĩ, bấm vào một khung giờ còn trống.' },
+  { title: 'Xác nhận đặt lịch', text: 'Chọn dịch vụ, khung giờ được giữ cho bạn 10 phút để xem lại và xác nhận.' },
+  { title: 'Đến khám đúng giờ', text: 'Có mặt trước giờ hẹn, lễ tân tiếp đón và bác sĩ khám, kê đơn nếu cần.' },
+  { title: 'Thanh toán và xem kết quả', text: 'Thanh toán tại quầy, xem kết quả khám, đơn thuốc, hóa đơn và đánh giá lần khám.' }
+]
+const faqs = [
+  { q: 'Đặt lịch có mất phí không?', a: 'Không. Phí khám theo bảng giá dịch vụ và được thanh toán tại quầy sau khi khám.' },
+  { q: 'Tôi có thể đổi hoặc hủy lịch không?', a: 'Có, trong mục Lịch hẹn, khi còn ít nhất 2 giờ trước giờ khám.' },
+  { q: 'Vì sao phải đăng nhập mới đặt được lịch?', a: 'Lịch hẹn gắn với hồ sơ và bệnh án của chính bạn, để chỉ bạn và bác sĩ phụ trách xem được kết quả khám.' },
+  { q: 'Ai được viết đánh giá?', a: 'Chỉ bệnh nhân đã hoàn thành lần khám, mỗi lần khám một đánh giá. Tên người đánh giá được rút gọn.' }
+]
 
 const stats = computed(() => [
   { label: 'Bác sĩ đang nhận khám', value: clinic.value.doctorCount, to: '/doctors', link: 'Xem bác sĩ' },

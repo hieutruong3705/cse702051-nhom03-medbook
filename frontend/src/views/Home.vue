@@ -6,6 +6,14 @@ import heroImage from '@/assets/hero.webp'
 import { catalogApi } from '@/api/catalog'
 import { doctorsApi } from '@/api/doctors'
 import StarRating from '@/components/reviews/StarRating.vue'
+import SpecialtyBadge from '@/components/ui/SpecialtyBadge.vue'
+import DoctorAvatar from '@/components/booking/DoctorAvatar.vue'
+import QuickBooking from '@/components/home/QuickBooking.vue'
+import ClinicStats from '@/components/home/ClinicStats.vue'
+import ReviewCarousel from '@/components/home/ReviewCarousel.vue'
+import { clinicApi } from '@/api/clinic'
+import { reviewsApi } from '@/api/reviews'
+import { reveal as vReveal } from '@/utils/motion'
 import { useAuthStore } from '@/stores/auth'
 
 // Số thẻ chuyên khoa và bác sĩ hiện ở trang chủ; phần còn lại nằm ở trang danh sách ("Xem thêm").
@@ -15,6 +23,8 @@ const router = useRouter()
 const auth = useAuthStore()
 const specialties = ref([])
 const doctors = ref([])
+const clinic = ref(null)
+const reviews = ref([])
 const loading = ref(true)
 const keyword = ref('')
 
@@ -34,12 +44,17 @@ const listContent = (response) => (Array.isArray(response?.content) ? response.c
 
 onMounted(async () => {
   try {
-    const [specRes, docRes] = await Promise.all([
+    const [specRes, docRes, clinicRes, reviewRes] = await Promise.all([
       catalogApi.specialties.list({ size: HOME_LIST_SIZE }).catch(() => null),
-      doctorsApi.list({ size: HOME_LIST_SIZE }).catch(() => null)
+      doctorsApi.list({ size: HOME_LIST_SIZE }).catch(() => null),
+      clinicApi.get().catch(() => null),
+      // Đánh giá công khai (VISIBLE) có điểm cao nhất cho băng chuyền
+      reviewsApi.listPublic({ size: 6, sort: 'rating,desc' }).catch(() => null)
     ])
     specialties.value = listContent(specRes)
     doctors.value = listContent(docRes)
+    clinic.value = clinicRes
+    reviews.value = listContent(reviewRes)
   } finally {
     loading.value = false
   }
@@ -64,7 +79,7 @@ function openBooking() {
         class="absolute inset-0 bg-linear-to-r from-slate-950/90 via-slate-950/75 to-slate-950/60 lg:via-slate-950/65 lg:to-slate-950/15"
         aria-hidden="true"
       ></div>
-      <div class="relative mx-auto flex min-h-[520px] max-w-7xl flex-col justify-center px-4 py-16 sm:px-6 lg:px-8">
+      <div class="relative mx-auto grid min-h-[520px] max-w-7xl grid-cols-1 items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:px-8">
         <div class="max-w-3xl">
           <h1 class="text-4xl font-bold sm:text-5xl">MedBook</h1>
           <p class="mt-5 max-w-2xl text-lg text-slate-100">
@@ -93,6 +108,14 @@ function openBooking() {
             <i class="fa-solid fa-calendar-plus mr-2" aria-hidden="true"></i>Đặt khám
           </button>
         </div>
+        <QuickBooking :specialties="specialties" />
+      </div>
+    </section>
+
+    <section v-if="clinic" class="bg-slate-50 py-8">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <h2 class="sr-only">MedBook qua các con số</h2>
+        <ClinicStats :clinic="clinic" />
       </div>
     </section>
 
@@ -101,7 +124,8 @@ function openBooking() {
         <h2 class="text-2xl font-bold text-slate-950">Dịch vụ toàn diện</h2>
         <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <button
-            v-for="service in services"
+            v-for="(service, index) in services"
+            v-reveal="index"
             :key="service.id"
             type="button"
             class="rounded-md border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
@@ -123,15 +147,15 @@ function openBooking() {
         </div>
         <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <RouterLink
-            v-for="spec in specialties"
+            v-for="(spec, index) in specialties"
+            v-reveal="index"
             :key="spec.id"
             :to="`/specialties/${spec.id}`"
-            class="rounded-md border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:shadow-md"
+            class="group rounded-md border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            data-test="home-specialty"
           >
-            <div class="flex h-24 items-center justify-center rounded bg-primary-50 text-3xl text-primary-700">
-              <i class="fa-solid fa-staff-snake" aria-hidden="true"></i>
-            </div>
-            <h3 class="mt-4 font-semibold text-slate-950">{{ spec.name }}</h3>
+            <SpecialtyBadge :specialty="spec" variant="icon" size="lg" />
+            <h3 class="mt-4 font-semibold text-slate-950 group-hover:text-primary-700">{{ spec.name }}</h3>
           </RouterLink>
           <p v-if="specialties.length === 0 && !loading" class="col-span-full text-slate-600">Danh sách chuyên khoa đang được cập nhật.</p>
         </div>
@@ -146,16 +170,15 @@ function openBooking() {
         </div>
         <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <RouterLink
-            v-for="doctor in doctors"
+            v-for="(doctor, index) in doctors"
+            v-reveal="index"
             :key="doctor.id"
             :to="`/doctors/${doctor.id}`"
             class="rounded-md border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:shadow-md"
           >
-            <div class="flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-2xl font-bold text-primary-700" aria-hidden="true">
-              {{ (doctor.fullName || 'BS').slice(0, 2).toUpperCase() }}
-            </div>
+            <DoctorAvatar :doctor-id="doctor.id" />
             <h3 class="mt-4 font-semibold text-slate-950">{{ doctor.fullName }}</h3>
-            <p class="mt-1 text-sm text-slate-600">{{ doctor.specialtyName || 'Chưa có chuyên khoa' }}</p>
+            <SpecialtyBadge class="mt-1" :specialty="doctor.specialtyName ? doctor : null" />
             <div class="mt-2 flex items-center gap-2 text-sm text-slate-700">
               <StarRating :value="doctor.averageRating" show-value />
               <span>{{ doctor.reviewCount || 0 }} đánh giá</span>
@@ -163,6 +186,11 @@ function openBooking() {
           </RouterLink>
           <p v-if="doctors.length === 0 && !loading" class="col-span-full text-slate-600">Danh sách bác sĩ đang được cập nhật.</p>
         </div>
+      </div>
+    </section>
+    <section v-if="reviews.length" class="bg-slate-100 py-12">
+      <div v-reveal class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <ReviewCarousel :reviews="reviews" />
       </div>
     </section>
   </PublicLayout>

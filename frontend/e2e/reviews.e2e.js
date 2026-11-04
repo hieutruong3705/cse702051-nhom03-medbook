@@ -50,7 +50,8 @@ test('Khách xem chi tiết bác sĩ, chuyên khoa và giới thiệu phòng kh�
   await expect(page).toHaveURL(/\/doctors\/1$/)
   await expect(page.getByRole('heading', { level: 1, name: 'Bác sĩ Lan' })).toBeVisible()
   await expect(page.getByText('Thế mạnh chuyên môn')).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Giờ khám còn trống' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Lịch khám', exact: true })).toBeVisible()
+  await expect(page.locator('[data-test="slot-link"]').first()).toBeVisible()
   await expect(page).toHaveTitle('Bác sĩ Lan · MedBook')
   await expect(page.locator('body')).not.toContainText('CCHN-0001')
 
@@ -61,6 +62,56 @@ test('Khách xem chi tiết bác sĩ, chuyên khoa và giới thiệu phòng kh�
   await page.getByRole('navigation', { name: 'Chính' }).getByRole('link', { name: 'Giới thiệu' }).click()
   await expect(page.getByRole('heading', { name: 'Giờ làm việc' })).toBeVisible()
   await expect(page.getByText('Dữ liệu mô phỏng phục vụ mục đích học tập, không phải phòng khám thật.')).toBeVisible()
+})
+
+test('Trang chủ: đặt lịch nhanh tìm giờ sớm nhất, dải số liệu và băng chuyền điều khiển bằng bàn phím', async ({ page }) => {
+  await page.goto('/')
+  const quick = page.locator('[data-test="quick-booking"]')
+  await quick.getByLabel('Chuyên khoa').selectOption({ label: 'Nội tổng quát' })
+  // Chạy muộn trong ngày thì hôm nay có thể đã hết giờ: thử lần lượt các ngày tới khi có kết quả
+  const first = quick.locator('[data-test="quick-slot"]').first()
+  for (let index = 0; index < 7; index++) {
+    await quick.getByLabel('Ngày khám').selectOption({ index })
+    await quick.getByRole('button', { name: 'Tìm giờ trống' }).click()
+    await expect(quick.getByRole('button', { name: 'Tìm giờ trống' })).toBeEnabled()
+    await expect(quick.locator('[data-test="quick-results"]')).not.toBeEmpty()
+    if (await first.count()) break
+  }
+  await expect(first).toBeVisible()
+  await expect(first).toContainText('Bác sĩ Lan')
+  await expect(first).toHaveAttribute('href', /^\/patient\/booking\?doctorId=1&slotId=\d+&date=/)
+
+  await expect(page.locator('[data-test="stat-specialties"]')).toHaveText(/^\d+$/)
+
+  const carousel = page.locator('[data-test="review-carousel"]')
+  await expect(carousel).toBeVisible()
+  const slide = carousel.locator('[data-test="carousel-slide"]').first()
+  const before = await slide.getAttribute('aria-label')
+  await carousel.getByRole('button', { name: 'Đánh giá sau' }).focus()
+  await page.keyboard.press('Enter')
+  await expect(slide).not.toHaveAttribute('aria-label', before)
+
+  await first.click()
+  await expect(page).toHaveURL(/\/login\?redirect=/)
+})
+
+test('Khách đổi ngày khám trên dải 7 ngày bằng bàn phím; khung giờ đầu có nhãn "Sớm nhất"', async ({ page }) => {
+  await page.goto('/doctors/1')
+  const group = page.getByRole('radiogroup', { name: 'Chọn ngày khám' })
+  const days = group.getByRole('radio')
+  await expect(days).toHaveCount(7)
+  await expect(group.locator('[aria-checked="true"]')).toHaveCount(1)
+  await expect(page.locator('[data-test="slot-link"]').first()).toContainText('Sớm nhất')
+
+  const checked = group.locator('[aria-checked="true"]')
+  const before = await checked.textContent()
+  await checked.focus()
+  const reload = page.waitForResponse((res) => res.url().includes('/api/v1/doctors/1/slots'))
+  await page.keyboard.press('ArrowRight')
+  await reload
+  await expect(group.locator('[aria-checked="true"]')).not.toHaveText(before)
+  // Ngày mới được chọn là phần tử đang có focus (radio: chọn theo focus)
+  expect(await page.evaluate(() => document.activeElement?.getAttribute('aria-checked'))).toBe('true')
 })
 
 test('Bệnh nhân khai thông tin sức khỏe, có BMI tự tính, lưu được và tải lại vẫn còn', async ({ page }) => {

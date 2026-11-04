@@ -13,9 +13,7 @@
       <template v-else-if="specialty">
         <header class="rounded-md border border-slate-200 bg-white p-6">
           <div class="flex items-center gap-4">
-            <span class="flex h-14 w-14 items-center justify-center rounded bg-primary-50 text-2xl text-primary-700" aria-hidden="true">
-              <i class="fa-solid fa-staff-snake"></i>
-            </span>
+            <SpecialtyBadge :specialty="specialty" variant="icon" />
             <div>
               <h1 class="text-2xl font-bold text-slate-950">{{ specialty.name }}</h1>
               <p class="mt-1 text-sm text-slate-600">{{ doctorsTotal }} bác sĩ đang nhận khám</p>
@@ -26,26 +24,25 @@
 
         <section class="mt-6" aria-labelledby="specialty-doctors">
           <h2 id="specialty-doctors" class="text-lg font-semibold text-slate-950">Bác sĩ của chuyên khoa</h2>
-          <div v-if="doctors.length" class="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <article v-for="item in doctors" :key="item.id" class="rounded-md border border-slate-200 bg-white p-5">
-              <p v-if="item.academicTitle" class="text-xs font-semibold text-primary-700">{{ item.academicTitle }}</p>
-              <h3 class="text-base font-semibold text-slate-950">
-                <RouterLink class="hover:text-primary-700 hover:underline" :to="`/doctors/${item.id}`">{{ item.fullName }}</RouterLink>
-              </h3>
-              <div class="mt-1 flex items-center gap-2 text-sm text-slate-700">
-                <StarRating :value="item.averageRating" show-value />
-                <span>{{ item.reviewCount }} đánh giá</span>
-              </div>
-              <p class="mt-2 line-clamp-3 text-sm text-slate-600">{{ item.expertise || item.bio || 'Bác sĩ chưa cập nhật phần giới thiệu.' }}</p>
-            </article>
-          </div>
-          <EmptyState v-else-if="!loading" class="mt-3" title="Chuyên khoa chưa có bác sĩ nhận khám" />
+          <ul v-if="doctors.length" class="mt-3 space-y-4" aria-label="Bác sĩ của chuyên khoa">
+            <li v-for="item in doctors" :key="item.id"><DoctorCard :doctor="item" heading-tag="h3" /></li>
+          </ul>
+          <EmptyState
+            v-else-if="!loading"
+            class="mt-3"
+            illustration="search"
+            heading-tag="h3"
+            title="Chuyên khoa chưa có bác sĩ nhận khám"
+            message="Bạn có thể xem bác sĩ của các chuyên khoa khác."
+          >
+            <RouterLink class="text-sm font-semibold text-primary-700 underline" to="/doctors">Xem tất cả bác sĩ</RouterLink>
+          </EmptyState>
         </section>
 
         <section class="mt-8" aria-labelledby="specialty-reviews">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <h2 id="specialty-reviews" class="text-lg font-semibold text-slate-950">Đánh giá gần đây</h2>
-            <RouterLink class="text-sm font-medium text-primary-700 hover:underline" :to="`/reviews?specialtyId=${specialty.id}`">Xem tất cả đánh giá</RouterLink>
+            <RouterLink class="text-sm font-medium text-primary-700 underline" :to="`/reviews?specialtyId=${specialty.id}`">Xem tất cả đánh giá</RouterLink>
           </div>
           <ReviewList class="mt-3" :reviews="reviews" show-doctor empty-text="Chuyên khoa chưa có đánh giá" />
         </section>
@@ -57,9 +54,9 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { EmptyState, Skeleton } from '@/components/ui'
+import { EmptyState, Skeleton, SpecialtyBadge } from '@/components/ui'
 import ReviewList from '@/components/reviews/ReviewList.vue'
-import StarRating from '@/components/reviews/StarRating.vue'
+import DoctorCard from '@/components/booking/DoctorCard.vue'
 import PublicLayout from '@/layouts/PublicLayout.vue'
 import { doctorsApi } from '@/api/doctors'
 import { reviewsApi } from '@/api/reviews'

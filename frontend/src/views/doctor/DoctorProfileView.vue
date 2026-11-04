@@ -11,7 +11,10 @@
     <section class="grid gap-4 lg:grid-cols-[1fr_2fr]">
       <div class="space-y-4">
         <article class="rounded-md border border-slate-200 bg-white p-5">
-          <h2 class="font-semibold text-slate-950">Thông tin tài khoản</h2>
+          <div class="flex items-center gap-3">
+            <DoctorAvatar v-if="doctor.id" :doctor-id="doctor.id" size="sm" />
+            <h2 class="font-semibold text-slate-950">Thông tin tài khoản</h2>
+          </div>
           <dl class="mt-4 space-y-3 text-sm">
             <div><dt class="text-slate-600">Họ tên</dt><dd class="font-medium">{{ user.fullName || '-' }}</dd></div>
             <div><dt class="text-slate-600">Email</dt><dd>{{ user.email || '-' }}</dd></div>
@@ -59,6 +62,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { BaseButton, BaseInput, BaseTextarea, PageHeader } from '@/components/ui'
 import DoctorLayout from '@/layouts/DoctorLayout.vue'
+import DoctorAvatar from '@/components/booking/DoctorAvatar.vue'
 import { doctorsApi } from '@/api/doctors'
 import { usersApi } from '@/api/users'
 import { apiErrorMessage } from '@/utils/apiErrorMessage'

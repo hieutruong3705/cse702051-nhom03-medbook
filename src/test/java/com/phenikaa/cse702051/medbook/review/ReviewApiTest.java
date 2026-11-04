@@ -217,6 +217,7 @@ class ReviewApiTest extends AbstractApiTest {
         String json = mvc.perform(get("/api/v1/doctors/{id}/reviews", doctor.doctorId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].reviewerName").value("Nguyễn V. A."))
+                .andExpect(jsonPath("$.content[0].visitDate").value(visit.getSlot().getSlotDate().toString()))
                 .andExpect(jsonPath("$.content[0].comment").value(payload))
                 .andReturn().getResponse().getContentAsString();
         JsonNode first = JSON.readTree(json).get("content").get(0);

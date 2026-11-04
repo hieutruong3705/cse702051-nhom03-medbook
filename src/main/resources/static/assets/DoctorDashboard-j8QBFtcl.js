@@ -1,1 +1,0 @@
-import{H as e,T as t}from"./useApi-BPuI6ZR9-bPFzr4Io.js";import n from"./DoctorOverviewView-B9eUPNzf.js";var r={__name:`DoctorDashboard`,setup(r){return(r,i)=>(e(),t(n))}};export{r as default};

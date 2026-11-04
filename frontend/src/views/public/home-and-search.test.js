@@ -4,6 +4,8 @@ import Home from '../Home.vue'
 import DoctorsView from './DoctorsView.vue'
 import { catalogApi } from '@/api/catalog'
 import { doctorsApi } from '@/api/doctors'
+import { clinicApi } from '@/api/clinic'
+import { reviewsApi } from '@/api/reviews'
 import { useAuthStore } from '@/stores/auth'
 
 const push = vi.fn()
@@ -19,11 +21,20 @@ vi.mock('vue-router', async (importOriginal) => {
 })
 
 vi.mock('@/api/doctors', () => ({
-  doctorsApi: { list: vi.fn() }
+  // slots: thẻ bác sĩ ở trang danh sách tự tải lịch khám
+  doctorsApi: { list: vi.fn(), slots: vi.fn(() => Promise.resolve([])) }
+}))
+
+vi.mock('@/api/clinic', () => ({
+  clinicApi: { get: vi.fn(() => Promise.resolve(null)) }
+}))
+
+vi.mock('@/api/reviews', () => ({
+  reviewsApi: { listPublic: vi.fn(() => Promise.resolve({ content: [] })) }
 }))
 
 vi.mock('@/api/catalog', () => ({
-  catalogApi: { specialties: { list: vi.fn() } }
+  catalogApi: { specialties: { list: vi.fn() }, services: { list: vi.fn(() => Promise.resolve({ content: [] })) } }
 }))
 
 const doctorPage = {
@@ -57,6 +68,19 @@ describe('Trang chủ', () => {
     expect(card.text()).toContain('Tim mạch')
     expect(card.text()).toContain('0 đánh giá')
     expect(wrapper.find('a[href="/specialties/3"]').text()).toContain('Tim mạch')
+  })
+
+  it('có khối đặt lịch nhanh, dải số liệu từ /clinic và băng chuyền đánh giá', async () => {
+    clinicApi.get.mockResolvedValueOnce({ doctorCount: 2, specialtyCount: 5, serviceCount: 4, averageRating: 4.7, reviewCount: 3 })
+    reviewsApi.listPublic.mockResolvedValueOnce({ content: [{ id: 1, rating: 5, comment: 'Rất tốt', reviewerName: 'Nguyễn V. A.', doctorId: 7, doctorName: 'Trần Thị Lan' }] })
+    const wrapper = mount(Home)
+    await flushPromises()
+
+    expect(reviewsApi.listPublic).toHaveBeenCalledWith({ size: 6, sort: 'rating,desc' })
+    expect(wrapper.find('[data-test="quick-booking"]').exists()).toBe(true)
+    expect(wrapper.find('#quick-specialty').text()).toContain('Tim mạch')
+    expect(wrapper.find('[data-test="stat-specialties"]').text()).toBe('5')
+    expect(wrapper.find('[data-test="review-carousel"]').text()).toContain('Rất tốt')
   })
 
   it('ô tìm kiếm có nhãn và chuyển sang danh sách bác sĩ kèm từ khóa', async () => {

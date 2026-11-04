@@ -10,33 +10,36 @@
         </div>
       </form>
 
-      <DataTable :columns="columns" :rows="doctors" :loading="loading" :error="error" empty-text="Chưa có bác sĩ phù hợp">
-        <template #cell-fullName="{ row }">
-          <RouterLink class="font-semibold text-slate-950 hover:text-primary-700 hover:underline" :to="`/doctors/${row.id}`">{{ row.fullName }}</RouterLink>
-          <div class="text-xs text-slate-600">{{ row.academicTitle ? `${row.academicTitle} · ` : '' }}{{ row.specialtyName || 'Chưa có chuyên khoa' }}</div>
-        </template>
-        <template #cell-rating="{ row }">
-          <div class="flex items-center gap-1 whitespace-nowrap text-sm text-slate-700">
-            <StarRating :value="row.averageRating" show-value />
-            <span>({{ row.reviewCount || 0 }})</span>
-          </div>
-        </template>
-        <template #cell-bio="{ value }">
-          <span class="line-clamp-2 text-slate-600">{{ value || '' }}</span>
-        </template>
-        <template #cell-action="{ row }">
-          <RouterLink
-            class="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2"
-            :to="`/patient/booking?doctorId=${row.id}`"
-            :aria-label="`Đặt lịch với ${row.fullName}`"
-          >
-            <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i>Đặt lịch
-          </RouterLink>
-        </template>
-        <template #footer>
-          <Pagination :page="page" :total-pages="totalPages" @update:page="changePage" />
-        </template>
-      </DataTable>
+      <p v-if="error" class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{{ error }}</p>
+      <div v-else-if="loading" data-test="doctors-skeleton">
+        <p class="sr-only" role="status">Đang tải danh sách bác sĩ…</p>
+        <ul class="space-y-4" aria-hidden="true">
+          <li v-for="n in 3" :key="n" class="grid gap-5 rounded-md border border-slate-200 bg-white p-5 md:grid-cols-2">
+            <div class="flex gap-4">
+              <span class="h-20 w-20 shrink-0 animate-pulse rounded-full bg-slate-200"></span>
+              <Skeleton class="flex-1 pt-2" :lines="4" :widths="['55%', '35%', '90%', '75%']" />
+            </div>
+            <div class="space-y-3 md:border-l md:border-slate-200 md:pl-5">
+              <div class="flex gap-2">
+                <span v-for="d in 5" :key="d" class="h-12 w-16 animate-pulse rounded-md bg-slate-200"></span>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <span v-for="s in 6" :key="s" class="h-9 w-28 animate-pulse rounded bg-slate-200"></span>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <EmptyState
+        v-else-if="!doctors.length"
+        illustration="search"
+        title="Chưa có bác sĩ phù hợp"
+        message="Thử bỏ bớt từ khóa hoặc chọn &quot;Tất cả chuyên khoa&quot; rồi bấm Tìm."
+      />
+      <ul v-else class="space-y-4" aria-label="Danh sách bác sĩ">
+        <li v-for="(doctor, index) in doctors" :key="doctor.id" v-reveal="index"><DoctorCard :doctor="doctor" /></li>
+      </ul>
+      <Pagination class="mt-4" :page="page" :total-pages="totalPages" @update:page="changePage" />
     </section>
   </PublicLayout>
 </template>
@@ -44,8 +47,9 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { BaseButton, BaseInput, BaseSelect, DataTable, PageHeader, Pagination } from '@/components/ui'
-import StarRating from '@/components/reviews/StarRating.vue'
+import { BaseButton, BaseInput, BaseSelect, EmptyState, PageHeader, Pagination, Skeleton } from '@/components/ui'
+import DoctorCard from '@/components/booking/DoctorCard.vue'
+import { reveal as vReveal } from '@/utils/motion'
 import PublicLayout from '@/layouts/PublicLayout.vue'
 import { catalogApi } from '@/api/catalog'
 import { doctorsApi } from '@/api/doctors'
@@ -53,14 +57,7 @@ import { usePagination } from '@/composables/usePagination'
 import { apiErrorMessage } from '@/utils/apiErrorMessage'
 import { cleanParams } from '@/utils/params'
 
-// Hồ sơ công khai của bác sĩ: họ tên, chuyên khoa, điểm đánh giá và giới thiệu (không có số giấy phép hay điện thoại).
-// Bấm tên bác sĩ để mở trang chi tiết.
-const columns = [
-  { key: 'fullName', label: 'Bác sĩ' },
-  { key: 'rating', label: 'Đánh giá' },
-  { key: 'bio', label: 'Giới thiệu' },
-  { key: 'action', label: 'Đặt lịch' }
-]
+// Mỗi bác sĩ là một thẻ: hồ sơ ngắn bên trái, lịch khám chọn được ngay bên phải (không lộ số giấy phép hay điện thoại).
 
 // Trang chủ dẫn sang đây kèm `?keyword=` (ô tìm kiếm) hoặc `?specialtyId=` (thẻ chuyên khoa).
 const route = useRoute()
