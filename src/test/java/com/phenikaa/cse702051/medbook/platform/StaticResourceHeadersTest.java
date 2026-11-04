@@ -2,6 +2,7 @@ package com.phenikaa.cse702051.medbook.platform;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -41,11 +42,13 @@ class StaticResourceHeadersTest extends AbstractApiTest {
     @DisplayName("AC-S3.1 Tệp JS và CSS trong /assets: lưu đệm công khai một năm, immutable; không còn Pragma hay Expires")
     void hashedAssetsAreCachedForAYear() throws Exception {
         for (String path : new String[] { assetPath(".js"), assetPath(".css"), assetPath(".woff2") }) {
-            mvc.perform(get(path))
+            for (var request : new org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder[] { get(path), head(path) }) {
+            mvc.perform(request)
                     .andExpect(status().isOk())
                     .andExpect(header().string("Cache-Control", ONE_YEAR))
                     .andExpect(header().doesNotExist("Pragma"))
                     .andExpect(header().doesNotExist("Expires"));
+            }
         }
     }
 

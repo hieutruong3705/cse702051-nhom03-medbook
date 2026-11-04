@@ -99,7 +99,11 @@ test.describe('Trang công khai và bảo mật cơ bản', () => {
 
     const sitemap = await (await request.get('/sitemap.xml')).text()
     const locations = [...sitemap.matchAll(/<loc>([^<]*)<\/loc>/g)].map((match) => match[1])
-    expect(locations).toEqual(['/', '/doctors', '/specialties', '/services', '/login', '/register'].map((path) => new URL(path, baseURL).href))
+    // Tám trang cố định, sau đó là trang chi tiết của từng bác sĩ và chuyên khoa đang hoạt động
+    const fixed = ['/', '/doctors', '/specialties', '/services', '/about', '/reviews', '/login', '/register']
+    expect(locations.slice(0, fixed.length)).toEqual(fixed.map((path) => new URL(path, baseURL).href))
+    expect(locations).toContain(new URL('/doctors/1', baseURL).href)
+    expect(locations).toContain(new URL('/specialties/1', baseURL).href)
     expect(await (await request.get('/robots.txt')).text()).toContain(`Sitemap: ${new URL('/sitemap.xml', baseURL).href}`)
 
     for (const path of ['/doctors', '/patient/dashboard', '/abc/xyz']) {

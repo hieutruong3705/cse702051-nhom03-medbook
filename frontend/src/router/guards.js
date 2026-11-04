@@ -120,6 +120,21 @@ export function applyPageMeta(to, doc = document, origin = window.location.origi
   }
 }
 
+/**
+ * Trang công khai có nội dung theo tham số (chi tiết bác sĩ, chuyên khoa) gọi hàm này sau khi tải dữ liệu để tiêu
+ * đề và mô tả phản ánh đúng nội dung trang thay vì nhãn chung của route.
+ */
+export function updatePageMeta({ title, description }, doc = document) {
+  if (title) {
+    doc.title = `${title} · MedBook`
+    upsertHeadTag(doc, 'meta', 'property', 'og:title', 'content', doc.title)
+  }
+  if (description) {
+    upsertHeadTag(doc, 'meta', 'name', 'description', 'content', description)
+    upsertHeadTag(doc, 'meta', 'property', 'og:description', 'content', description)
+  }
+}
+
 const wiredStores = new WeakSet()
 
 /**

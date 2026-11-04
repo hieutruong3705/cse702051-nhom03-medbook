@@ -95,6 +95,16 @@
             <p class="mt-1" data-test="project-info">
               Đề tài: {{ PROJECT.topic }} · {{ PROJECT.group }} · Lớp học phần {{ PROJECT.course }} ({{ PROJECT.classSection }})
             </p>
+            <p class="mt-1">
+              DNS được cung cấp bởi
+              <a
+                href="https://dnsexit.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="hover:text-white hover:underline"
+                data-test="dnsexit-link"
+              >DNSExit</a>.
+            </p>
           </div>
           <p class="md:shrink-0 md:text-right" data-test="data-notice">{{ PROJECT.dataNotice }}.</p>
         </div>
@@ -116,7 +126,9 @@ const publicNav = [
   { to: '/', label: 'Trang chủ' },
   { to: '/specialties', label: 'Chuyên khoa' },
   { to: '/doctors', label: 'Bác sĩ' },
-  { to: '/services', label: 'Dịch vụ' }
+  { to: '/services', label: 'Dịch vụ' },
+  { to: '/reviews', label: 'Đánh giá' },
+  { to: '/about', label: 'Giới thiệu' }
 ]
 
 // Chỉ bệnh nhân đặt được lịch; khách bấm vào thì đăng nhập rồi quay lại trang đặt lịch (route guard).

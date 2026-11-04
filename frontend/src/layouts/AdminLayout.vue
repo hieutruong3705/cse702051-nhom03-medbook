@@ -15,6 +15,7 @@ const items = [
   { to: '/admin/appointments', label: 'Lịch hẹn', icon: 'fa-regular fa-calendar-check' },
   { to: '/admin/invoices', label: 'Hóa đơn', icon: 'fa-solid fa-file-invoice-dollar' },
   { to: '/admin/reports', label: 'Báo cáo', icon: 'fa-solid fa-chart-column' },
+  { to: '/admin/reviews', label: 'Đánh giá', icon: 'fa-regular fa-star' },
   { to: '/admin/audit-logs', label: 'Nhật ký hệ thống', icon: 'fa-solid fa-shield-halved' }
 ]
 </script>

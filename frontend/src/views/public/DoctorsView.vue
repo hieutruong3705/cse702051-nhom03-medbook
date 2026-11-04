@@ -12,8 +12,14 @@
 
       <DataTable :columns="columns" :rows="doctors" :loading="loading" :error="error" empty-text="Chưa có bác sĩ phù hợp">
         <template #cell-fullName="{ row }">
-          <div class="font-semibold text-slate-950">{{ row.fullName }}</div>
-          <div class="text-xs text-slate-500">{{ row.specialtyName || 'Chưa có chuyên khoa' }}</div>
+          <RouterLink class="font-semibold text-slate-950 hover:text-primary-700 hover:underline" :to="`/doctors/${row.id}`">{{ row.fullName }}</RouterLink>
+          <div class="text-xs text-slate-600">{{ row.academicTitle ? `${row.academicTitle} · ` : '' }}{{ row.specialtyName || 'Chưa có chuyên khoa' }}</div>
+        </template>
+        <template #cell-rating="{ row }">
+          <div class="flex items-center gap-1 whitespace-nowrap text-sm text-slate-700">
+            <StarRating :value="row.averageRating" show-value />
+            <span>({{ row.reviewCount || 0 }})</span>
+          </div>
         </template>
         <template #cell-bio="{ value }">
           <span class="line-clamp-2 text-slate-600">{{ value || '' }}</span>
@@ -39,6 +45,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { BaseButton, BaseInput, BaseSelect, DataTable, PageHeader, Pagination } from '@/components/ui'
+import StarRating from '@/components/reviews/StarRating.vue'
 import PublicLayout from '@/layouts/PublicLayout.vue'
 import { catalogApi } from '@/api/catalog'
 import { doctorsApi } from '@/api/doctors'
@@ -46,9 +53,11 @@ import { usePagination } from '@/composables/usePagination'
 import { apiErrorMessage } from '@/utils/apiErrorMessage'
 import { cleanParams } from '@/utils/params'
 
-// Hồ sơ công khai của bác sĩ chỉ có họ tên, chuyên khoa và giới thiệu (không có số giấy phép hay điện thoại).
+// Hồ sơ công khai của bác sĩ: họ tên, chuyên khoa, điểm đánh giá và giới thiệu (không có số giấy phép hay điện thoại).
+// Bấm tên bác sĩ để mở trang chi tiết.
 const columns = [
   { key: 'fullName', label: 'Bác sĩ' },
+  { key: 'rating', label: 'Đánh giá' },
   { key: 'bio', label: 'Giới thiệu' },
   { key: 'action', label: 'Đặt lịch' }
 ]

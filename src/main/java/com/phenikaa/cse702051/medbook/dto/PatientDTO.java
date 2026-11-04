@@ -1,5 +1,6 @@
 package com.phenikaa.cse702051.medbook.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -19,6 +20,11 @@ public record PatientDTO(
         String emergencyContactPhone,
         String bloodType,
         String allergies,
+        Short heightCm,
+        BigDecimal weightKg,
+        String healthInsuranceNumber,
+        String chronicConditions,
+        String familyHistory,
         String status,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
@@ -39,6 +45,11 @@ public record PatientDTO(
                 patient.getEmergencyContactPhone(),
                 patient.getBloodType(),
                 patient.getAllergies(),
+                patient.getHeightCm(),
+                patient.getWeightKg(),
+                patient.getHealthInsuranceNumber(),
+                patient.getChronicConditions(),
+                patient.getFamilyHistory(),
                 patient.getStatus(),
                 patient.getCreatedAt(),
                 patient.getUpdatedAt());

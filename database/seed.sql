@@ -12,7 +12,8 @@
 -- Ngày trong tệp tính theo "hôm nay" của máy chủ CSDL lúc nạp (CURDATE()), nên nạp lúc nào cũng có:
 --   - ca làm việc và khung giờ trống của hai bác sĩ trong 7 ngày kể từ ngày mai;
 --   - lịch hẹn ở cả bốn trạng thái: Đã đặt (ngày mai, ngày kia), Đang khám (hôm nay), Đã khám, Đã hủy (các ngày trước);
---   - lần khám, đơn thuốc, hóa đơn đã thu, chưa thu và đã hủy.
+--   - lần khám, đơn thuốc, hóa đơn đã thu, chưa thu và đã hủy;
+--   - hai đánh giá đang hiện của patient2; lần khám đã xong của patient1 chưa có đánh giá để trình diễn việc gửi đánh giá.
 -- Giờ khám trong tệp (08:00, 14:00...) là giờ phòng khám; ứng dụng hiển thị đúng như vậy. Để "hôm nay" của tệp trùng với
 -- "hôm nay" của ứng dụng, máy chủ CSDL nên cùng múi giờ với ứng dụng (MEDBOOK_TIME_ZONE); Docker Compose của dự án đặt sẵn.
 -- Phần A giống hệt dữ liệu ứng dụng tự nạp khi MEDBOOK_SEED_DEMO=true (src/main/resources/db/seed/demo-seed.sql).
@@ -61,6 +62,24 @@ INSERT INTO doctors (id, user_id, specialty_id, full_name, phone, license_number
 INSERT INTO patients (id, user_id, patient_code, full_name, date_of_birth, gender_code, phone, email, address, emergency_contact_name, emergency_contact_phone, blood_type, allergies, status, created_at, updated_at) VALUES
 (1, 4, 'BN000001', 'Nguyễn Minh An', '1990-01-01', 'MALE', '0934567890', 'patient1@medbook.local', 'Hà Nội', 'Người thân 1', '0956789012', 'O', 'Không', 'ACTIVE', NOW(), NOW()),
 (2, 5, 'BN000002', 'Trần Gia Bình', '1985-05-15', 'MALE', '0945678901', 'patient2@medbook.local', 'Hà Nội', 'Người thân 2', '0967890123', 'A', 'Phấn hoa', 'ACTIVE', NOW(), NOW());
+
+-- Phần giới thiệu bác sĩ hiện trên trang công khai (V5); dữ liệu hư cấu
+UPDATE doctors SET academic_title = 'Thạc sĩ, Bác sĩ chuyên khoa I', years_of_experience = 12,
+  education = 'Bác sĩ đa khoa (dữ liệu mẫu); Thạc sĩ Nội khoa (dữ liệu mẫu)',
+  expertise = 'Khám và theo dõi tăng huyết áp, đái tháo đường, rối loạn mỡ máu; tư vấn khám sức khỏe định kỳ',
+  work_history = 'Bác sĩ khoa Nội (dữ liệu mẫu); bác sĩ Phòng khám MedBook từ năm 2020'
+WHERE id = 1;
+UPDATE doctors SET academic_title = 'Bác sĩ chuyên khoa I', years_of_experience = 8,
+  education = 'Bác sĩ đa khoa (dữ liệu mẫu); Chuyên khoa I Nhi (dữ liệu mẫu)',
+  expertise = 'Khám bệnh hô hấp, tiêu hóa thường gặp ở trẻ em; tư vấn dinh dưỡng và lịch tiêm chủng',
+  work_history = 'Bác sĩ khoa Nhi (dữ liệu mẫu); bác sĩ Phòng khám MedBook từ năm 2022'
+WHERE id = 2;
+
+-- Thông tin sức khỏe bệnh nhân tự khai (V5); dữ liệu hư cấu
+UPDATE patients SET height_cm = 170, weight_kg = 65.0, health_insurance_number = 'DN4010000000001',
+  chronic_conditions = 'Không', family_history = 'Không ghi nhận' WHERE id = 1;
+UPDATE patients SET height_cm = 165, weight_kg = 58.5, health_insurance_number = 'DN4010000000002',
+  chronic_conditions = 'Viêm mũi dị ứng (dữ liệu mẫu)', family_history = 'Bố tăng huyết áp (dữ liệu mẫu)' WHERE id = 2;
 
 INSERT INTO services (id, code, name, description, duration_minutes, price, status, created_at, updated_at) VALUES
 (1, 'DV01', 'Khám tổng quát', 'Khám sức khỏe tổng quát', 30, 200000.00, 'ACTIVE', NOW(), NOW()),
@@ -161,6 +180,9 @@ SET @appointment = LAST_INSERT_ID();
 INSERT INTO encounters (medical_record_id, appointment_id, doctor_id, encounter_at, status, chief_complaint, diagnosis, created_at, updated_at)
 VALUES (2, @appointment, 2, TIMESTAMP(@d_1, '15:00:00'), 'COMPLETED', 'Khám chuyên khoa theo hẹn (dữ liệu mẫu)', 'Dữ liệu mẫu, không phải chẩn đoán thật',
         TIMESTAMP(@d_1, '15:00:00'), TIMESTAMP(@d_1, '15:45:00'));
+INSERT INTO doctor_reviews (appointment_id, patient_id, doctor_id, rating, comment, status, version, created_at, updated_at)
+VALUES (@appointment, 2, 2, 4, 'Bác sĩ khám kỹ, giải thích dễ hiểu. Phải chờ khoảng 15 phút (đánh giá mẫu).', 'VISIBLE', 0,
+        TIMESTAMP(@today, '07:30:00'), TIMESTAMP(@today, '07:30:00'));
 INSERT INTO invoices (invoice_code, patient_id, appointment_id, subtotal, discount_amount, total_amount, status, issued_at, paid_at, created_at, updated_at)
 VALUES (CONCAT('INV-', DATE_FORMAT(@d_1, '%Y%m%d'), '-MAU002'), 2, @appointment, 450000.00, 20000.00, 430000.00, 'UNPAID',
         TIMESTAMP(@d_1, '15:45:00'), NULL, TIMESTAMP(@d_1, '15:45:00'), TIMESTAMP(@d_1, '15:45:00'));
@@ -179,6 +201,9 @@ SET @appointment = LAST_INSERT_ID();
 INSERT INTO encounters (medical_record_id, appointment_id, doctor_id, encounter_at, status, chief_complaint, diagnosis, created_at, updated_at)
 VALUES (2, @appointment, 1, TIMESTAMP(@d_4, '14:00:00'), 'COMPLETED', 'Siêu âm theo chỉ định (dữ liệu mẫu)', 'Dữ liệu mẫu, không phải chẩn đoán thật',
         TIMESTAMP(@d_4, '14:00:00'), TIMESTAMP(@d_4, '14:30:00'));
+INSERT INTO doctor_reviews (appointment_id, patient_id, doctor_id, rating, comment, status, version, created_at, updated_at)
+VALUES (@appointment, 2, 1, 5, 'Bác sĩ Lan nhiệt tình, hẹn đúng giờ, phòng khám sạch sẽ (đánh giá mẫu).', 'VISIBLE', 0,
+        TIMESTAMP(@d_3, '19:00:00'), TIMESTAMP(@d_3, '19:00:00'));
 INSERT INTO invoices (invoice_code, patient_id, appointment_id, subtotal, discount_amount, total_amount, status, issued_at, paid_at, voided_at, void_reason, created_at, updated_at)
 VALUES (CONCAT('INV-', DATE_FORMAT(@d_4, '%Y%m%d'), '-MAU003'), 2, @appointment, 250000.00, 0.00, 250000.00, 'VOID',
         TIMESTAMP(@d_4, '14:30:00'), NULL, TIMESTAMP(@d_4, '16:00:00'), 'Lập nhầm dịch vụ', TIMESTAMP(@d_4, '14:30:00'), TIMESTAMP(@d_4, '16:00:00'));

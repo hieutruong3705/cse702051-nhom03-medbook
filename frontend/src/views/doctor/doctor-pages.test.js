@@ -30,6 +30,8 @@ const mocks = vi.hoisted(() => ({
   recordsByPatient: vi.fn(),
   usersMe: vi.fn(),
   doctorsGet: vi.fn(),
+  doctorsMyProfile: vi.fn(),
+  doctorsUpdateMyProfile: vi.fn(),
   notificationsMine: vi.fn(),
   notificationsUnread: vi.fn(),
   notificationsMarkRead: vi.fn(),
@@ -62,7 +64,9 @@ vi.mock('@/api/doctorSchedules', () => ({
 vi.mock('@/api/patients', () => ({ patientsApi: { list: mocks.patientsList, get: mocks.patientsGet } }))
 vi.mock('@/api/records', () => ({ recordsApi: { byPatient: mocks.recordsByPatient } }))
 vi.mock('@/api/users', () => ({ usersApi: { me: mocks.usersMe } }))
-vi.mock('@/api/doctors', () => ({ doctorsApi: { get: mocks.doctorsGet } }))
+vi.mock('@/api/doctors', () => ({
+  doctorsApi: { get: mocks.doctorsGet, myProfile: mocks.doctorsMyProfile, updateMyProfile: mocks.doctorsUpdateMyProfile }
+}))
 vi.mock('@/api/notifications', () => ({
   notificationsApi: {
     mine: mocks.notificationsMine,
@@ -386,17 +390,43 @@ describe('trang của bác sĩ', () => {
     })
   })
 
-  it('hồ sơ bác sĩ lấy từ API tài khoản và API bác sĩ', async () => {
+  it('hồ sơ bác sĩ lấy từ API tài khoản và hồ sơ của chính bác sĩ (có số giấy phép)', async () => {
     resetMocks()
     mocks.usersMe.mockResolvedValue({ fullName: 'Bác sĩ Lan', email: 'lan@example.com', phone: '0988888888' })
-    mocks.doctorsGet.mockResolvedValue({ specialtyName: 'Nội tổng quát', bio: '10 năm kinh nghiệm' })
+    mocks.doctorsMyProfile.mockResolvedValue({ id: 7, specialtyName: 'Nội tổng quát', licenseNumber: 'CCHN-0001', bio: '10 năm kinh nghiệm', yearsOfExperience: 10 })
 
     const wrapper = mount(DoctorProfileView)
     await flushPromises()
 
     expect(wrapper.text()).toContain('Bác sĩ Lan')
     expect(wrapper.text()).toContain('Nội tổng quát')
-    expect(mocks.doctorsGet).toHaveBeenCalledWith(7)
+    expect(wrapper.text()).toContain('CCHN-0001')
+    expect(wrapper.find('#doctor-bio').element.value).toBe('10 năm kinh nghiệm')
+    expect(wrapper.find('a[href="/doctors/7"]').exists()).toBe(true)
+    expect(mocks.doctorsGet).not.toHaveBeenCalled()
+  })
+
+  it('bác sĩ sửa phần giới thiệu: gửi đủ các trường, số năm là số; lỗi theo trường hiện dưới ô nhập', async () => {
+    resetMocks()
+    mocks.usersMe.mockResolvedValue({ fullName: 'Bác sĩ Lan' })
+    mocks.doctorsMyProfile.mockResolvedValue({ id: 7, bio: '', yearsOfExperience: null })
+    mocks.doctorsUpdateMyProfile
+      .mockRejectedValueOnce(apiError(400, 'Dữ liệu đầu vào không hợp lệ', { yearsOfExperience: 'Số năm kinh nghiệm không được âm' }))
+      .mockResolvedValueOnce({ id: 7, expertise: 'Tim mạch', yearsOfExperience: 12 })
+
+    const wrapper = mount(DoctorProfileView)
+    await flushPromises()
+    await wrapper.find('#doctor-experience').setValue('-1')
+    await wrapper.find('[data-test="doctor-profile-form"]').trigger('submit')
+    await flushPromises()
+    expect(wrapper.text()).toContain('Số năm kinh nghiệm không được âm')
+
+    await wrapper.find('#doctor-experience').setValue('12')
+    await wrapper.find('#doctor-expertise').setValue('Tim mạch')
+    await wrapper.find('[data-test="doctor-profile-form"]').trigger('submit')
+    await flushPromises()
+    expect(mocks.doctorsUpdateMyProfile).toHaveBeenLastCalledWith(expect.objectContaining({ yearsOfExperience: 12, expertise: 'Tim mạch' }))
+    expect(wrapper.text()).toContain('Đã lưu hồ sơ')
   })
 
   describe('thông báo', () => {

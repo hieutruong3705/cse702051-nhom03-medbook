@@ -17,11 +17,15 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.phenikaa.cse702051.medbook.config.CacheConfig;
 import com.phenikaa.cse702051.medbook.dto.PageResponse;
 import com.phenikaa.cse702051.medbook.dto.doctor.AdminDoctorRequest;
 import com.phenikaa.cse702051.medbook.dto.doctor.DoctorAdminDTO;
+import com.phenikaa.cse702051.medbook.dto.doctor.DoctorOwnProfileDTO;
 import com.phenikaa.cse702051.medbook.dto.doctor.DoctorProfileData;
+import com.phenikaa.cse702051.medbook.dto.doctor.DoctorProfileUpdateRequest;
 import com.phenikaa.cse702051.medbook.dto.doctor.DoctorPublicDTO;
+import com.phenikaa.cse702051.medbook.dto.review.RatingSummaryDTO;
 import com.phenikaa.cse702051.medbook.exception.ConflictException;
 import com.phenikaa.cse702051.medbook.exception.FieldConflictException;
 import com.phenikaa.cse702051.medbook.exception.FieldValidationException;
@@ -51,6 +55,8 @@ import jakarta.persistence.criteria.Predicate;
  * <li><b>Quản trị</b>: Admin tạo hồ sơ cho tài khoản đã có vai trò DOCTOR, sửa và xóa. Bác sĩ đã có lịch hẹn, ca
  * làm việc hoặc lần khám không bị xóa hẳn mà chỉ ngừng hoạt động: các giờ trống còn lại từ hôm nay trở đi được gỡ
  * khỏi lịch, lịch đã đặt giữ nguyên.</li>
+ * <li><b>Bác sĩ</b>: tự xem hồ sơ của mình và sửa phần giới thiệu (học vị, kinh nghiệm, đào tạo, thế mạnh, quá
+ * trình công tác); không tự đổi chuyên khoa, số giấy phép hay trạng thái.</li>
  * <li><b>Nội bộ</b>: {@link #createProfileForUser} và {@link #syncContact} cho module tài khoản.</li>
  * </ul>
  */
@@ -74,6 +80,9 @@ public class DoctorService {
     private final SlotRetirement slotRetirement;
     private final CurrentUserService currentUserService;
     private final AuditLogService auditLogService;
+    private final CurrentActorService currentActorService;
+    private final ReviewService reviewService;
+    private final PublicCatalogCache publicCatalogCache;
 
     public DoctorService(
             DoctorRepository doctorRepository,
@@ -83,7 +92,10 @@ public class DoctorService {
             SpecialtyService specialtyService,
             SlotRetirement slotRetirement,
             CurrentUserService currentUserService,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService,
+            CurrentActorService currentActorService,
+            ReviewService reviewService,
+            PublicCatalogCache publicCatalogCache) {
         this.doctorRepository = doctorRepository;
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
@@ -92,6 +104,9 @@ public class DoctorService {
         this.slotRetirement = slotRetirement;
         this.currentUserService = currentUserService;
         this.auditLogService = auditLogService;
+        this.currentActorService = currentActorService;
+        this.reviewService = reviewService;
+        this.publicCatalogCache = publicCatalogCache;
     }
 
     // ================= Công khai =================
@@ -103,7 +118,10 @@ public class DoctorService {
         Sort order = PageRequests.parseSort(sort, PUBLIC_SORTS, BY_NAME);
         Page<Doctor> result = doctorRepository.findAll(matching(keyword, specialtyId, Boolean.TRUE, false),
                 PageRequests.of(page, size, order));
-        return PageResponse.from(result, DoctorPublicDTO::from);
+        // Điểm sao của cả trang lấy bằng một truy vấn gộp, không truy vấn lặp theo từng bác sĩ
+        Map<Long, RatingSummaryDTO> ratings = reviewService.summariesFor(
+                result.getContent().stream().map(Doctor::getId).toList());
+        return PageResponse.from(result, doctor -> DoctorPublicDTO.from(doctor, ratings.get(doctor.getId())));
     }
 
     /** Bác sĩ đang hoạt động theo ID; hồ sơ đã ngừng hoạt động cũng trả 404 như không tồn tại. */
@@ -111,8 +129,34 @@ public class DoctorService {
     public DoctorPublicDTO getActive(Long id) {
         return doctorRepository.findById(id)
                 .filter(doctor -> Boolean.TRUE.equals(doctor.getIsActive()))
-                .map(DoctorPublicDTO::from)
+                .map(doctor -> DoctorPublicDTO.from(doctor, reviewService.summariesFor(List.of(id)).get(id)))
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bác sĩ!"));
+    }
+
+    // ================= Bác sĩ tự quản lý hồ sơ =================
+
+    @Transactional(readOnly = true)
+    public DoctorOwnProfileDTO getOwnProfile() {
+        currentUserService.requireRole(ROLE_DOCTOR);
+        return DoctorOwnProfileDTO.from(find(currentActorService.requireCurrentDoctorId()));
+    }
+
+    /** Ghi đè toàn bộ phần giới thiệu bằng giá trị gửi lên; trường rỗng nghĩa là chưa có thông tin. */
+    @Transactional
+    public DoctorOwnProfileDTO updateOwnProfile(DoctorProfileUpdateRequest request) {
+        currentUserService.requireRole(ROLE_DOCTOR);
+        Doctor doctor = find(currentActorService.requireCurrentDoctorId());
+        doctor.setBio(blankToNull(request.bio()));
+        doctor.setAcademicTitle(blankToNull(request.academicTitle()));
+        doctor.setYearsOfExperience(request.yearsOfExperience());
+        doctor.setEducation(blankToNull(request.education()));
+        doctor.setExpertise(blankToNull(request.expertise()));
+        doctor.setWorkHistory(blankToNull(request.workHistory()));
+        doctor = doctorRepository.saveAndFlush(doctor);
+        auditLogService.recordInCurrentTransaction(AuditEvent.of(AuditActions.DOCTOR_PROFILE_UPDATE,
+                AuditActions.ENTITY_DOCTORS, doctor.getId()));
+        publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_CLINIC);
+        return DoctorOwnProfileDTO.from(doctor);
     }
 
     // ================= Quản trị =================
@@ -154,6 +198,7 @@ public class DoctorService {
                 request.specialtyId(), request.phone(), request.licenseNumber(), request.bio()));
         auditLogService.recordInCurrentTransaction(AuditEvent.of(AuditActions.DOCTOR_CREATE,
                 AuditActions.ENTITY_DOCTORS, doctor.getId()).with("userId", doctor.getUserId()));
+        publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_CLINIC);
         return toAdminDTO(doctor);
     }
 
@@ -174,6 +219,7 @@ public class DoctorService {
         doctor = saveOrConflict(doctor);
         auditLogService.recordInCurrentTransaction(AuditEvent.of(AuditActions.DOCTOR_UPDATE,
                 AuditActions.ENTITY_DOCTORS, id));
+        publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_CLINIC);
         return toAdminDTO(doctor);
     }
 
@@ -186,6 +232,7 @@ public class DoctorService {
     @Transactional
     public Optional<DoctorAdminDTO> delete(Long id) {
         currentUserService.requireRole("ADMIN");
+        publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_CLINIC);
         Doctor doctor = find(id);
         boolean hasHistory = !doctorRepository.findIdsWithHistory(List.of(id)).isEmpty();
         try {

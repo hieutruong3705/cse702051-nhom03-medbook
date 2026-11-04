@@ -6,6 +6,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.CacheControl;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.HandlerInterceptor;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Thời hạn lưu đệm phía trình duyệt cho giao diện tĩnh.
@@ -25,6 +29,21 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class StaticResourceConfig implements WebMvcConfigurer {
 
     private static final String STATIC_ROOT = "classpath:/static/";
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        // Security headers are written early for HEAD responses. Let the resource
+        // handler supply its cache policy without legacy no-cache headers; an
+        // unsuccessful resource lookup still retains Security's no-store policy.
+        registry.addInterceptor(new HandlerInterceptor() {
+            @Override
+            public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+                response.setHeader("Pragma", null);
+                response.setHeader("Expires", null);
+                return true;
+            }
+        }).addPathPatterns("/assets/**", "/index.html");
+    }
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {

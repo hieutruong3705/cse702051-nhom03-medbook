@@ -46,5 +46,11 @@ export default [
     name: 'admin-audit-logs',
     component: () => import('@/views/admin/AdminAuditLogsView.vue'),
     meta: { roles: ['ADMIN'], title: 'Nhật ký hệ thống' }
+  },
+  {
+    path: 'reviews',
+    name: 'admin-reviews',
+    component: () => import('@/views/admin/AdminReviewsView.vue'),
+    meta: { roles: ['ADMIN'], title: 'Kiểm duyệt đánh giá' }
   }
 ]

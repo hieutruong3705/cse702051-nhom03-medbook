@@ -45,6 +45,9 @@
           Lịch hẹn này đã qua giờ khám nên không thể hủy hoặc đổi.
         </p>
       </section>
+
+      <!-- Chỉ lần khám đã hoàn thành mới đánh giá được (máy chủ kiểm lại, lịch chưa xong trả 422) -->
+      <VisitReviewForm v-if="appointment.status === 'COMPLETED'" :appointment-id="appointment.id" :doctor-name="appointment.doctorName" />
     </template>
 
     <!-- Hủy lịch -->
@@ -93,6 +96,7 @@ import {
   PageHeader,
   StatusBadge
 } from '@/components/ui'
+import VisitReviewForm from '@/components/reviews/VisitReviewForm.vue'
 import PatientLayout from '@/layouts/PatientLayout.vue'
 import { appointmentsApi } from '@/api/appointments'
 import { doctorsApi } from '@/api/doctors'

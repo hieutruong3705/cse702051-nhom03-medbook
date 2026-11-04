@@ -22,6 +22,7 @@ import com.phenikaa.cse702051.medbook.dto.notification.UnreadCountDTO;
 import com.phenikaa.cse702051.medbook.event.AppointmentBookedEvent;
 import com.phenikaa.cse702051.medbook.event.AppointmentCancelledEvent;
 import com.phenikaa.cse702051.medbook.event.AppointmentRescheduledEvent;
+import com.phenikaa.cse702051.medbook.event.DoctorReviewedEvent;
 import com.phenikaa.cse702051.medbook.exception.ResourceNotFoundException;
 import com.phenikaa.cse702051.medbook.model.Appointment;
 import com.phenikaa.cse702051.medbook.model.AppointmentStatus;
@@ -57,6 +58,7 @@ public class NotificationService {
     public static final String APPOINTMENT_CANCELLED = "APPOINTMENT_CANCELLED";
     public static final String REMINDER_24H = "REMINDER_24H";
     public static final String REMINDER_2H = "REMINDER_2H";
+    public static final String REVIEW_RECEIVED = "REVIEW_RECEIVED";
 
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm");
@@ -206,6 +208,16 @@ public class NotificationService {
         List<NotificationMessage> created = new ArrayList<>();
         notifyPatient(created, patient, type, title, message, appointmentId);
         return created.stream().findFirst();
+    }
+
+    /** Bệnh nhân vừa đánh giá một lần khám: bác sĩ nhận thông báo kèm số sao, không kèm tên hay nội dung nhận xét. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public List<NotificationMessage> onReviewed(DoctorReviewedEvent event) {
+        Doctor doctor = doctorRepository.findById(event.doctorId()).orElse(null);
+        List<NotificationMessage> created = new ArrayList<>();
+        notifyDoctor(created, doctor, REVIEW_RECEIVED, "Có đánh giá mới",
+                "Một bệnh nhân vừa đánh giá lần khám của bạn " + event.rating() + "/5 sao.", event.appointmentId());
+        return created;
     }
 
     // ================= Chi tiết =================

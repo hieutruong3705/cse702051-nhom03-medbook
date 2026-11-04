@@ -5,6 +5,7 @@ import PublicLayout from '@/layouts/PublicLayout.vue'
 import heroImage from '@/assets/hero.webp'
 import { catalogApi } from '@/api/catalog'
 import { doctorsApi } from '@/api/doctors'
+import StarRating from '@/components/reviews/StarRating.vue'
 import { useAuthStore } from '@/stores/auth'
 
 // Số thẻ chuyên khoa và bác sĩ hiện ở trang chủ; phần còn lại nằm ở trang danh sách ("Xem thêm").
@@ -43,10 +44,6 @@ onMounted(async () => {
     loading.value = false
   }
 })
-
-function doctorPath(doctor) {
-  return canBook.value ? `/patient/booking?doctorId=${doctor.id}` : '/doctors'
-}
 
 function search() {
   const text = keyword.value.trim()
@@ -128,7 +125,7 @@ function openBooking() {
           <RouterLink
             v-for="spec in specialties"
             :key="spec.id"
-            :to="`/doctors?specialtyId=${spec.id}`"
+            :to="`/specialties/${spec.id}`"
             class="rounded-md border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:shadow-md"
           >
             <div class="flex h-24 items-center justify-center rounded bg-primary-50 text-3xl text-primary-700">
@@ -151,7 +148,7 @@ function openBooking() {
           <RouterLink
             v-for="doctor in doctors"
             :key="doctor.id"
-            :to="doctorPath(doctor)"
+            :to="`/doctors/${doctor.id}`"
             class="rounded-md border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:shadow-md"
           >
             <div class="flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-2xl font-bold text-primary-700" aria-hidden="true">
@@ -159,6 +156,10 @@ function openBooking() {
             </div>
             <h3 class="mt-4 font-semibold text-slate-950">{{ doctor.fullName }}</h3>
             <p class="mt-1 text-sm text-slate-600">{{ doctor.specialtyName || 'Chưa có chuyên khoa' }}</p>
+            <div class="mt-2 flex items-center gap-2 text-sm text-slate-700">
+              <StarRating :value="doctor.averageRating" show-value />
+              <span>{{ doctor.reviewCount || 0 }} đánh giá</span>
+            </div>
           </RouterLink>
           <p v-if="doctors.length === 0 && !loading" class="col-span-full text-slate-600">Danh sách bác sĩ đang được cập nhật.</p>
         </div>

@@ -12,6 +12,7 @@ const items = [
   { to: '/doctor/schedules', label: 'Lịch làm việc', icon: 'fa-regular fa-calendar-days' },
   { to: '/doctor/appointments', label: 'Lịch khám', icon: 'fa-solid fa-stethoscope' },
   { to: '/doctor/patients', label: 'Bệnh nhân', icon: 'fa-solid fa-user-injured' },
+  { to: '/doctor/reviews', label: 'Đánh giá về tôi', icon: 'fa-regular fa-star' },
   { to: '/doctor/notifications', label: 'Thông báo', icon: 'fa-regular fa-bell' },
   { to: '/doctor/profile', label: 'Hồ sơ', icon: 'fa-regular fa-user' }
 ]

@@ -101,6 +101,7 @@ public class SpecialtyService {
     public SpecialtyAdminDTO create(SpecialtyRequest request) {
         currentUserService.requireRole("ADMIN");
         publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_SPECIALTIES);
+        publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_CLINIC);
         String code = CatalogRules.requireCode(request.code());
         if (specialtyRepository.existsByCodeIgnoreCase(code)) {
             throw new FieldConflictException("code", DUPLICATE_CODE);
@@ -126,6 +127,7 @@ public class SpecialtyService {
     public SpecialtyAdminDTO update(Long id, SpecialtyRequest request) {
         currentUserService.requireRole("ADMIN");
         publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_SPECIALTIES);
+        publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_CLINIC);
         Specialty specialty = find(id);
         CatalogRules.assertCodeUnchanged(request.code(), specialty.getCode());
         specialty.setName(request.name().trim());
@@ -146,6 +148,7 @@ public class SpecialtyService {
     public Optional<SpecialtyAdminDTO> delete(Long id) {
         currentUserService.requireRole("ADMIN");
         publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_SPECIALTIES);
+        publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_CLINIC);
         Specialty specialty = find(id);
         if (doctorRepository.existsBySpecialtyId(id)) {
             specialty.setStatus(CatalogRules.INACTIVE);

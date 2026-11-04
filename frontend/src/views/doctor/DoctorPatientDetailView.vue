@@ -39,6 +39,17 @@
         </dl>
       </section>
 
+      <section class="rounded-md border border-slate-200 bg-white p-5 xl:col-span-2" aria-labelledby="patient-self-reported-title">
+        <h2 id="patient-self-reported-title" class="font-semibold text-slate-950">Thông tin sức khỏe bệnh nhân tự khai</h2>
+        <p class="mt-1 text-xs text-slate-600">Do bệnh nhân tự nhập ở trang hồ sơ, chưa được bác sĩ xác nhận; khác với phần Bệnh án do bác sĩ ghi.</p>
+        <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+          <div v-for="item in selfReportedRows" :key="item.label">
+            <dt class="text-slate-600">{{ item.label }}</dt>
+            <dd class="whitespace-pre-line font-medium text-slate-900">{{ item.value || '-' }}</dd>
+          </div>
+        </dl>
+      </section>
+
       <section class="rounded-md border border-slate-200 bg-white p-5" aria-labelledby="patient-record-title">
         <h2 id="patient-record-title" class="font-semibold text-slate-950">Bệnh án</h2>
         <p v-if="!record" class="mt-3 text-sm text-slate-500">Bệnh nhân chưa có bệnh án.</p>
@@ -107,6 +118,20 @@ const profileRows = computed(() => [
   { label: 'Dị ứng', value: patient.value?.allergies },
   { label: 'Liên hệ khẩn cấp', value: [patient.value?.emergencyContactName, patient.value?.emergencyContactPhone].filter(Boolean).join(' · ') }
 ])
+
+const selfReportedRows = computed(() => {
+  const height = patient.value?.heightCm
+  const weight = patient.value?.weightKg
+  const bmi = height && weight ? (weight / ((height / 100) ** 2)).toFixed(1) : ''
+  return [
+    { label: 'Chiều cao', value: height ? `${height} cm` : '' },
+    { label: 'Cân nặng', value: weight ? `${weight} kg` : '' },
+    { label: 'BMI', value: bmi },
+    { label: 'Bệnh nền', value: patient.value?.chronicConditions },
+    { label: 'Tiền sử gia đình', value: patient.value?.familyHistory },
+    { label: 'Số thẻ BHYT', value: patient.value?.healthInsuranceNumber }
+  ]
+})
 
 const recordRows = computed(() => [
   { label: 'Mã bệnh án', value: record.value?.recordCode },

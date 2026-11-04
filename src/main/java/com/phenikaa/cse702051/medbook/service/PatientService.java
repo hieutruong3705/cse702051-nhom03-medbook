@@ -1,5 +1,6 @@
 package com.phenikaa.cse702051.medbook.service;
 
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Locale;
@@ -238,6 +239,27 @@ public class PatientService {
         if (request.allergies() != null) {
             patient.setAllergies(request.allergies());
         }
+        if (request.heightCm() != null) {
+            patient.setHeightCm(request.heightCm());
+        }
+        if (request.weightKg() != null) {
+            patient.setWeightKg(request.weightKg().setScale(1, RoundingMode.HALF_UP));
+        }
+        // Chuỗi rỗng xóa giá trị đã khai (khác null là giữ nguyên)
+        if (request.healthInsuranceNumber() != null) {
+            patient.setHealthInsuranceNumber(blankToNull(request.healthInsuranceNumber()) == null ? null
+                    : request.healthInsuranceNumber().trim().toUpperCase(Locale.ROOT));
+        }
+        if (request.chronicConditions() != null) {
+            patient.setChronicConditions(blankToNull(request.chronicConditions()));
+        }
+        if (request.familyHistory() != null) {
+            patient.setFamilyHistory(blankToNull(request.familyHistory()));
+        }
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     private static int clampSize(int size) {
