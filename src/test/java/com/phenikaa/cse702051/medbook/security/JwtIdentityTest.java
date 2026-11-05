@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 
 /**
- * BE-00: một cơ chế danh tính JWT duy nhất; token sai/hết hạn/giả mạo → 401;
+ * Một cơ chế danh tính JWT duy nhất; token sai/hết hạn/giả mạo → 401;
  * header {@code X-MedBook-*} do client tự đặt không còn tác dụng.
  */
 class JwtIdentityTest extends AbstractApiTest {

@@ -39,7 +39,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * BE-04 (mục 7): tệp đính kèm an toàn — quyền theo bản ghi, kiểm tra chữ ký tệp/kích thước, không lộ đường
+ * Tệp đính kèm an toàn — quyền theo bản ghi, kiểm tra chữ ký tệp/kích thước, không lộ đường
  * dẫn, audit tải xuống/xóa, không để tệp vật lý mồ côi.
  */
 class AttachmentTest extends AbstractApiTest {
@@ -243,7 +243,7 @@ class AttachmentTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S5.1 Mỗi lần bác sĩ phụ trách hoặc bệnh nhân chủ liệt kê tệp có đúng một bản audit ATTACHMENT_LIST mang danh tính người xem; metadata chỉ có số lượng, không có tên tệp")
+    @DisplayName("Mỗi lần bác sĩ phụ trách hoặc bệnh nhân chủ liệt kê tệp có đúng một bản audit ATTACHMENT_LIST mang danh tính người xem; metadata chỉ có số lượng, không có tên tệp")
     void listingAttachmentsIsAudited() throws Exception {
         IsolatedDoctor doc = data.isolatedDoctor("att_laud_doc");
         IsolatedPatient owner = data.isolatedPatient("att_laud_owner");
@@ -276,7 +276,7 @@ class AttachmentTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S5.2 Bác sĩ khác và quản trị viên liệt kê tệp: 403, có ACCESS_DENIED mang danh tính của họ, không có ATTACHMENT_LIST")
+    @DisplayName("Bác sĩ khác và quản trị viên liệt kê tệp: 403, có ACCESS_DENIED mang danh tính của họ, không có ATTACHMENT_LIST")
     void deniedListingIsAuditedAsAccessDenied() throws Exception {
         IsolatedDoctor doc = data.isolatedDoctor("att_lden_doc");
         IsolatedDoctor otherDoctor = data.isolatedDoctor("att_lden_other");

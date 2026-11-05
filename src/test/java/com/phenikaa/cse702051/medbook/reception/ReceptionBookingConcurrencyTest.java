@@ -27,7 +27,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * AC-B3.3: đặt hộ tại quầy giữ nguyên bảo đảm "một khung giờ, một lịch". 50 yêu cầu đặt hộ cùng lúc vào một khung
+ * Đặt hộ tại quầy giữ nguyên bảo đảm "một khung giờ, một lịch". 50 yêu cầu đặt hộ cùng lúc vào một khung
  * giờ chỉ một thành công; lễ tân và bệnh nhân cùng tranh một khung giờ cũng chỉ một bên thắng. Chạy qua toàn bộ
  * tầng controller, service, repository trên CSDL thật của test, không dùng mock.
  */
@@ -97,7 +97,7 @@ class ReceptionBookingConcurrencyTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B3.3 50 yêu cầu đặt hộ đồng thời vào một khung giờ: đúng 1 trả 201, 49 trả 409, đúng một lịch hẹn")
+    @DisplayName("50 yêu cầu đặt hộ đồng thời vào một khung giờ: đúng 1 trả 201, 49 trả 409, đúng một lịch hẹn")
     void fiftyConcurrentDeskBookingsOnlyOneSucceeds() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("rbc" + key);
@@ -118,7 +118,7 @@ class ReceptionBookingConcurrencyTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B3.3 Lễ tân và bệnh nhân cùng đặt một khung giờ đồng thời: đúng một bên 201, bên kia 409")
+    @DisplayName("Lễ tân và bệnh nhân cùng đặt một khung giờ đồng thời: đúng một bên 201, bên kia 409")
     void deskAndPatientRaceForTheSameSlot() throws Exception {
         String key = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("rbm" + key);

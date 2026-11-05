@@ -39,7 +39,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedReceptionist;
 
 /**
- * BE-2: bệnh nhân tại quầy lễ tân. Tra cứu theo họ tên, mã, điện thoại; tạo hồ sơ không gắn tài khoản; chỉ trả
+ * Bệnh nhân tại quầy lễ tân. Tra cứu theo họ tên, mã, điện thoại; tạo hồ sơ không gắn tài khoản; chỉ trả
  * trường hành chính; chỉ lễ tân gọi được.
  */
 class ReceptionPatientTest extends AbstractApiTest {
@@ -107,7 +107,7 @@ class ReceptionPatientTest extends AbstractApiTest {
     // ---------- tạo hồ sơ ----------
 
     @Test
-    @DisplayName("AC-B2.3 Tạo hồ sơ hợp lệ: 201, mã BN + sáu chữ số, không có tài khoản, có bệnh án, một bản nhật ký của lễ tân")
+    @DisplayName("Tạo hồ sơ hợp lệ: 201, mã BN + sáu chữ số, không có tài khoản, có bệnh án, một bản nhật ký của lễ tân")
     void createsPatientWithoutAccount() throws Exception {
         IsolatedReceptionist receptionist = data.isolatedReceptionist("pcreate" + unique());
         String marker = unique();
@@ -144,7 +144,7 @@ class ReceptionPatientTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B2.3 Email và địa chỉ để trống được lưu là rỗng, không phải chuỗi trắng")
+    @DisplayName("Email và địa chỉ để trống được lưu là rỗng, không phải chuỗi trắng")
     void blankOptionalFieldsBecomeNull() throws Exception {
         JsonNode created = json(create(receptionistToken(),
                 body("Lý Văn Trống " + unique(), "2001-01-01", "OTHER", phone(), "", "   "))
@@ -168,7 +168,7 @@ class ReceptionPatientTest extends AbstractApiTest {
             "điện thoại có chữ       | Nguyễn A| 1990-01-01 | MALE   | 09abc45678 | null       | phone",
             "email sai định dạng     | Nguyễn A| 1990-01-01 | MALE   | 0912345678 | khong-phai | email"
     })
-    @DisplayName("AC-B2.4 Dữ liệu sai trả 400 với details đúng tên trường")
+    @DisplayName("Dữ liệu sai trả 400 với details đúng tên trường")
     void invalidDataIsRejectedPerField(String name, String fullName, String dateOfBirth, String genderCode,
             String phone, String email, String field) throws Exception {
         long before = patients.count();
@@ -181,7 +181,7 @@ class ReceptionPatientTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B2.4 Trùng họ tên (khác hoa thường), ngày sinh và điện thoại: 409 tại trường phone, không tạo thêm dòng")
+    @DisplayName("Trùng họ tên (khác hoa thường), ngày sinh và điện thoại: 409 tại trường phone, không tạo thêm dòng")
     void duplicatePatientIsRejected() throws Exception {
         String fullName = "Trùng Hồ Sơ " + unique();
         String phone = phone();
@@ -204,7 +204,7 @@ class ReceptionPatientTest extends AbstractApiTest {
     // ---------- tra cứu ----------
 
     @Test
-    @DisplayName("AC-B2.1 Tìm theo họ tên, mã bệnh nhân, điện thoại đều ra đúng; bệnh nhân có tài khoản hiện hasAccount = true")
+    @DisplayName("Tìm theo họ tên, mã bệnh nhân, điện thoại đều ra đúng; bệnh nhân có tài khoản hiện hasAccount = true")
     void searchFindsByNameCodeAndPhone() throws Exception {
         String marker = unique();
         String phone = phone();
@@ -260,7 +260,7 @@ class ReceptionPatientTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B2.1 Ký tự % và _ trong từ khóa là ký tự thường: không trả toàn bộ, và tìm đúng tên có chứa %")
+    @DisplayName("Ký tự % và _ trong từ khóa là ký tự thường: không trả toàn bộ, và tìm đúng tên có chứa %")
     void wildcardCharactersAreLiteral() throws Exception {
         String marker = unique();
         long id = createOk("Giảm 100% phí " + marker, phone()).get("id").asLong();
@@ -275,7 +275,7 @@ class ReceptionPatientTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B2.1 Phân trang: size lớn hơn 100 bị cắt, page âm coi là 0, thứ tự theo họ tên rồi id ổn định giữa các trang")
+    @DisplayName("Phân trang: size lớn hơn 100 bị cắt, page âm coi là 0, thứ tự theo họ tên rồi id ổn định giữa các trang")
     void paginationIsBoundedAndStable() throws Exception {
         String marker = unique();
         List<Long> ids = new ArrayList<>();
@@ -301,7 +301,7 @@ class ReceptionPatientTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B2.2 Kết quả không có dị ứng, nhóm máu, liên hệ khẩn cấp dù hồ sơ có các thông tin đó")
+    @DisplayName("Kết quả không có dị ứng, nhóm máu, liên hệ khẩn cấp dù hồ sơ có các thông tin đó")
     void responseHasNoMedicalFields() throws Exception {
         long id = createOk("Có Thông Tin Y Tế " + unique(), phone()).get("id").asLong();
         Patient patient = patients.findById(id).orElseThrow();
@@ -337,7 +337,7 @@ class ReceptionPatientTest extends AbstractApiTest {
     // ---------- quyền ----------
 
     @Test
-    @DisplayName("AC-B2.5 Khách 401; bệnh nhân, bác sĩ, quản trị viên 403 ở cả ba điểm cuối")
+    @DisplayName("Khách 401; bệnh nhân, bác sĩ, quản trị viên 403 ở cả ba điểm cuối")
     void onlyReceptionistsMayUseTheEndpoints() throws Exception {
         long id = createOk("Kiểm Quyền " + unique(), phone()).get("id").asLong();
         String valid = body("Không Được Tạo " + unique(), "1990-01-01", "MALE", phone(), null, null);
@@ -357,7 +357,7 @@ class ReceptionPatientTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-B2.3 Hồ sơ tạo tại quầy đặt ngày sinh đúng như đã nhập, không dùng giá trị mặc định của luồng đăng ký")
+    @DisplayName("Hồ sơ tạo tại quầy đặt ngày sinh đúng như đã nhập, không dùng giá trị mặc định của luồng đăng ký")
     void keepsEnteredBirthDate() throws Exception {
         JsonNode created = json(create(receptionistToken(),
                 body("Ngày Sinh Riêng " + unique(), "1960-07-04", "MALE", phone(), null, null))

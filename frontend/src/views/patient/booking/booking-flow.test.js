@@ -159,7 +159,7 @@ describe('useBookingFlow', () => {
     expect(flow.step.value).toBe(1)
   })
 
-  it('AC-S1.9 chọn khung giờ thì giữ chỗ đúng khung giờ đó và có đồng hồ đếm ngược; chọn khung giờ khác thì giữ cái mới', async () => {
+  it('Chọn khung giờ thì giữ chỗ đúng khung giờ đó và có đồng hồ đếm ngược; chọn khung giờ khác thì giữ cái mới', async () => {
     const flow = inScope(() => useBookingFlow())
     flow.selectService(SERVICES[0])
     flow.selectDoctor(DOCTORS[0])
@@ -199,7 +199,7 @@ describe('useBookingFlow', () => {
     expect(flow.canContinue.value).toBe(false)
   })
 
-  it('AC-S1.9 hết thời gian giữ chỗ: bỏ khung giờ, báo, tải lại danh sách và quay về bước chọn giờ', async () => {
+  it('Hết thời gian giữ chỗ: bỏ khung giờ, báo, tải lại danh sách và quay về bước chọn giờ', async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] })
     slotsApi.hold.mockImplementation((slotId) => Promise.resolve(heldFor(slotId, 3)))
     const flow = await readyFlow()
@@ -275,7 +275,7 @@ describe('useBookingFlow', () => {
     expect(flow.submitting.value).toBe(false)
   })
 
-  it('AC-S1.9 410 khi xác nhận (bản giữ chỗ đã hết hạn): về bước chọn giờ với thông điệp của máy chủ, giữ nguyên các lựa chọn khác', async () => {
+  it('410 khi xác nhận (bản giữ chỗ đã hết hạn): về bước chọn giờ với thông điệp của máy chủ, giữ nguyên các lựa chọn khác', async () => {
     appointmentsApi.create.mockRejectedValue(gone())
     const flow = await readyFlow()
     const refreshBefore = flow.slotsRefreshKey.value
@@ -293,7 +293,7 @@ describe('useBookingFlow', () => {
     expect(flow.notes.value).toContain('Đau đầu')
   })
 
-  it('AC-S2.6 422 (dịch vụ dài hơn khung giờ): về bước chọn giờ và hiện đúng thông điệp của máy chủ', async () => {
+  it('422 (dịch vụ dài hơn khung giờ): về bước chọn giờ và hiện đúng thông điệp của máy chủ', async () => {
     appointmentsApi.create.mockRejectedValue(
       new ApiRequestError({ status: 422, code: 'UNPROCESSABLE_ENTITY', message: 'Dịch vụ cần 45 phút, khung giờ này chỉ dài 30 phút' })
     )
@@ -341,7 +341,7 @@ describe('useBookingFlow', () => {
     expect(flow.step.value).toBe(6)
   })
 
-  it('AC-S2.6 chọn một dòng giờ sớm nhất: điền bác sĩ, ngày, khung giờ, giữ chỗ và tới thẳng bước xác nhận', async () => {
+  it('Chọn một dòng giờ sớm nhất: điền bác sĩ, ngày, khung giờ, giữ chỗ và tới thẳng bước xác nhận', async () => {
     const flow = inScope(() => useBookingFlow())
     flow.selectService(SERVICES[0])
 
@@ -475,7 +475,7 @@ describe('SlotPicker', () => {
     expect(wrapper.emitted('select')[0][0]).toMatchObject({ id: 102, startTime: '09:30:00' })
   })
 
-  it('AC-S2.6 có serviceId thì truyền xuống API và tải lại khi dịch vụ đổi; không có thì gọi như cũ', async () => {
+  it('Có serviceId thì truyền xuống API và tải lại khi dịch vụ đổi; không có thì gọi như cũ', async () => {
     const wrapper = mount(SlotPicker, { props: { doctorId: 1, date: addDays(3), serviceId: 10 } })
     await flushPromises()
     expect(slotsApi.availableByDoctor).toHaveBeenLastCalledWith(1, addDays(3), 10)
@@ -565,7 +565,7 @@ describe('BookingView', () => {
     await flushPromises()
   }
 
-  it('AC-S2.6 bước đầu là chọn dịch vụ; chưa chọn thì chưa đi tiếp được', async () => {
+  it('Bước đầu là chọn dịch vụ; chưa chọn thì chưa đi tiếp được', async () => {
     const wrapper = mountView()
     await flushPromises()
 
@@ -613,7 +613,7 @@ describe('BookingView', () => {
     wrapper.unmount()
   })
 
-  it('AC-S1.9 chọn khung giờ thì giữ chỗ và hiện đồng hồ đếm ngược đọc được bằng trình đọc màn hình', async () => {
+  it('Chọn khung giờ thì giữ chỗ và hiện đồng hồ đếm ngược đọc được bằng trình đọc màn hình', async () => {
     const wrapper = mountView()
     await flushPromises()
     await pickService(wrapper)
@@ -680,7 +680,7 @@ describe('BookingView', () => {
     wrapper.unmount()
   })
 
-  it('AC-S1.9 410 khi xác nhận: quay về bước chọn giờ với thông điệp của máy chủ, không còn đồng hồ giữ chỗ', async () => {
+  it('410 khi xác nhận: quay về bước chọn giờ với thông điệp của máy chủ, không còn đồng hồ giữ chỗ', async () => {
     appointmentsApi.create.mockRejectedValue(gone())
     const wrapper = mountView()
     await flushPromises()
@@ -696,7 +696,7 @@ describe('BookingView', () => {
     wrapper.unmount()
   })
 
-  it('AC-S2.6 giờ sớm nhất: hiện tối đa 5 dòng cho dịch vụ đã chọn, lọc theo chuyên khoa, chọn một dòng thì tới thẳng bước xác nhận', async () => {
+  it('Giờ sớm nhất: hiện tối đa 5 dòng cho dịch vụ đã chọn, lọc theo chuyên khoa, chọn một dòng thì tới thẳng bước xác nhận', async () => {
     const wrapper = mountView()
     await flushPromises()
     await pickService(wrapper)

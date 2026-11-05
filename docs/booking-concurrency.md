@@ -1,6 +1,6 @@
 # MedBook — Chống đặt trùng lịch khám (booking concurrency)
 
-> Phạm vi: BE-03 mục 9 · YCCN-10, 11, 12, 13 · Mã nguồn: `AppointmentService`, `Appointment`, `AppointmentSlot` · Kiểm chứng: `AppointmentConcurrencyTest`, `AppointmentBookingTest`.
+> Phạm vi: YCCN-10, 11, 12, 13 · Mã nguồn: `AppointmentService`, `Appointment`, `AppointmentSlot` · Kiểm chứng: `AppointmentConcurrencyTest`, `AppointmentBookingTest`.
 
 ## 1. Bài toán
 
@@ -50,7 +50,7 @@ BOOKED ──▶ IN_PROGRESS ──▶ COMPLETED
 
 Các sự kiện (`AppointmentBookedEvent`, `AppointmentRescheduledEvent`, `AppointmentCancelledEvent`) được phát **trong giao dịch** nhưng chỉ được nghe ở `@TransactionalEventListener(phase = AFTER_COMMIT)`. Giao dịch rollback (ví dụ đặt lịch bị 409) thì **không** có thông báo nào được gửi; thông báo lỗi gửi đi không làm hỏng việc đặt lịch đã commit. Lịch nhắc 24 giờ/2 giờ được xóa dấu `reminder*SentAt` khi đổi lịch để nhắc lại theo giờ mới.
 
-## 6. Hành vi phía giao diện (FE-02)
+## 6. Hành vi phía giao diện
 
 * **409 khi đặt lịch:** hiện "Khung giờ vừa được người khác đặt", tải lại danh sách slot và **giữ nguyên** các lựa chọn khác (bác sĩ, dịch vụ, ghi chú).
 * **409 khi đổi lịch:** giữ nguyên lịch cũ, báo rõ lịch hiện tại không bị ảnh hưởng.
@@ -71,5 +71,5 @@ Chạy: `.\mvnw.cmd test -Dtest=AppointmentConcurrencyTest,AppointmentBookingTes
 ## 8. Giới hạn đã biết
 
 * Khóa lạc quan phát hiện xung đột **tại thời điểm flush**, vì vậy `takeSlot` luôn `saveAndFlush`; không đổi thành `save` thường.
-* H2 (dev/test) và MySQL (docker) cùng cho kết quả vì cả hai lớp đều dựa trên chuẩn SQL (`UPDATE … WHERE version = ?`, UNIQUE cho phép NULL). Migration MySQL (BE-05) phải tạo UNIQUE trên `appointments.active_slot_id`, **không** dùng UNIQUE phức hợp trên `(slot_id, status)`.
+* H2 (dev/test) và MySQL (docker) cùng cho kết quả vì cả hai lớp đều dựa trên chuẩn SQL (`UPDATE … WHERE version = ?`, UNIQUE cho phép NULL). Migration MySQL phải tạo UNIQUE trên `appointments.active_slot_id`, **không** dùng UNIQUE phức hợp trên `(slot_id, status)`.
 * Chưa có giới hạn tần suất đặt lịch theo bệnh nhân (đề xuất ở `security-evidence.md`).

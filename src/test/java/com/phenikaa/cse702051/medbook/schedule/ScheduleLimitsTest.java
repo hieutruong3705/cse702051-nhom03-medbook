@@ -18,7 +18,7 @@ import org.springframework.http.MediaType;
 
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 
-/** AC-03.2 (phần còn lại): giới hạn nghiệp vụ của ca làm việc. Vượt giới hạn → 400 đúng trường, không tạo gì. */
+/** Giới hạn nghiệp vụ của ca làm việc. Vượt giới hạn → 400 đúng trường, không tạo gì. */
 class ScheduleLimitsTest extends AbstractScheduleTest {
 
     /** {@code count} giờ nghỉ 5 phút liên tiếp, cách nhau 5 phút, bắt đầu từ 08:00. */
@@ -30,7 +30,7 @@ class ScheduleLimitsTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.2 Số phút mỗi slot phải từ 5 đến 120 và chia hết cho 5; ca dài tối đa 12 giờ")
+    @DisplayName("Số phút mỗi slot phải từ 5 đến 120 và chia hết cho 5; ca dài tối đa 12 giờ")
     void slotMinutesAndShiftLengthAreLimited() throws Exception {
         IsolatedDoctor doctor = newDoctor();
         LocalDate day = freshDay();
@@ -53,7 +53,7 @@ class ScheduleLimitsTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.2 Một ca chia tối đa 100 slot: 101 slot → 400, đúng 100 slot → 201")
+    @DisplayName("Một ca chia tối đa 100 slot: 101 slot → 400, đúng 100 slot → 201")
     void atMostOneHundredSlotsPerShift() throws Exception {
         IsolatedDoctor doctor = newDoctor();
         LocalDate day = freshDay();
@@ -70,7 +70,7 @@ class ScheduleLimitsTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.2 Mỗi bác sĩ tối đa 4 ca một ngày: ca thứ 5 → 400 ở workDate; ngày khác vẫn tạo được")
+    @DisplayName("Mỗi bác sĩ tối đa 4 ca một ngày: ca thứ 5 → 400 ở workDate; ngày khác vẫn tạo được")
     void atMostFourShiftsPerDay() throws Exception {
         IsolatedDoctor doctor = newDoctor();
         LocalDate day = freshDay();
@@ -88,7 +88,7 @@ class ScheduleLimitsTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.2 Mỗi ca tối đa 10 giờ nghỉ: tạo ca kèm 11 giờ nghỉ → 400; thêm giờ nghỉ thứ 11 → 400")
+    @DisplayName("Mỗi ca tối đa 10 giờ nghỉ: tạo ca kèm 11 giờ nghỉ → 400; thêm giờ nghỉ thứ 11 → 400")
     void atMostTenBreaksPerShift() throws Exception {
         IsolatedDoctor doctor = newDoctor();
         LocalDate day = freshDay();
@@ -111,7 +111,7 @@ class ScheduleLimitsTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.2 Sửa ca cũng chịu các giới hạn trên; yêu cầu sai không làm thay đổi ca")
+    @DisplayName("Sửa ca cũng chịu các giới hạn trên; yêu cầu sai không làm thay đổi ca")
     void updateObeysTheSameLimits() throws Exception {
         IsolatedDoctor doctor = newDoctor();
         LocalDate day = freshDay();
@@ -135,7 +135,7 @@ class ScheduleLimitsTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.2 Danh sách ca: mặc định 62 ngày kể từ hôm nay (hoặc từ from); khoảng dài hơn 62 ngày → 400")
+    @DisplayName("Danh sách ca: mặc định 62 ngày kể từ hôm nay (hoặc từ from); khoảng dài hơn 62 ngày → 400")
     void listRangeIsLimitedToSixtyTwoDays() throws Exception {
         IsolatedDoctor doctor = newDoctor();
         LocalDate far = freshDay();

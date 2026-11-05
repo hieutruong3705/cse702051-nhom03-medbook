@@ -19,7 +19,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * AC-06.6: vượt giới hạn số dòng mỗi lần xuất → 422 và không ghi audit xuất tệp. Giới hạn thật là 50.000 dòng;
+ * Vượt giới hạn số dòng mỗi lần xuất → 422 và không ghi audit xuất tệp. Giới hạn thật là 50.000 dòng;
  * ở đây hạ xuống 3 bằng cấu hình để kiểm đúng nhánh xử lý mà không phải dựng 50.001 lịch hẹn (vì đổi cấu hình
  * nên test chạy trong Spring context riêng).
  */

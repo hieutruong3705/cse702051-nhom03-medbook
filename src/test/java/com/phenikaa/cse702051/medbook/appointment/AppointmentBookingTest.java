@@ -38,7 +38,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData;
 import com.phenikaa.cse702051.medbook.support.CommittedEventsCollector;
 
 /**
- * BE-03 (YCCN-09…16): đặt/hủy/đổi lịch, máy trạng thái, quyền theo bản ghi, thông báo sau commit.
+ * YCCN-09…16: đặt/hủy/đổi lịch, máy trạng thái, quyền theo bản ghi, thông báo sau commit.
  * Mỗi test dùng slot tương lai riêng nên không ảnh hưởng nhau.
  */
 class AppointmentBookingTest extends AbstractApiTest {

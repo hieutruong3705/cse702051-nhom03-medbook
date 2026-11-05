@@ -30,7 +30,7 @@ import com.phenikaa.cse702051.medbook.service.AuditEvent;
 import com.phenikaa.cse702051.medbook.service.AuditLogService;
 import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 
-/** BE-02: AuditLogService — đủ trường, độc lập giao dịch chính, không tin header giả IP. */
+/** AuditLogService — đủ trường, độc lập giao dịch chính, không tin header giả IP. */
 class AuditLogServiceTest extends AbstractApiTest {
 
     @Autowired

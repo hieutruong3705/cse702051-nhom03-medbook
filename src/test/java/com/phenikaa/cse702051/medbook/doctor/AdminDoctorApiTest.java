@@ -45,7 +45,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * AC-02.3, 02.4, 02.6: Admin quản lý hồ sơ bác sĩ. Tạo hồ sơ chỉ cho tài khoản có vai trò bác sĩ và chưa có hồ sơ;
+ * Admin quản lý hồ sơ bác sĩ. Tạo hồ sơ chỉ cho tài khoản có vai trò bác sĩ và chưa có hồ sơ;
  * xóa bác sĩ đã có lịch sử chỉ ngừng hoạt động và gỡ giờ trống tương lai, không đụng lịch đã đặt.
  */
 class AdminDoctorApiTest extends AbstractApiTest {
@@ -94,7 +94,7 @@ class AdminDoctorApiTest extends AbstractApiTest {
     // ---------- tạo ----------
 
     @Test
-    @DisplayName("AC-02.3 Tạo hồ sơ cho tài khoản có vai trò bác sĩ: 201, đủ trường quản trị, ghi một bản audit")
+    @DisplayName("Tạo hồ sơ cho tài khoản có vai trò bác sĩ: 201, đủ trường quản trị, ghi một bản audit")
     void createsDoctorProfile() throws Exception {
         String token = unique();
         User account = doctorAccount(token);
@@ -124,7 +124,7 @@ class AdminDoctorApiTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-02.3 Tạo hồ sơ: tài khoản không có vai trò bác sĩ hoặc không tồn tại → 400 userId; đã có hồ sơ → 409")
+    @DisplayName("Tạo hồ sơ: tài khoản không có vai trò bác sĩ hoặc không tồn tại → 400 userId; đã có hồ sơ → 409")
     void rejectsWrongOrDuplicateAccount() throws Exception {
         String token = unique();
         IsolatedPatient patient = data.isolatedPatient("admdoc_pat");
@@ -149,7 +149,7 @@ class AdminDoctorApiTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-02.3 Tạo hồ sơ: chuyên khoa INACTIVE hoặc không tồn tại → 400 specialtyId; trùng số giấy phép → 409")
+    @DisplayName("Tạo hồ sơ: chuyên khoa INACTIVE hoặc không tồn tại → 400 specialtyId; trùng số giấy phép → 409")
     void rejectsInactiveSpecialtyAndDuplicateLicense() throws Exception {
         String token = unique();
         Specialty closed = specialties.save(Specialty.builder().code("ADI" + token).name("Đã đóng " + token)
@@ -259,7 +259,7 @@ class AdminDoctorApiTest extends AbstractApiTest {
     // ---------- xóa ----------
 
     @Test
-    @DisplayName("AC-02.4 Xóa bác sĩ có lịch sử: 200, isActive=false, giờ trống tương lai bị gỡ, lịch đã đặt giữ nguyên")
+    @DisplayName("Xóa bác sĩ có lịch sử: 200, isActive=false, giờ trống tương lai bị gỡ, lịch đã đặt giữ nguyên")
     void deletingDoctorWithHistoryOnlyDeactivates() throws Exception {
         String token = unique();
         IsolatedDoctor doctor = data.isolatedDoctor("admdoc_soft_" + token);
@@ -306,7 +306,7 @@ class AdminDoctorApiTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-02.4 Xóa bác sĩ chưa có lịch sử: 204, hồ sơ và giờ trống biến mất, tài khoản còn nguyên")
+    @DisplayName("Xóa bác sĩ chưa có lịch sử: 204, hồ sơ và giờ trống biến mất, tài khoản còn nguyên")
     void deletingDoctorWithoutHistoryRemovesProfile() throws Exception {
         String token = unique();
         User account = doctorAccount(token);
@@ -328,7 +328,7 @@ class AdminDoctorApiTest extends AbstractApiTest {
     // ---------- quyền ----------
 
     @Test
-    @DisplayName("AC-02.6 Quyền: khách 401; bệnh nhân và bác sĩ 403 ở mọi thao tác quản trị hồ sơ bác sĩ")
+    @DisplayName("Quyền: khách 401; bệnh nhân và bác sĩ 403 ở mọi thao tác quản trị hồ sơ bác sĩ")
     void onlyAdminManagesDoctors() throws Exception {
         String payload = body(2L, "Không được", 1, "NO-" + unique());
         mvc.perform(get(URL)).andExpect(status().isUnauthorized());

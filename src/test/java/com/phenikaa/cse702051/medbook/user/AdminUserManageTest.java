@@ -32,7 +32,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * AC-04.3, 04.4, 04.5: Admin xem danh sách, sửa, khóa/mở và đổi vai trò tài khoản. Khóa và đổi vai trò làm token cũ
+ * Admin xem danh sách, sửa, khóa/mở và đổi vai trò tài khoản. Khóa và đổi vai trò làm token cũ
  * hết hiệu lực ngay; danh sách không bao giờ lộ băm mật khẩu.
  */
 class AdminUserManageTest extends AbstractApiTest {
@@ -77,7 +77,7 @@ class AdminUserManageTest extends AbstractApiTest {
     // ---------- khóa và mở ----------
 
     @Test
-    @DisplayName("AC-04.3 Khóa tài khoản: trạng thái LOCKED, token đang dùng bị từ chối ngay, ghi audit kèm lý do")
+    @DisplayName("Khóa tài khoản: trạng thái LOCKED, token đang dùng bị từ chối ngay, ghi audit kèm lý do")
     void lockingInvalidatesExistingTokens() throws Exception {
         IsolatedPatient patient = data.isolatedPatient("lock" + unique());
         mvc.perform(get(ME).header("Authorization", patient.token())).andExpect(status().isOk());
@@ -97,7 +97,7 @@ class AdminUserManageTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-04.3 Mở khóa: ACTIVE trở lại, xóa bộ đếm đăng nhập sai, phiên mới dùng được; token trước khi khóa vẫn vô hiệu")
+    @DisplayName("Mở khóa: ACTIVE trở lại, xóa bộ đếm đăng nhập sai, phiên mới dùng được; token trước khi khóa vẫn vô hiệu")
     void unlockingRestoresAccess() throws Exception {
         IsolatedPatient patient = data.isolatedPatient("unlock" + unique());
         String oldToken = patient.token();
@@ -118,7 +118,7 @@ class AdminUserManageTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-04.3 Tự khóa mình 409; trạng thái lạ hoặc thiếu 400; tài khoản không tồn tại 404")
+    @DisplayName("Tự khóa mình 409; trạng thái lạ hoặc thiếu 400; tài khoản không tồn tại 404")
     void statusChangeRejectsInvalidRequests() throws Exception {
         asAdmin(patch(URL + "/" + ADMIN_USER_ID + "/status"), "{\"status\":\"LOCKED\"}")
                 .andExpect(status().isConflict());
@@ -138,7 +138,7 @@ class AdminUserManageTest extends AbstractApiTest {
     // ---------- vai trò ----------
 
     @Test
-    @DisplayName("AC-04.4 Đổi vai trò: thay toàn bộ, token mang vai trò cũ bị từ chối, phiên mới có quyền mới, ghi audit")
+    @DisplayName("Đổi vai trò: thay toàn bộ, token mang vai trò cũ bị từ chối, phiên mới có quyền mới, ghi audit")
     void changingRolesReplacesThemAndInvalidatesTokens() throws Exception {
         User account = data.user("role_" + unique(), "Iso#Pass123", "PATIENT");
         String oldToken = tokenOf(account.getId());
@@ -157,7 +157,7 @@ class AdminUserManageTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-04.4 Danh sách vai trò rỗng hoặc có mã lạ 400; tự gỡ quyền ADMIN của mình 409; không tồn tại 404")
+    @DisplayName("Danh sách vai trò rỗng hoặc có mã lạ 400; tự gỡ quyền ADMIN của mình 409; không tồn tại 404")
     void roleChangeRejectsInvalidRequests() throws Exception {
         User account = data.user("role_" + unique(), "Iso#Pass123", "PATIENT");
         for (String body : new String[] { "{\"roles\":[]}", "{}", "{\"roles\":[\"NURSE\"]}" }) {
@@ -175,7 +175,7 @@ class AdminUserManageTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-04.4 Thêm vai trò bác sĩ không tự tạo hồ sơ bác sĩ: doctorId vẫn rỗng cho tới khi Admin tạo hồ sơ")
+    @DisplayName("Thêm vai trò bác sĩ không tự tạo hồ sơ bác sĩ: doctorId vẫn rỗng cho tới khi Admin tạo hồ sơ")
     void addingDoctorRoleDoesNotCreateProfile() throws Exception {
         User account = data.user("role_" + unique(), "Iso#Pass123", "PATIENT");
 
@@ -189,7 +189,7 @@ class AdminUserManageTest extends AbstractApiTest {
     // ---------- danh sách ----------
 
     @Test
-    @DisplayName("AC-04.5 Danh sách: lọc theo từ khóa (tên đăng nhập, email, họ tên), vai trò, trạng thái; ký tự % không là đại diện")
+    @DisplayName("Danh sách: lọc theo từ khóa (tên đăng nhập, email, họ tên), vai trò, trạng thái; ký tự % không là đại diện")
     void listFiltersByKeywordRoleAndStatus() throws Exception {
         String key = unique();
         IsolatedPatient patient = data.isolatedPatient("lst" + key);
@@ -229,7 +229,7 @@ class AdminUserManageTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-04.5 Danh sách: phân trang (size tối đa 100), sắp xếp theo danh sách trắng, không lộ trường nhạy cảm")
+    @DisplayName("Danh sách: phân trang (size tối đa 100), sắp xếp theo danh sách trắng, không lộ trường nhạy cảm")
     void listPaginatesSortsAndHidesSecrets() throws Exception {
         String key = unique();
         data.user("srt_" + key + "_b", "Iso#Pass123", "PATIENT");
@@ -263,7 +263,7 @@ class AdminUserManageTest extends AbstractApiTest {
     // ---------- sửa ----------
 
     @Test
-    @DisplayName("AC-04.5 Admin sửa họ tên, điện thoại, email: đồng bộ sang hồ sơ bệnh nhân, không làm mất phiên của người đó")
+    @DisplayName("Admin sửa họ tên, điện thoại, email: đồng bộ sang hồ sơ bệnh nhân, không làm mất phiên của người đó")
     void adminUpdatesContactAndSyncsProfile() throws Exception {
         String key = unique();
         IsolatedPatient patient = data.isolatedPatient("upd" + key);
@@ -289,7 +289,7 @@ class AdminUserManageTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-04.6 Admin sửa email trùng tài khoản khác 409; dữ liệu sai 400; không tồn tại 404; không đổi gì khi lỗi")
+    @DisplayName("Admin sửa email trùng tài khoản khác 409; dữ liệu sai 400; không tồn tại 404; không đổi gì khi lỗi")
     void adminUpdateRejectsDuplicatesAndInvalidData() throws Exception {
         IsolatedPatient patient = data.isolatedPatient("upd" + unique());
         String before = users.findById(patient.userId()).orElseThrow().getEmail();

@@ -31,7 +31,7 @@ import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 import com.phenikaa.cse702051.medbook.support.ApiTestData;
 
 /**
- * BE-03 — tiêu chí nghiệm thu "chống đặt trùng": 100 yêu cầu cùng đặt một slot trống chỉ đúng MỘT
+ * Tiêu chí nghiệm thu "chống đặt trùng": 100 yêu cầu cùng đặt một slot trống chỉ đúng MỘT
  * thành công, 99 yêu cầu còn lại nhận 409, không có lỗi 5xx. Chạy trên DB thật (H2) qua toàn bộ
  * tầng Controller → Service → Repository, KHÔNG dùng mock.
  */

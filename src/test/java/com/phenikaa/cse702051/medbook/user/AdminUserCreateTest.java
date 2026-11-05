@@ -31,7 +31,7 @@ import com.phenikaa.cse702051.medbook.service.AuditActions;
 import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 
 /**
- * AC-04.1, 04.2, 04.6: Admin tạo tài khoản cho cả ba vai trò. Tài khoản, vai trò và hồ sơ đi kèm được tạo trong một
+ * Admin tạo tài khoản cho cả ba vai trò. Tài khoản, vai trò và hồ sơ đi kèm được tạo trong một
  * giao dịch: lỗi ở bước tạo hồ sơ thì không còn lại tài khoản nào.
  */
 class AdminUserCreateTest extends AbstractApiTest {
@@ -82,7 +82,7 @@ class AdminUserCreateTest extends AbstractApiTest {
     // ---------- tạo theo vai trò ----------
 
     @Test
-    @DisplayName("AC-04.1 Tạo bệnh nhân: 201, có hồ sơ bệnh nhân và bệnh án, đăng nhập được, không lộ băm mật khẩu")
+    @DisplayName("Tạo bệnh nhân: 201, có hồ sơ bệnh nhân và bệnh án, đăng nhập được, không lộ băm mật khẩu")
     void createsPatientWithProfileAndRecord() throws Exception {
         String username = "nb_" + unique();
         ResultActions result = create(body(username, username.toUpperCase() + "@Example.com", "patient", null))
@@ -116,7 +116,7 @@ class AdminUserCreateTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-04.1 Tạo bác sĩ kèm hồ sơ: 201, hồ sơ bác sĩ hiện ở danh sách công khai, đăng nhập vào được lịch làm việc")
+    @DisplayName("Tạo bác sĩ kèm hồ sơ: 201, hồ sơ bác sĩ hiện ở danh sách công khai, đăng nhập vào được lịch làm việc")
     void createsDoctorWithProfile() throws Exception {
         String username = "bs_" + unique();
         String license = "CCHN-" + unique().toUpperCase();
@@ -142,7 +142,7 @@ class AdminUserCreateTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-04.1 Tạo quản trị viên: 201, không có hồ sơ bệnh nhân hay bác sĩ, dùng được trang quản trị")
+    @DisplayName("Tạo quản trị viên: 201, không có hồ sơ bệnh nhân hay bác sĩ, dùng được trang quản trị")
     void createsAdminWithoutProfiles() throws Exception {
         String username = "qt_" + unique();
         JsonNode created = json(create(body(username, username + "@example.com", "ADMIN", null))
@@ -163,7 +163,7 @@ class AdminUserCreateTest extends AbstractApiTest {
     // ---------- một giao dịch ----------
 
     @Test
-    @DisplayName("AC-04.2 Chuyên khoa không tồn tại: 400 và KHÔNG còn lại tài khoản (hoàn tác cả giao dịch)")
+    @DisplayName("Chuyên khoa không tồn tại: 400 và KHÔNG còn lại tài khoản (hoàn tác cả giao dịch)")
     void doctorWithUnknownSpecialtyLeavesNoAccount() throws Exception {
         String username = "bs_" + unique();
         long before = users.count();
@@ -177,7 +177,7 @@ class AdminUserCreateTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-04.2 Trùng số giấy phép hành nghề: 409 và KHÔNG còn lại tài khoản; tạo lại với số khác thì được")
+    @DisplayName("Trùng số giấy phép hành nghề: 409 và KHÔNG còn lại tài khoản; tạo lại với số khác thì được")
     void doctorWithDuplicateLicenseLeavesNoAccount() throws Exception {
         String license = "CCHN-" + unique().toUpperCase();
         String first = "bs_" + unique();
@@ -199,7 +199,7 @@ class AdminUserCreateTest extends AbstractApiTest {
     // ---------- trùng và sai dữ liệu ----------
 
     @Test
-    @DisplayName("AC-04.6 Trùng tên đăng nhập hoặc email (không phân biệt hoa thường): 409 kèm tên trường")
+    @DisplayName("Trùng tên đăng nhập hoặc email (không phân biệt hoa thường): 409 kèm tên trường")
     void duplicateUsernameOrEmailIsConflict() throws Exception {
         String username = "nb_" + unique();
         create(body(username, username + "@example.com", "PATIENT", null)).andExpect(status().isCreated());
@@ -214,7 +214,7 @@ class AdminUserCreateTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-04.6 Vai trò lạ, bác sĩ thiếu hồ sơ, vai trò khác kèm hồ sơ bác sĩ: 400 kèm tên trường")
+    @DisplayName("Vai trò lạ, bác sĩ thiếu hồ sơ, vai trò khác kèm hồ sơ bác sĩ: 400 kèm tên trường")
     void invalidRoleAndProfileCombinationsAreRejected() throws Exception {
         String username = "sai_" + unique();
         create(body(username, username + "@example.com", "NURSE", null))
@@ -232,7 +232,7 @@ class AdminUserCreateTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-04.6 Mật khẩu yếu, email sai định dạng, tên đăng nhập có ký tự lạ, thiếu trường: 400 kèm tên trường")
+    @DisplayName("Mật khẩu yếu, email sai định dạng, tên đăng nhập có ký tự lạ, thiếu trường: 400 kèm tên trường")
     void invalidFieldsAreRejected() throws Exception {
         String username = "sai_" + unique();
         create("{\"username\":\"%s\",\"password\":\"matkhauyeu\",\"fullName\":\"A\",\"email\":\"%s@example.com\","
@@ -258,7 +258,7 @@ class AdminUserCreateTest extends AbstractApiTest {
     // ---------- phân quyền ----------
 
     @Test
-    @DisplayName("AC-04.5 Bệnh nhân và bác sĩ không dùng được API quản trị tài khoản (403); chưa đăng nhập 401")
+    @DisplayName("Bệnh nhân và bác sĩ không dùng được API quản trị tài khoản (403); chưa đăng nhập 401")
     void nonAdminsCannotManageUsers() throws Exception {
         String username = "cam_" + unique();
         for (String token : new String[] { patientToken(), doctorToken() }) {

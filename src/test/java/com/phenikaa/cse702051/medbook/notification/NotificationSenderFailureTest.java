@@ -32,7 +32,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * AC-05.8: kênh gửi thông báo ra ngoài (email, SMS...) hỏng không được làm hỏng việc đặt lịch. Cần spy lên
+ * Kênh gửi thông báo ra ngoài (email, SMS...) hỏng không được làm hỏng việc đặt lịch. Cần spy lên
  * {@link NotificationSender} nên chạy trong Spring context riêng.
  */
 class NotificationSenderFailureTest extends AbstractApiTest {

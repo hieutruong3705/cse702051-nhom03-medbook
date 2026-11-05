@@ -22,7 +22,7 @@ import com.phenikaa.cse702051.medbook.service.EncounterService;
 import jakarta.validation.Valid;
 
 /**
- * Lần khám (BE-04). {@code doctorId} và {@code medicalRecordId} không bao giờ nhận từ client. Quyền theo
+ * Lần khám. {@code doctorId} và {@code medicalRecordId} không bao giờ nhận từ client. Quyền theo
  * vai trò ở {@code SecurityConfig}; quyền theo bản ghi và audit ở {@link EncounterService}.
  */
 @RestController

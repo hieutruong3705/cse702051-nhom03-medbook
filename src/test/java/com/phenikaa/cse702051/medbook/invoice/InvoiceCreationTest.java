@@ -49,7 +49,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * AC-08.1…08.4: lập hóa đơn tính tiền chính xác, đơn giá luôn từ danh mục, dữ liệu sai bị từ chối mà không lưu
+ * Lập hóa đơn tính tiền chính xác, đơn giá luôn từ danh mục, dữ liệu sai bị từ chối mà không lưu
  * gì, hai yêu cầu lập cùng lúc chỉ một yêu cầu thành công, và chỉ đúng người mới đọc được hóa đơn.
  */
 class InvoiceCreationTest extends AbstractApiTest {
@@ -99,7 +99,7 @@ class InvoiceCreationTest extends AbstractApiTest {
     // ---------- tính tiền ----------
 
     @Test
-    @DisplayName("AC-08.1 Tính tiền chính xác với số thập phân: 3 × 0,10 + 2 × 199.999,99, giảm 0,05; so sánh BigDecimal đúng từng chữ số")
+    @DisplayName("Tính tiền chính xác với số thập phân: 3 × 0,10 + 2 × 199.999,99, giảm 0,05; so sánh BigDecimal đúng từng chữ số")
     void calculatesMoneyExactly() throws Exception {
         String token = unique();
         MedicalService cheap = service(token + "A", "Băng gạc " + token, "0.10", "ACTIVE");
@@ -130,7 +130,7 @@ class InvoiceCreationTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-08.1, AC-08.10 Hóa đơn trả đúng các trường của DTO; đơn giá, tên dịch vụ, mã và bệnh nhân do server quyết định")
+    @DisplayName("Hóa đơn trả đúng các trường của DTO; đơn giá, tên dịch vụ, mã và bệnh nhân do server quyết định")
     void responseFollowsContractAndIgnoresClientPrices() throws Exception {
         String token = unique();
         MedicalService service = service(token, "Điện tim " + token, "120000", "ACTIVE");
@@ -178,7 +178,7 @@ class InvoiceCreationTest extends AbstractApiTest {
     // ---------- đồng thời ----------
 
     @Test
-    @DisplayName("AC-08.2 Hai yêu cầu lập hóa đơn cùng lúc cho một lần khám: đúng một thành công, một 409, chỉ một hóa đơn")
+    @DisplayName("Hai yêu cầu lập hóa đơn cùng lúc cho một lần khám: đúng một thành công, một 409, chỉ một hóa đơn")
     void concurrentCreationProducesOneInvoice() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("inv_race_doc");
         IsolatedPatient patient = data.isolatedPatient("inv_race_pat");
@@ -218,7 +218,7 @@ class InvoiceCreationTest extends AbstractApiTest {
     // ---------- dữ liệu sai ----------
 
     @Test
-    @DisplayName("AC-08.3 Dòng thiếu serviceId, dịch vụ INACTIVE hoặc không tồn tại, dòng trùng, danh sách rỗng, quá 20 dòng: lỗi đúng mã, không lưu gì")
+    @DisplayName("Dòng thiếu serviceId, dịch vụ INACTIVE hoặc không tồn tại, dòng trùng, danh sách rỗng, quá 20 dòng: lỗi đúng mã, không lưu gì")
     void rejectsInvalidLines() throws Exception {
         String token = unique();
         MedicalService inactive = service(token, "Đã ngừng " + token, "50000", "INACTIVE");
@@ -257,7 +257,7 @@ class InvoiceCreationTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-08.3 Số lượng ngoài 1–100 hoặc thập phân, giảm giá âm, lớn hơn tạm tính hoặc quá hai chữ số thập phân → 400 đúng trường")
+    @DisplayName("Số lượng ngoài 1–100 hoặc thập phân, giảm giá âm, lớn hơn tạm tính hoặc quá hai chữ số thập phân → 400 đúng trường")
     void rejectsInvalidQuantityAndDiscount() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("inv_qty_doc");
         IsolatedPatient patient = data.isolatedPatient("inv_qty_pat");
@@ -322,7 +322,7 @@ class InvoiceCreationTest extends AbstractApiTest {
     // ---------- quyền đọc ----------
 
     @Test
-    @DisplayName("AC-08.4 Đọc hóa đơn: bệnh nhân chủ, bác sĩ phụ trách, Admin được; bệnh nhân khác và bác sĩ khác 403 kèm audit")
+    @DisplayName("Đọc hóa đơn: bệnh nhân chủ, bác sĩ phụ trách, Admin được; bệnh nhân khác và bác sĩ khác 403 kèm audit")
     void readAccessRules() throws Exception {
         IsolatedDoctor doctor = data.isolatedDoctor("inv_read_doc");
         IsolatedDoctor otherDoctor = data.isolatedDoctor("inv_read_other");

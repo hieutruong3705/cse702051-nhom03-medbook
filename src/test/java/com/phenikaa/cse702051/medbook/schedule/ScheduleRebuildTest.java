@@ -32,7 +32,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * AC-03.5, 03.7, 03.11: {@code rebuildSlots} là đường duy nhất sinh và gỡ slot. Gọi lặp lại không đổi gì, tự sửa
+ * {@code rebuildSlots} là đường duy nhất sinh và gỡ slot. Gọi lặp lại không đổi gì, tự sửa
  * slot thừa/thiếu, không sinh slot đã qua giờ trong hôm nay; mỗi thao tác trên ca ghi đúng một bản audit.
  */
 class ScheduleRebuildTest extends AbstractScheduleTest {
@@ -58,7 +58,7 @@ class ScheduleRebuildTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.7 rebuildSlots chạy hai lần liên tiếp: không tạo trùng, không xóa, các slot giữ nguyên mã")
+    @DisplayName("RebuildSlots chạy hai lần liên tiếp: không tạo trùng, không xóa, các slot giữ nguyên mã")
     void rebuildIsIdempotent() throws Exception {
         IsolatedDoctor doctor = newDoctor();
         LocalDate day = freshDay();
@@ -76,7 +76,7 @@ class ScheduleRebuildTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.7 rebuildSlots tự sửa: thêm lại slot bị thiếu, gỡ slot lệch lưới, giữ slot đúng")
+    @DisplayName("RebuildSlots tự sửa: thêm lại slot bị thiếu, gỡ slot lệch lưới, giữ slot đúng")
     void rebuildRepairsMissingAndStraySlots() throws Exception {
         IsolatedDoctor doctor = newDoctor();
         LocalDate day = freshDay();
@@ -97,7 +97,7 @@ class ScheduleRebuildTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.5 Thêm rồi xóa giờ nghỉ nhiều lần: số slot luôn đúng, không bao giờ có hai slot cùng giờ")
+    @DisplayName("Thêm rồi xóa giờ nghỉ nhiều lần: số slot luôn đúng, không bao giờ có hai slot cùng giờ")
     void repeatedBreakChangesNeverDuplicateSlots() throws Exception {
         IsolatedDoctor doctor = newDoctor();
         LocalDate day = freshDay();
@@ -121,7 +121,7 @@ class ScheduleRebuildTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.7 Ca tạo cho hôm nay không sinh slot đã qua giờ bắt đầu; dựng lại cũng không sinh thêm")
+    @DisplayName("Ca tạo cho hôm nay không sinh slot đã qua giờ bắt đầu; dựng lại cũng không sinh thêm")
     void todayShiftSkipsSlotsThatAlreadyStarted() throws Exception {
         LocalTime now = LocalTime.now();
         assumeTrue(now.getHour() >= 1 && now.getHour() <= 21 && now.getMinute() < 58,
@@ -145,7 +145,7 @@ class ScheduleRebuildTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.7 Ca tạo trước khi có cột slot_minutes: độ dài slot được suy ra rồi ghi lại ở lần thay đổi kế tiếp")
+    @DisplayName("Ca tạo trước khi có cột slot_minutes: độ dài slot được suy ra rồi ghi lại ở lần thay đổi kế tiếp")
     void legacyScheduleWithoutSlotMinutesIsBackfilled() throws Exception {
         IsolatedDoctor doctor = newDoctor();
         LocalDate day = freshDay();
@@ -172,7 +172,7 @@ class ScheduleRebuildTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.11 Tạo, sửa, xóa ca mỗi lần ghi đúng một bản audit kèm số slot; yêu cầu bị từ chối không ghi gì")
+    @DisplayName("Tạo, sửa, xóa ca mỗi lần ghi đúng một bản audit kèm số slot; yêu cầu bị từ chối không ghi gì")
     void scheduleChangesAreAudited() throws Exception {
         IsolatedDoctor doctor = newDoctor();
         LocalDate day = freshDay();

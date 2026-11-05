@@ -26,7 +26,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * Nghiệm thu hai luồng cốt lõi theo tài liệu (FE-02 kịch bản 1, FE-03 kịch bản 2) bằng API thật, từng bước nối
+ * Nghiệm thu hai luồng cốt lõi bằng API thật, từng bước nối
  * tiếp nhau trên cùng dữ liệu:
  *
  * <ol>

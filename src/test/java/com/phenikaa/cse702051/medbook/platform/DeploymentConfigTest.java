@@ -20,7 +20,7 @@ import org.springframework.mock.env.MockEnvironment;
 import com.phenikaa.cse702051.medbook.config.DeploymentConfigGuard;
 
 /**
- * AC-09.3: ở hồ sơ {@code docker} và {@code prod}, thiếu {@code JWT_SECRET} thì cấu hình không phân giải được và
+ * Ở hồ sơ {@code docker} và {@code prod}, thiếu {@code JWT_SECRET} thì cấu hình không phân giải được và
  * thông báo nêu đúng tên biến; khóa quá ngắn hoặc là giá trị mẫu công khai cũng bị từ chối. Môi trường của test là
  * {@link MockEnvironment} nên không phụ thuộc biến môi trường của máy đang chạy.
  */
@@ -38,7 +38,7 @@ class DeploymentConfigTest {
 
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "application-docker.yml", "application-prod.yaml" })
-    @DisplayName("AC-09.3 Thiếu JWT_SECRET: không phân giải được jwt.secret và thông báo nêu tên biến")
+    @DisplayName("Thiếu JWT_SECRET: không phân giải được jwt.secret và thông báo nêu tên biến")
     void missingJwtSecretIsReportedByName(String resource) throws IOException {
         MockEnvironment environment = load(resource);
 
@@ -100,7 +100,7 @@ class DeploymentConfigTest {
     }
 
     @Test
-    @DisplayName("AC-09.3 Khóa JWT rỗng, ngắn hơn 32 byte hoặc là giá trị mẫu công khai: từ chối khởi động với lý do rõ ràng")
+    @DisplayName("Khóa JWT rỗng, ngắn hơn 32 byte hoặc là giá trị mẫu công khai: từ chối khởi động với lý do rõ ràng")
     void weakOrPublicJwtSecretsAreRejected() {
         assertTrue(assertThrows(IllegalStateException.class, () -> DeploymentConfigGuard.validate(" "))
                 .getMessage().contains("JWT_SECRET"));

@@ -31,7 +31,7 @@ import com.phenikaa.cse702051.medbook.repository.SpecialtyRepository;
 import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 
 /**
- * AC-02.1: trang công khai chỉ thấy bác sĩ đang hoạt động, tìm theo tên hoặc chuyên khoa, có phân trang, và JSON
+ * Trang công khai chỉ thấy bác sĩ đang hoạt động, tìm theo tên hoặc chuyên khoa, có phân trang, và JSON
  * không bao giờ chứa tài khoản, số giấy phép hay số điện thoại.
  */
 class DoctorPublicApiTest extends AbstractApiTest {
@@ -175,7 +175,7 @@ class DoctorPublicApiTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-02.7 Đường dẫn cũ /doctors/admin* đã bị gỡ; đường dẫn công khai chỉ đọc")
+    @DisplayName("Đường dẫn cũ /doctors/admin* đã bị gỡ; đường dẫn công khai chỉ đọc")
     void legacyAdminPathsAreGone() throws Exception {
         String body = "{\"fullName\":\"Không được tạo\",\"userId\":2}";
         int created = mvc.perform(post(URL + "/admin").header("Authorization", adminToken())

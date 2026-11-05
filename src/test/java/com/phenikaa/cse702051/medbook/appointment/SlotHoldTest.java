@@ -42,7 +42,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedReceptionist;
 
 /**
- * SV-1: giữ chỗ có thời hạn trên khung giờ (khung T1). Chạy qua toàn bộ tầng controller, service, repository trên
+ * Giữ chỗ có thời hạn trên khung giờ (khung T1). Chạy qua toàn bộ tầng controller, service, repository trên
  * CSDL thật của test. Bác sĩ, hai bệnh nhân và lễ tân dựng riêng cho lớp test này; mỗi test dùng khung giờ mới.
  * "Hết hạn" được dựng bằng cách lùi {@code expires_at} về quá khứ, không chờ và không gọi tác vụ dọn.
  */
@@ -147,7 +147,7 @@ class SlotHoldTest extends AbstractApiTest {
     // ---------- giữ chỗ ----------
 
     @Test
-    @DisplayName("AC-S1.7 Bệnh nhân giữ một khung giờ trống: 200 với holdId, hạn 10 phút, đúng một bản audit SLOT_HOLD mang danh tính người giữ")
+    @DisplayName("Bệnh nhân giữ một khung giờ trống: 200 với holdId, hạn 10 phút, đúng một bản audit SLOT_HOLD mang danh tính người giữ")
     void patientHoldsAFreeSlot() throws Exception {
         JsonNode body = json(hold(anna.token(), slot.getId()).andExpect(status().isOk()));
 
@@ -200,7 +200,7 @@ class SlotHoldTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S1.2 Khung giờ đang bị giữ: người khác giữ 409, người khác đặt 409, không sinh lịch hẹn, bản giữ còn nguyên")
+    @DisplayName("Khung giờ đang bị giữ: người khác giữ 409, người khác đặt 409, không sinh lịch hẹn, bản giữ còn nguyên")
     void aHeldSlotRejectsOtherUsers() throws Exception {
         long holdId = holdOk(anna.token(), slot.getId());
 
@@ -219,7 +219,7 @@ class SlotHoldTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S1.2 Danh sách giờ trống: người khác và khách không thấy khung giờ đang bị giữ; người giữ thấy kèm heldByMe và holdExpiresAt")
+    @DisplayName("Danh sách giờ trống: người khác và khách không thấy khung giờ đang bị giữ; người giữ thấy kèm heldByMe và holdExpiresAt")
     void listingHidesHeldSlotsFromOthers() throws Exception {
         AppointmentSlot free = data.slot(doctor.doctorId(), slot.getSlotDate(), LocalTime.of(11, 0));
         holdOk(anna.token(), slot.getId());
@@ -244,7 +244,7 @@ class SlotHoldTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S1.3 Hết hạn mà tác vụ dọn chưa chạy: khung giờ trở lại danh sách của người khác, và người khác giữ được")
+    @DisplayName("Hết hạn mà tác vụ dọn chưa chạy: khung giờ trở lại danh sách của người khác, và người khác giữ được")
     void anExpiredHoldNoLongerBlocksHolding() throws Exception {
         long expired = holdOk(anna.token(), slot.getId());
         expire(slot.getId());
@@ -262,7 +262,7 @@ class SlotHoldTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S1.3 Hết hạn mà tác vụ dọn chưa chạy: người khác đặt lịch được, dòng giữ cũ bị xóa")
+    @DisplayName("Hết hạn mà tác vụ dọn chưa chạy: người khác đặt lịch được, dòng giữ cũ bị xóa")
     void anExpiredHoldNoLongerBlocksBooking() throws Exception {
         holdOk(anna.token(), slot.getId());
         expire(slot.getId());
@@ -274,7 +274,7 @@ class SlotHoldTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S1.5 Giữ khung giờ thứ hai thì khung giờ thứ nhất được nhả và người khác giữ được ngay")
+    @DisplayName("Giữ khung giờ thứ hai thì khung giờ thứ nhất được nhả và người khác giữ được ngay")
     void holdingASecondSlotReleasesTheFirst() throws Exception {
         AppointmentSlot second = data.futureSlot(doctor.doctorId());
         holdOk(anna.token(), slot.getId());
@@ -288,7 +288,7 @@ class SlotHoldTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S1.5 Nhả chủ động trả 204, gọi lại vẫn 204; không nhả được bản giữ của người khác")
+    @DisplayName("Nhả chủ động trả 204, gọi lại vẫn 204; không nhả được bản giữ của người khác")
     void releaseIsIdempotentAndOnlyForTheOwner() throws Exception {
         long holdId = holdOk(anna.token(), slot.getId());
 
@@ -350,7 +350,7 @@ class SlotHoldTest extends AbstractApiTest {
     // ---------- đặt lịch với bản giữ ----------
 
     @Test
-    @DisplayName("AC-S1.4 Đặt lịch với holdId còn hạn: 201 và dòng giữ biến mất")
+    @DisplayName("Đặt lịch với holdId còn hạn: 201 và dòng giữ biến mất")
     void bookingWithAValidHoldSucceedsAndClearsIt() throws Exception {
         long holdId = holdOk(anna.token(), slot.getId());
 
@@ -363,7 +363,7 @@ class SlotHoldTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S1.4 Đặt lịch với holdId đã hết hạn: 410 GONE với thông điệp giữ chỗ, không tạo lịch hẹn, khung giờ vẫn trống")
+    @DisplayName("Đặt lịch với holdId đã hết hạn: 410 GONE với thông điệp giữ chỗ, không tạo lịch hẹn, khung giờ vẫn trống")
     void bookingWithAnExpiredHoldIsGone() throws Exception {
         long holdId = holdOk(anna.token(), slot.getId());
         expire(slot.getId());
@@ -398,7 +398,7 @@ class SlotHoldTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("AC-S1.8 Không gửi holdId: khung giờ trống đặt như cũ; người đang giữ đặt không kèm holdId vẫn được và dòng giữ bị xóa")
+    @DisplayName("Không gửi holdId: khung giờ trống đặt như cũ; người đang giữ đặt không kèm holdId vẫn được và dòng giữ bị xóa")
     void bookingWithoutHoldIdStillWorks() throws Exception {
         book(binh.token(), slot.getId(), null).andExpect(status().isCreated());
 
@@ -507,7 +507,7 @@ class SlotHoldTest extends AbstractApiTest {
     // ---------- tác vụ dọn ----------
 
     @Test
-    @DisplayName("AC-S1.6 Dọn: xóa dòng đã hết hạn, không đụng dòng còn hạn")
+    @DisplayName("Dọn: xóa dòng đã hết hạn, không đụng dòng còn hạn")
     void cleanupRemovesOnlyExpiredHolds() throws Exception {
         AppointmentSlot live = data.futureSlot(doctor.doctorId());
         long expiredId = holdOk(anna.token(), slot.getId());

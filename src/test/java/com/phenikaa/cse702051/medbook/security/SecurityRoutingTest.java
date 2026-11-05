@@ -18,7 +18,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 
 /**
- * BE-00: ma trận vai trò × route của {@code /api/v1}.
+ * Ma trận vai trò × route của {@code /api/v1}.
  * Với route "cho qua" ở tầng route nhưng service tự quyết (ví dụ bệnh án), test
  * khẳng định KHÔNG bị 401/403 chặn ở tầng route (dữ liệu seed chưa có bệnh án
  * nên nhận 404).

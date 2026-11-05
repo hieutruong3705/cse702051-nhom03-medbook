@@ -29,7 +29,7 @@ import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedDoctor;
 import com.phenikaa.cse702051.medbook.support.ApiTestData.IsolatedPatient;
 
 /**
- * AC-03.3, 03.10: yêu cầu gửi song song thật (nhiều luồng, không dùng mock). Thay đổi lịch của một bác sĩ chạy lần
+ * Yêu cầu gửi song song thật (nhiều luồng, không dùng mock). Thay đổi lịch của một bác sĩ chạy lần
  * lượt nhờ khóa dòng bác sĩ; xóa ca và đặt lịch tranh cùng một slot thì khóa lạc quan của slot chỉ cho một bên thắng.
  */
 class ScheduleConcurrencyTest extends AbstractScheduleTest {
@@ -77,7 +77,7 @@ class ScheduleConcurrencyTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.3 Hai yêu cầu tạo ca chồng giờ gửi song song: đúng một 201, yêu cầu kia 422, không có slot trùng")
+    @DisplayName("Hai yêu cầu tạo ca chồng giờ gửi song song: đúng một 201, yêu cầu kia 422, không có slot trùng")
     void parallelOverlappingCreatesAdmitExactlyOne() throws Exception {
         IsolatedDoctor doctor = newDoctor();
         for (int round = 0; round < ROUNDS; round++) {
@@ -94,7 +94,7 @@ class ScheduleConcurrencyTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.3 Năm yêu cầu tạo cùng một ca gửi song song: đúng một 201, còn lại 422, slot chỉ sinh một lần")
+    @DisplayName("Năm yêu cầu tạo cùng một ca gửi song song: đúng một 201, còn lại 422, slot chỉ sinh một lần")
     void parallelIdenticalCreatesAdmitExactlyOne() throws Exception {
         IsolatedDoctor doctor = newDoctor();
         LocalDate day = freshDay();
@@ -112,7 +112,7 @@ class ScheduleConcurrencyTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.3 Hai bác sĩ khác nhau tạo ca cùng ngày giờ song song: cả hai 201 (khóa theo từng bác sĩ)")
+    @DisplayName("Hai bác sĩ khác nhau tạo ca cùng ngày giờ song song: cả hai 201 (khóa theo từng bác sĩ)")
     void differentDoctorsDoNotBlockEachOther() throws Exception {
         IsolatedDoctor a = newDoctor();
         IsolatedDoctor b = newDoctor();
@@ -128,7 +128,7 @@ class ScheduleConcurrencyTest extends AbstractScheduleTest {
     }
 
     @Test
-    @DisplayName("AC-03.10 Xóa ca song song với đặt đúng slot của ca: không cả hai cùng thắng, không lịch hẹn mồ côi, không 5xx")
+    @DisplayName("Xóa ca song song với đặt đúng slot của ca: không cả hai cùng thắng, không lịch hẹn mồ côi, không 5xx")
     void deleteRacingWithBookingNeverOrphansAnAppointment() throws Exception {
         IsolatedDoctor doctor = newDoctor();
         int deletes = 0;

@@ -28,7 +28,7 @@ import com.phenikaa.cse702051.medbook.support.AbstractApiTest;
 import com.phenikaa.cse702051.medbook.support.ApiTestData;
 
 /**
- * BE-02: hồ sơ bệnh nhân — chỉ xem/sửa của chính mình, bác sĩ theo phạm vi, Admin chỉ trường
+ * Hồ sơ bệnh nhân — chỉ xem/sửa của chính mình, bác sĩ theo phạm vi, Admin chỉ trường
  * hành chính; đăng ký tạo cả hồ sơ bệnh nhân lẫn bệnh án.
  */
 class PatientAccessTest extends AbstractApiTest {
