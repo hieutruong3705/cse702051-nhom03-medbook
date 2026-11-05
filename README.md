@@ -13,7 +13,7 @@ Tài liệu này đủ để một người chưa biết dự án dựng và ch�
 | Nhóm | Nhóm 03 |
 | Đề tài | Quản lý bệnh án và đặt lịch khám bệnh (DT03) |
 | Repository | https://github.com/hieutruong3705/cse702051-nhom03-medbook |
-| Lớp học phần, thành viên, URL trực tuyến | Nhóm trưởng bổ sung |
+| Lớp học phần, thành viên, URL trực tuyến | |
 
 Dữ liệu trong đồ án là dữ liệu mô phỏng phục vụ học tập.
 
