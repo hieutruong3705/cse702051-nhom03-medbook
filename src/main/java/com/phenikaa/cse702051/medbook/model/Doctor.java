@@ -70,6 +70,10 @@ public class Doctor {
     @Column(name = "work_history", columnDefinition = "TEXT")
     private String workHistory;
 
+    /** Ảnh đại diện ({@code media_images.id}); {@code null} thì giao diện vẽ ảnh minh họa SVG. */
+    @Column(name = "avatar_image_id")
+    private Long avatarImageId;
+
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;

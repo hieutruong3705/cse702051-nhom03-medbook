@@ -75,6 +75,10 @@ public final class AuditActions {
     public static final String REVIEW_HIDE = "REVIEW_HIDE";
     public static final String REVIEW_SHOW = "REVIEW_SHOW";
     public static final String DOCTOR_PROFILE_UPDATE = "DOCTOR_PROFILE_UPDATE";
+    /** Đổi hoặc gỡ ảnh đại diện bác sĩ (bác sĩ tự làm hoặc quản trị viên). */
+    public static final String DOCTOR_AVATAR_UPDATE = "DOCTOR_AVATAR_UPDATE";
+    /** Đổi hoặc gỡ ảnh chuyên khoa (quản trị viên). */
+    public static final String SPECIALTY_IMAGE_UPDATE = "SPECIALTY_IMAGE_UPDATE";
 
     // --- Truy cập bị từ chối ---
     public static final String ACCESS_DENIED = "ACCESS_DENIED";

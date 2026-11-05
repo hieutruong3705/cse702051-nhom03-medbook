@@ -31,6 +31,7 @@ import com.phenikaa.cse702051.medbook.config.migration.V2__CxAdditiveSchema;
 import com.phenikaa.cse702051.medbook.config.migration.V3__ReceptionistRole;
 import com.phenikaa.cse702051.medbook.config.migration.V4__SlotHolds;
 import com.phenikaa.cse702051.medbook.config.migration.V5__ReviewsAndProfiles;
+import com.phenikaa.cse702051.medbook.config.migration.V6__MediaImages;
 
 import jakarta.persistence.Table;
 
@@ -70,7 +71,7 @@ class FlywayMigrationTest {
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
                 .javaMigrations(new V2__CxAdditiveSchema(), new V3__ReceptionistRole(), new V4__SlotHolds(),
-                        new V5__ReviewsAndProfiles())
+                        new V5__ReviewsAndProfiles(), new V6__MediaImages())
                 .baselineOnMigrate(true)
                 .baselineVersion("1")
                 .load();
@@ -103,8 +104,8 @@ class FlywayMigrationTest {
 
         MigrateResult result = flyway(dataSource).migrate();
 
-        assertEquals(5, result.migrationsExecuted);
-        assertEquals("5", result.targetSchemaVersion);
+        assertEquals(6, result.migrationsExecuted);
+        assertEquals("6", result.targetSchemaVersion);
         assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM roles", Long.class),
                 "V3 không chèn vào bảng roles rỗng: vai trò đến từ dữ liệu khởi tạo, có id tường minh");
         assertEquals(entityTables(), tables(jdbc), "mỗi entity phải có bảng do migration tạo, và ngược lại");
@@ -195,7 +196,7 @@ class FlywayMigrationTest {
 
         MigrateResult result = flyway(dataSource).migrate();
 
-        assertEquals(4, result.migrationsExecuted, "chỉ V2 đến V5 được chạy, V1 được coi là đã có");
+        assertEquals(5, result.migrationsExecuted, "chỉ V2 đến V6 được chạy, V1 được coi là đã có");
         assertEquals(entityTables(), tables(jdbc));
         assertTrue(columns(jdbc, "invoices").containsAll(List.of("voided_at", "void_reason")));
         assertFalse(indexes(jdbc, "appointments").contains("idx_appointments_patient"),

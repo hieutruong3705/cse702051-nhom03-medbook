@@ -1,5 +1,6 @@
 package com.phenikaa.cse702051.medbook.dto.doctor;
 
+import com.phenikaa.cse702051.medbook.service.MediaImageService;
 import com.phenikaa.cse702051.medbook.dto.review.RatingSummaryDTO;
 import com.phenikaa.cse702051.medbook.model.Doctor;
 import com.phenikaa.cse702051.medbook.model.Specialty;
@@ -21,7 +22,8 @@ public record DoctorPublicDTO(
         String expertise,
         String workHistory,
         Double averageRating,
-        long reviewCount
+        long reviewCount,
+        String avatarUrl
 ) {
     public static DoctorPublicDTO from(Doctor doctor) {
         return from(doctor, null);
@@ -41,6 +43,7 @@ public record DoctorPublicDTO(
                 doctor.getExpertise(),
                 doctor.getWorkHistory(),
                 rating == null ? null : rating.averageRating(),
-                rating == null ? 0 : rating.reviewCount());
+                rating == null ? 0 : rating.reviewCount(),
+                MediaImageService.urlOf(doctor.getAvatarImageId()));
     }
 }

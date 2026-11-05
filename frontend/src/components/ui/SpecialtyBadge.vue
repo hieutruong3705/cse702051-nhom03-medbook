@@ -1,6 +1,16 @@
 <template>
+  <img
+    v-if="variant === 'icon' && imageUrl && !failed"
+    :src="imageUrl"
+    alt=""
+    :class="['shrink-0 rounded-md bg-slate-100 object-cover', sizeClass]"
+    loading="lazy"
+    decoding="async"
+    data-test="specialty-image"
+    @error="failed = true"
+  />
   <span
-    v-if="variant === 'icon'"
+    v-else-if="variant === 'icon'"
     :class="['inline-flex shrink-0 items-center justify-center rounded-md', theme.soft, theme.text, sizeClass]"
     aria-hidden="true"
     data-test="specialty-icon"
@@ -17,7 +27,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { specialtyTheme } from '@/utils/specialtyTheme'
 
 const props = defineProps({
@@ -30,6 +40,10 @@ const props = defineProps({
 })
 
 const theme = computed(() => specialtyTheme(props.specialty))
+// Ảnh do quản trị viên tải lên (chỉ có ở đối tượng chuyên khoa); lỗi tải ảnh thì quay về biểu tượng.
+const imageUrl = computed(() => (props.specialty && typeof props.specialty === 'object' ? props.specialty.imageUrl : null) || null)
+const failed = ref(false)
+watch(imageUrl, () => { failed.value = false })
 const label = computed(() => {
   const s = props.specialty
   if (!s) return 'Chưa có chuyên khoa'

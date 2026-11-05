@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.phenikaa.cse702051.medbook.config.CacheConfig;
 import com.phenikaa.cse702051.medbook.dto.PageResponse;
@@ -41,18 +42,21 @@ public class SpecialtyService {
     private final CurrentUserService currentUserService;
     private final AuditLogService auditLogService;
     private final PublicCatalogCache publicCatalogCache;
+    private final MediaImageService mediaImageService;
 
     public SpecialtyService(
             SpecialtyRepository specialtyRepository,
             DoctorRepository doctorRepository,
             CurrentUserService currentUserService,
             AuditLogService auditLogService,
-            PublicCatalogCache publicCatalogCache) {
+            PublicCatalogCache publicCatalogCache,
+            MediaImageService mediaImageService) {
         this.specialtyRepository = specialtyRepository;
         this.doctorRepository = doctorRepository;
         this.currentUserService = currentUserService;
         this.auditLogService = auditLogService;
         this.publicCatalogCache = publicCatalogCache;
+        this.mediaImageService = mediaImageService;
     }
 
     // ================= Công khai =================
@@ -139,6 +143,22 @@ public class SpecialtyService {
         return SpecialtyAdminDTO.from(specialty);
     }
 
+    /** Quản trị viên đổi hoặc gỡ ({@code file == null}) ảnh chuyên khoa. */
+    @Transactional
+    public SpecialtyAdminDTO updateImage(Long id, MultipartFile file) {
+        currentUserService.requireRole("ADMIN");
+        Specialty specialty = find(id);
+        Long oldImageId = specialty.getImageId();
+        specialty.setImageId(file == null ? null : mediaImageService.store(file).getId());
+        specialty = specialtyRepository.saveAndFlush(specialty);
+        mediaImageService.deleteIfPresent(oldImageId);
+        auditLogService.recordInCurrentTransaction(AuditEvent.of(AuditActions.SPECIALTY_IMAGE_UPDATE,
+                AuditActions.ENTITY_SPECIALTIES, id).with("removed", String.valueOf(file == null)));
+        publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_SPECIALTIES);
+        publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_CLINIC);
+        return SpecialtyAdminDTO.from(specialty);
+    }
+
     /**
      * Xóa chuyên khoa.
      *
@@ -158,6 +178,7 @@ public class SpecialtyService {
         }
         try {
             specialtyRepository.delete(specialty);
+            mediaImageService.deleteIfPresent(specialty.getImageId());
             specialtyRepository.flush();
         } catch (DataIntegrityViolationException e) {
             // Khóa ngoại doctors.specialty_id: vừa có hồ sơ bác sĩ được gán chuyên khoa này

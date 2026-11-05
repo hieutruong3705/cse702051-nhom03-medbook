@@ -16,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.phenikaa.cse702051.medbook.config.CacheConfig;
 import com.phenikaa.cse702051.medbook.dto.PageResponse;
@@ -83,6 +84,7 @@ public class DoctorService {
     private final CurrentActorService currentActorService;
     private final ReviewService reviewService;
     private final PublicCatalogCache publicCatalogCache;
+    private final MediaImageService mediaImageService;
 
     public DoctorService(
             DoctorRepository doctorRepository,
@@ -95,7 +97,8 @@ public class DoctorService {
             AuditLogService auditLogService,
             CurrentActorService currentActorService,
             ReviewService reviewService,
-            PublicCatalogCache publicCatalogCache) {
+            PublicCatalogCache publicCatalogCache,
+            MediaImageService mediaImageService) {
         this.doctorRepository = doctorRepository;
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
@@ -107,6 +110,7 @@ public class DoctorService {
         this.currentActorService = currentActorService;
         this.reviewService = reviewService;
         this.publicCatalogCache = publicCatalogCache;
+        this.mediaImageService = mediaImageService;
     }
 
     // ================= Công khai =================
@@ -157,6 +161,32 @@ public class DoctorService {
                 AuditActions.ENTITY_DOCTORS, doctor.getId()));
         publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_CLINIC);
         return DoctorOwnProfileDTO.from(doctor);
+    }
+
+    /** Bác sĩ tự đổi ảnh đại diện; {@code file == null} nghĩa là gỡ ảnh và quay về ảnh minh họa. */
+    @Transactional
+    public DoctorOwnProfileDTO updateOwnAvatar(MultipartFile file) {
+        currentUserService.requireRole(ROLE_DOCTOR);
+        Doctor doctor = replaceAvatar(find(currentActorService.requireCurrentDoctorId()), file);
+        return DoctorOwnProfileDTO.from(doctor);
+    }
+
+    /** Quản trị viên đổi hoặc gỡ ({@code file == null}) ảnh đại diện của một bác sĩ. */
+    @Transactional
+    public DoctorAdminDTO updateAvatar(Long id, MultipartFile file) {
+        currentUserService.requireRole("ADMIN");
+        return toAdminDTO(replaceAvatar(find(id), file));
+    }
+
+    private Doctor replaceAvatar(Doctor doctor, MultipartFile file) {
+        Long oldImageId = doctor.getAvatarImageId();
+        doctor.setAvatarImageId(file == null ? null : mediaImageService.store(file).getId());
+        doctor = doctorRepository.saveAndFlush(doctor);
+        mediaImageService.deleteIfPresent(oldImageId);
+        auditLogService.recordInCurrentTransaction(AuditEvent.of(AuditActions.DOCTOR_AVATAR_UPDATE,
+                AuditActions.ENTITY_DOCTORS, doctor.getId()).with("removed", String.valueOf(file == null)));
+        publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_CLINIC);
+        return doctor;
     }
 
     // ================= Quản trị =================
@@ -250,6 +280,7 @@ public class DoctorService {
             // Chưa có lịch sử: các slot (nếu có) chắc chắn chưa từng gắn lịch hẹn nên xóa hẳn được
             slotRepository.deleteAll(slotRepository.findByDoctorId(id));
             doctorRepository.delete(doctor);
+            mediaImageService.deleteIfPresent(doctor.getAvatarImageId());
             doctorRepository.flush();
         } catch (ConcurrencyFailureException | DataIntegrityViolationException e) {
             // Có người vừa đặt lịch hoặc tạo ca cho bác sĩ này trong lúc xóa

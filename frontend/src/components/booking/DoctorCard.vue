@@ -2,7 +2,7 @@
   <!-- Thẻ bác sĩ kiểu "hồ sơ bên trái, lịch khám bên phải": khách xem và chọn khung giờ ngay trong danh sách -->
   <article class="grid grid-cols-1 gap-5 rounded-md border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md md:grid-cols-2" data-test="doctor-card">
     <div class="flex gap-4">
-      <DoctorAvatar :doctor-id="doctor.id" />
+      <DoctorAvatar :doctor-id="doctor.id" :src="doctor.avatarUrl" />
       <div class="min-w-0">
         <component :is="headingTag" class="text-lg font-semibold text-primary-800">
           <RouterLink class="hover:underline" :to="`/doctors/${doctor.id}`">{{ doctor.fullName }}</RouterLink>

@@ -1,5 +1,7 @@
 package com.phenikaa.cse702051.medbook.controller;
 
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 import java.net.URI;
 
 import org.springframework.http.ResponseEntity;
@@ -64,5 +66,17 @@ public class AdminDoctorController {
         return doctorService.delete(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    /** Tải ảnh đại diện mới (JPEG, PNG, WebP, tối đa 1 MB), thay ảnh cũ nếu có. */
+    @PostMapping(value = "/{id}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public DoctorAdminDTO uploadAvatar(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+        return doctorService.updateAvatar(id, file);
+    }
+
+    /** Gỡ ảnh đại diện; trang công khai quay về ảnh minh họa. */
+    @DeleteMapping("/{id}/avatar")
+    public DoctorAdminDTO removeAvatar(@PathVariable Long id) {
+        return doctorService.updateAvatar(id, null);
     }
 }

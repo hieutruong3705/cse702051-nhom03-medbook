@@ -1,5 +1,7 @@
 package com.phenikaa.cse702051.medbook.controller;
 
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 import java.net.URI;
 
 import org.springframework.http.ResponseEntity;
@@ -62,5 +64,17 @@ public class AdminSpecialtyController {
         return specialtyService.delete(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    /** Tải ảnh chuyên khoa mới (JPEG, PNG, WebP, tối đa 1 MB), thay ảnh cũ nếu có. */
+    @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public SpecialtyAdminDTO uploadImage(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+        return specialtyService.updateImage(id, file);
+    }
+
+    /** Gỡ ảnh chuyên khoa; giao diện quay về biểu tượng theo mã chuyên khoa. */
+    @DeleteMapping("/{id}/image")
+    public SpecialtyAdminDTO removeImage(@PathVariable Long id) {
+        return specialtyService.updateImage(id, null);
     }
 }

@@ -46,3 +46,20 @@ describe('DoctorAvatar', () => {
     expect(new Set(ids).size).toBe(2)
   })
 })
+
+describe('DoctorAvatar có ảnh tải lên', () => {
+  it('hiện ảnh khi có src, alt rỗng vì tên bác sĩ đã ở bên cạnh', () => {
+    const wrapper = mount(DoctorAvatar, { props: { doctorId: 3, src: '/api/v1/images/9' } })
+    const img = wrapper.find('[data-test="doctor-avatar-photo"]')
+    expect(img.attributes('src')).toBe('/api/v1/images/9')
+    expect(img.attributes('alt')).toBe('')
+    expect(wrapper.find('svg').exists()).toBe(false)
+  })
+
+  it('ảnh lỗi thì quay về ảnh minh họa SVG', async () => {
+    const wrapper = mount(DoctorAvatar, { props: { doctorId: 3, src: '/api/v1/images/404' } })
+    await wrapper.find('img').trigger('error')
+    expect(wrapper.find('[data-test="doctor-avatar"]').exists()).toBe(true)
+    expect(wrapper.find('img').exists()).toBe(false)
+  })
+})

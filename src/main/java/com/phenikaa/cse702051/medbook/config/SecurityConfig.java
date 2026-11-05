@@ -143,7 +143,7 @@ public class SecurityConfig {
                             API + "/doctors", API + "/doctors/**",
                             API + "/specialties", API + "/specialties/**",
                             API + "/medical-services", API + "/medical-services/**",
-                            API + "/reviews", API + "/clinic",
+                            API + "/reviews", API + "/clinic", API + "/images/*",
                             API + "/system/status", API + "/health").permitAll();
 
                     // === ADMIN ===

@@ -1,5 +1,16 @@
 <template>
+  <img
+    v-if="src && !failed"
+    :src="src"
+    alt=""
+    :class="['shrink-0 rounded-full bg-slate-100 object-cover', sizeClass]"
+    loading="lazy"
+    decoding="async"
+    data-test="doctor-avatar-photo"
+    @error="failed = true"
+  />
   <svg
+    v-else
     :class="['shrink-0 rounded-full', sizeClass]"
     viewBox="0 0 80 80"
     role="presentation"
@@ -40,14 +51,19 @@
 
 <script setup>
 // Ảnh đại diện minh họa của bác sĩ, vẽ bằng SVG ngay trong trang (không tải ảnh ngoài, giữ CSP).
-// Chỉ để trang trí: tên bác sĩ luôn ở ngay cạnh, nên ảnh ẩn khỏi trình đọc màn hình.
-import { computed, useId } from 'vue'
+// Chỉ để trang trí: tên bác sĩ luôn ở ngay cạnh, nên ảnh ẩn khỏi trình đọc màn hình (alt rỗng).
+// Có `src` (ảnh do bác sĩ hoặc quản trị viên tải lên) thì hiện ảnh đó; ảnh lỗi thì quay về ảnh minh họa.
+import { computed, ref, useId, watch } from 'vue'
 import { avatarTraits } from './doctorAvatarTraits'
 
 const props = defineProps({
   doctorId: { type: [Number, String], default: null },
-  size: { type: String, default: 'md' }
+  size: { type: String, default: 'md' },
+  src: { type: String, default: null }
 })
+
+const failed = ref(false)
+watch(() => props.src, () => { failed.value = false })
 
 const clipId = `doctor-avatar-${useId()}`
 const t = computed(() => avatarTraits(props.doctorId))

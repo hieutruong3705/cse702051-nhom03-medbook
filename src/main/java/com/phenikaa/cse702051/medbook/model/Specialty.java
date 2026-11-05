@@ -41,6 +41,10 @@ public class Specialty {
     @Column(nullable = false, length = 20)
     private String status;
 
+    /** Ảnh chuyên khoa ({@code media_images.id}); {@code null} thì giao diện dùng biểu tượng theo mã chuyên khoa. */
+    @Column(name = "image_id")
+    private Long imageId;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

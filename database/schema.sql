@@ -201,6 +201,7 @@ CREATE TABLE `doctors` (
   `education` text COLLATE utf8mb4_unicode_ci,
   `expertise` text COLLATE utf8mb4_unicode_ci,
   `work_history` text COLLATE utf8mb4_unicode_ci,
+  `avatar_image_id` bigint DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_doctors_user` (`user_id`),
   UNIQUE KEY `uk_doctors_license` (`license_number`),
@@ -312,6 +313,17 @@ CREATE TABLE `medical_records` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `media_images` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `content_type` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `size_bytes` int NOT NULL,
+  `data` mediumblob NOT NULL,
+  `created_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `chk_media_images_type` CHECK ((`content_type` in (_utf8mb4'image/jpeg',_utf8mb4'image/png',_utf8mb4'image/webp'))),
+  CONSTRAINT `chk_media_images_size` CHECK (((`size_bytes` > 0) and (`size_bytes` <= 1048576)))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `medicines` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -510,6 +522,7 @@ CREATE TABLE `specialties` (
   `name` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
   `description` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `image_id` bigint DEFAULT NULL,
   `created_at` datetime(6) NOT NULL,
   `updated_at` datetime(6) NOT NULL,
   PRIMARY KEY (`id`),

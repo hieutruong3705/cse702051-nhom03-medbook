@@ -11,8 +11,19 @@ const resource = (path) => ({
   remove: (id) => http.delete(`/admin${path}/${id}`).then((res) => res.data || null)
 })
 
+const imageForm = (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return formData
+}
+
 export const catalogApi = {
-  specialties: resource('/specialties'),
+  specialties: {
+    ...resource('/specialties'),
+    // Ảnh chuyên khoa (JPEG, PNG, WebP, tối đa 1 MB), chỉ quản trị viên
+    uploadImage: (id, file) => http.post(`/admin/specialties/${id}/image`, imageForm(file)).then((res) => res.data),
+    removeImage: (id) => http.delete(`/admin/specialties/${id}/image`).then((res) => res.data)
+  },
   services: resource('/medical-services'),
   medicines: resource('/medicines')
 }

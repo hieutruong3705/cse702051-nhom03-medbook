@@ -1,1 +1,0 @@
-import{i as e}from"./index-DxZnqMAM.js";var t={get:()=>e.get(`/clinic`).then(e=>e.data)};export{t};

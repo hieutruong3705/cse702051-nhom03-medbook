@@ -12,7 +12,7 @@
       <div class="space-y-4">
         <article class="rounded-md border border-slate-200 bg-white p-5">
           <div class="flex items-center gap-3">
-            <DoctorAvatar v-if="doctor.id" :doctor-id="doctor.id" size="sm" />
+            <DoctorAvatar v-if="doctor.id" :doctor-id="doctor.id" :src="doctor.avatarUrl" size="sm" />
             <h2 class="font-semibold text-slate-950">Thông tin tài khoản</h2>
           </div>
           <dl class="mt-4 space-y-3 text-sm">
@@ -22,6 +22,21 @@
           </dl>
           <RouterLink class="mt-4 inline-block text-sm font-semibold text-primary-700 hover:underline" to="/account/profile">Sửa tài khoản</RouterLink>
         </article>
+
+        <form class="rounded-md border border-slate-200 bg-white p-5" novalidate data-test="doctor-avatar-form" @submit.prevent="saveAvatar">
+          <h2 class="font-semibold text-slate-950">Ảnh đại diện</h2>
+          <p class="mt-1 text-xs text-slate-600">Hiện trên trang công khai và thẻ bác sĩ. Không có ảnh thì dùng ảnh minh họa.</p>
+          <div class="mt-4">
+            <ImagePicker id="doctor-avatar" v-model="avatarFile" v-model:removed="avatarRemoved" label="Chọn ảnh" :current-url="doctor.avatarUrl || null">
+              <template #placeholder><DoctorAvatar v-if="doctor.id" :doctor-id="doctor.id" size="sm" /></template>
+            </ImagePicker>
+          </div>
+          <p v-if="avatarError" class="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{{ avatarError }}</p>
+          <p v-if="avatarMessage" class="mt-3 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700" role="status">{{ avatarMessage }}</p>
+          <div class="mt-4 flex justify-end">
+            <BaseButton type="submit" variant="secondary" :loading="avatarSaving" :disabled="!avatarFile && !avatarRemoved" icon="fa-solid fa-image">Lưu ảnh</BaseButton>
+          </div>
+        </form>
 
         <article class="rounded-md border border-slate-200 bg-white p-5">
           <h2 class="font-semibold text-slate-950">Thông tin do quản trị viên quản lý</h2>
@@ -60,7 +75,7 @@
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
-import { BaseButton, BaseInput, BaseTextarea, PageHeader } from '@/components/ui'
+import { BaseButton, BaseInput, BaseTextarea, ImagePicker, PageHeader } from '@/components/ui'
 import DoctorLayout from '@/layouts/DoctorLayout.vue'
 import DoctorAvatar from '@/components/booking/DoctorAvatar.vue'
 import { doctorsApi } from '@/api/doctors'
@@ -78,6 +93,11 @@ const loadError = ref('')
 const error = ref('')
 const successMessage = ref('')
 const saving = ref(false)
+const avatarFile = ref(null)
+const avatarRemoved = ref(false)
+const avatarSaving = ref(false)
+const avatarError = ref('')
+const avatarMessage = ref('')
 
 function fill(profile) {
   doctor.value = profile
@@ -106,6 +126,24 @@ async function submit() {
     error.value = apiErrorMessage(err)
   } finally {
     saving.value = false
+  }
+}
+
+async function saveAvatar() {
+  if (avatarSaving.value || (!avatarFile.value && !avatarRemoved.value)) return
+  avatarSaving.value = true
+  avatarError.value = ''
+  avatarMessage.value = ''
+  try {
+    const profile = avatarFile.value ? await doctorsApi.uploadMyAvatar(avatarFile.value) : await doctorsApi.removeMyAvatar()
+    doctor.value = profile
+    avatarFile.value = null
+    avatarRemoved.value = false
+    avatarMessage.value = profile.avatarUrl ? 'Đã lưu ảnh đại diện.' : 'Đã gỡ ảnh, trang công khai dùng ảnh minh họa.'
+  } catch (err) {
+    avatarError.value = apiErrorMessage(err)
+  } finally {
+    avatarSaving.value = false
   }
 }
 </script>

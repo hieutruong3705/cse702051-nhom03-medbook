@@ -1,5 +1,6 @@
 package com.phenikaa.cse702051.medbook.dto.doctor;
 
+import com.phenikaa.cse702051.medbook.service.MediaImageService;
 import java.time.LocalDateTime;
 
 import com.phenikaa.cse702051.medbook.model.Doctor;
@@ -23,7 +24,8 @@ public record DoctorOwnProfileDTO(
         String expertise,
         String workHistory,
         boolean isActive,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        String avatarUrl
 ) {
     public static DoctorOwnProfileDTO from(Doctor doctor) {
         Specialty specialty = doctor.getSpecialty();
@@ -41,6 +43,7 @@ public record DoctorOwnProfileDTO(
                 doctor.getExpertise(),
                 doctor.getWorkHistory(),
                 Boolean.TRUE.equals(doctor.getIsActive()),
-                doctor.getUpdatedAt());
+                doctor.getUpdatedAt(),
+                MediaImageService.urlOf(doctor.getAvatarImageId()));
     }
 }

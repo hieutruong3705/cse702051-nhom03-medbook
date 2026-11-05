@@ -14,7 +14,7 @@
         <article class="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
           <div class="space-y-6">
             <header class="flex flex-col gap-4 rounded-md border border-slate-200 bg-white p-6 sm:flex-row sm:items-center">
-              <DoctorAvatar :doctor-id="doctor.id" size="lg" />
+              <DoctorAvatar :doctor-id="doctor.id" :src="doctor.avatarUrl" size="lg" />
               <div class="min-w-0">
                 <p v-if="doctor.academicTitle" class="text-sm font-semibold text-primary-700">{{ doctor.academicTitle }}</p>
                 <h1 class="text-2xl font-bold text-slate-950">{{ doctor.fullName }}</h1>

@@ -14,7 +14,7 @@
       data-test="mobile-booking-bar"
     >
       <div class="mx-auto flex max-w-xl items-center gap-3">
-        <DoctorAvatar :doctor-id="doctor.id" size="xs" />
+        <DoctorAvatar :doctor-id="doctor.id" :src="doctor.avatarUrl" size="xs" />
         <div class="min-w-0 flex-1">
           <p class="truncate text-sm font-semibold text-slate-950">{{ doctor.fullName }}</p>
           <p class="truncate text-xs text-slate-700" data-test="mobile-bar-slot">

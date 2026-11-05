@@ -1,5 +1,9 @@
 package com.phenikaa.cse702051.medbook.controller;
 
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -53,5 +57,17 @@ public class DoctorSelfController {
     @GetMapping("/rating-summary")
     public RatingSummaryDTO ratingSummary() {
         return reviewService.summaryForCurrentDoctor();
+    }
+
+    /** Bác sĩ tự tải ảnh đại diện (JPEG, PNG, WebP, tối đa 1 MB). */
+    @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public DoctorOwnProfileDTO uploadAvatar(@RequestParam("file") MultipartFile file) {
+        return doctorService.updateOwnAvatar(file);
+    }
+
+    /** Bác sĩ gỡ ảnh đại diện. */
+    @DeleteMapping("/avatar")
+    public DoctorOwnProfileDTO removeAvatar() {
+        return doctorService.updateOwnAvatar(null);
     }
 }

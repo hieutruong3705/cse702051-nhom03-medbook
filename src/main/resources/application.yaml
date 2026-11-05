@@ -26,6 +26,8 @@ spring:
       platform: h2
       # Chỉ H2 nạp tệp này (có lệnh RESTART WITH của H2). MySQL dùng Flyway và db/seed/demo-seed.sql.
       data-locations: classpath:data-h2.sql
+      # Luôn đọc tệp dữ liệu mẫu bằng UTF-8, không phụ thuộc bảng mã mặc định của máy (tránh lỗi font tiếng Việt).
+      encoding: UTF-8
 
   flyway:
     enabled: false

@@ -177,7 +177,7 @@ function openBooking() {
             :to="`/doctors/${doctor.id}`"
             class="rounded-md border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:shadow-md"
           >
-            <DoctorAvatar :doctor-id="doctor.id" />
+            <DoctorAvatar :doctor-id="doctor.id" :src="doctor.avatarUrl" />
             <h3 class="mt-4 font-semibold text-slate-950">{{ doctor.fullName }}</h3>
             <SpecialtyBadge class="mt-1" :specialty="doctor.specialtyName ? doctor : null" />
             <div class="mt-2 flex items-center gap-2 text-sm text-slate-700">

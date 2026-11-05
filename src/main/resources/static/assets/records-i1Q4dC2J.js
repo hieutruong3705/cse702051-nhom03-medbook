@@ -1,1 +1,0 @@
-import{i as e}from"./index-DxZnqMAM.js";var t={mine:()=>e.get(`/medical-records/me`).then(e=>e.data),get:t=>e.get(`/medical-records/${t}`).then(e=>e.data),byPatient:t=>e.get(`/patients/${t}/medical-records`,{skipGlobalErrors:!0}).then(e=>e.data)};export{t};
