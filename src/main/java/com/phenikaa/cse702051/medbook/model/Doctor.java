@@ -54,6 +54,26 @@ public class Doctor {
     @Column(columnDefinition = "TEXT")
     private String bio;
 
+    // Thông tin giới thiệu bác sĩ tự cập nhật, hiện trên trang công khai (V5)
+    @Column(name = "academic_title", length = 100)
+    private String academicTitle;
+
+    @Column(name = "years_of_experience")
+    private Short yearsOfExperience;
+
+    @Column(columnDefinition = "TEXT")
+    private String education;
+
+    @Column(columnDefinition = "TEXT")
+    private String expertise;
+
+    @Column(name = "work_history", columnDefinition = "TEXT")
+    private String workHistory;
+
+    /** Ảnh đại diện ({@code media_images.id}); {@code null} thì giao diện vẽ ảnh minh họa SVG. */
+    @Column(name = "avatar_image_id")
+    private Long avatarImageId;
+
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;

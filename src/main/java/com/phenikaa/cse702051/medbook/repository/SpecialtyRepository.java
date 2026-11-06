@@ -1,9 +1,12 @@
 package com.phenikaa.cse702051.medbook.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.phenikaa.cse702051.medbook.model.Specialty;
 
@@ -13,4 +16,10 @@ public interface SpecialtyRepository extends JpaRepository<Specialty, Long>, Jpa
 
     /** Mã duy nhất không phân biệt hoa thường (mã luôn được lưu ở dạng viết hoa). */
     boolean existsByCodeIgnoreCase(String code);
+
+    long countByStatus(String status);
+
+    /** Mã các chuyên khoa theo trạng thái, cho bản đồ trang. */
+    @Query("SELECT s.id FROM Specialty s WHERE s.status = :status ORDER BY s.id")
+    List<Long> findIdsByStatus(@Param("status") String status);
 }

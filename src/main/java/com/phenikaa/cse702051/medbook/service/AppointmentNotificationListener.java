@@ -13,6 +13,7 @@ import com.phenikaa.cse702051.medbook.dto.notification.NotificationMessage;
 import com.phenikaa.cse702051.medbook.event.AppointmentBookedEvent;
 import com.phenikaa.cse702051.medbook.event.AppointmentCancelledEvent;
 import com.phenikaa.cse702051.medbook.event.AppointmentRescheduledEvent;
+import com.phenikaa.cse702051.medbook.event.DoctorReviewedEvent;
 
 /**
  * Biến sự kiện lịch hẹn thành thông báo. Chỉ chạy SAU KHI giao dịch đặt, đổi, hủy lịch đã commit
@@ -50,6 +51,11 @@ public class AppointmentNotificationListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onCancelled(AppointmentCancelledEvent event) {
         deliver(event.appointmentId(), () -> notificationService.onCancelled(event));
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onReviewed(DoctorReviewedEvent event) {
+        deliver(event.appointmentId(), () -> notificationService.onReviewed(event));
     }
 
     private void deliver(Long appointmentId, Supplier<List<NotificationMessage>> creator) {

@@ -20,8 +20,13 @@
 
       <DataTable :columns="columns" :rows="rows" :loading="loading" :error="error" empty-text="Chưa có bác sĩ phù hợp">
         <template #cell-name="{ row }">
-          <p class="font-semibold text-slate-900">{{ row.fullName }}</p>
-          <p class="text-xs text-slate-500">{{ row.username }} · {{ row.licenseNumber || 'Chưa có số giấy phép' }}</p>
+          <div class="flex items-center gap-3">
+            <DoctorAvatar :doctor-id="row.id" :src="row.avatarUrl" size="xs" />
+            <div>
+              <p class="font-semibold text-slate-900">{{ row.fullName }}</p>
+              <p class="text-xs text-slate-500">{{ row.username }} · {{ row.licenseNumber || 'Chưa có số giấy phép' }}</p>
+            </div>
+          </div>
         </template>
         <template #cell-status="{ row }">
           <StatusBadge :value="row.isActive ? 'ACTIVE' : 'INACTIVE'" :label="row.isActive ? 'Hoạt động' : 'Ngừng hoạt động'" />
@@ -57,6 +62,18 @@
         <BaseSelect id="admin-doctor-specialty" v-model="form.specialtyId" label="Chuyên khoa" required placeholder="Chọn chuyên khoa" :options="specialtyOptions" :error="formErrors.specialtyId" />
         <BaseInput id="admin-doctor-phone" v-model="form.phone" label="Số điện thoại" :error="formErrors.phone" />
         <div class="md:col-span-2">
+          <ImagePicker
+            id="admin-doctor-avatar"
+            v-model="avatarFile"
+            v-model:removed="avatarRemoved"
+            label="Ảnh đại diện"
+            hint="JPEG, PNG hoặc WebP, tối đa 1 MB. Không chọn ảnh thì trang công khai dùng ảnh minh họa."
+            :current-url="editing?.avatarUrl || null"
+          >
+            <template #placeholder><DoctorAvatar :doctor-id="editing?.id" size="sm" /></template>
+          </ImagePicker>
+        </div>
+        <div class="md:col-span-2">
           <BaseTextarea id="admin-doctor-bio" v-model="form.bio" label="Giới thiệu" :rows="4" :error="formErrors.bio" />
         </div>
       </form>
@@ -90,10 +107,12 @@ import {
   ConfirmDialog,
   DataTable,
   FormModal,
+  ImagePicker,
   PageHeader,
   Pagination,
   StatusBadge
 } from '@/components/ui'
+import DoctorAvatar from '@/components/booking/DoctorAvatar.vue'
 import { adminUsersApi } from '@/api/adminUsers'
 import { catalogApi } from '@/api/catalog'
 import { doctorsApi } from '@/api/doctors'
@@ -130,6 +149,8 @@ const saving = ref(false)
 const formError = ref('')
 const formErrors = ref({})
 const form = reactive({ userId: '', fullName: '', licenseNumber: '', phone: '', specialtyId: '', bio: '' })
+const avatarFile = ref(null)
+const avatarRemoved = ref(false)
 
 const removeOpen = ref(false)
 const removing = ref(false)
@@ -184,6 +205,8 @@ function changePage(next) {
 async function openCreate() {
   editing.value = null
   Object.assign(form, { userId: '', fullName: '', licenseNumber: '', phone: '', specialtyId: '', bio: '' })
+  avatarFile.value = null
+  avatarRemoved.value = false
   formError.value = ''
   formErrors.value = {}
   formOpen.value = true
@@ -200,6 +223,8 @@ function openEdit(row) {
     specialtyId: row.specialtyId ? String(row.specialtyId) : '',
     bio: row.bio || ''
   })
+  avatarFile.value = null
+  avatarRemoved.value = false
   formError.value = ''
   formErrors.value = {}
   formOpen.value = true
@@ -218,15 +243,27 @@ async function saveDoctor() {
     specialtyId: form.specialtyId ? Number(form.specialtyId) : null,
     bio: form.bio.trim()
   }
+  let saved = null
   try {
-    if (editing.value) await doctorsApi.updateAdmin(editing.value.id, body)
-    else await doctorsApi.createAdmin(body)
+    saved = editing.value ? await doctorsApi.updateAdmin(editing.value.id, body) : await doctorsApi.createAdmin(body)
+  } catch (err) {
+    formErrors.value = fieldErrors(err)
+    formError.value = apiErrorMessage(err)
+    saving.value = false
+    return
+  }
+  // Ảnh gửi sau khi đã có hồ sơ (lúc thêm mới mới có id); lỗi ảnh không làm mất phần hồ sơ đã lưu.
+  try {
+    const id = saved?.id ?? editing.value?.id
+    if (id && avatarFile.value) await doctorsApi.uploadAvatarAdmin(id, avatarFile.value)
+    else if (id && avatarRemoved.value) await doctorsApi.removeAvatarAdmin(id)
     success(editing.value ? 'Đã cập nhật hồ sơ bác sĩ' : 'Đã thêm hồ sơ bác sĩ')
     formOpen.value = false
     await load()
   } catch (err) {
-    formErrors.value = fieldErrors(err)
-    formError.value = apiErrorMessage(err)
+    editing.value = saved
+    await load()
+    formError.value = `Đã lưu hồ sơ, nhưng chưa lưu được ảnh: ${apiErrorMessage(err)}`
   } finally {
     saving.value = false
   }

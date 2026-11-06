@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatCurrency, formatDate, formatDateTime, formatTime } from './formatters'
+import { formatCurrency, formatDate, formatDateTime, formatTime, localIsoDate } from './formatters'
 
 describe('formatters', () => {
   it('formats dates and times for vi-VN', () => {
@@ -16,5 +16,13 @@ describe('formatters', () => {
     expect(formatDate()).toBe('')
     expect(formatDateTime()).toBe('')
     expect(formatTime()).toBe('')
+  })
+})
+
+describe('localIsoDate', () => {
+  it('lấy ngày theo giờ máy, không đổi sang UTC', () => {
+    // 00:30 ngày 5/11 giờ máy: toISOString() ở múi giờ dương sẽ cho 4/11
+    expect(localIsoDate(new Date(2026, 10, 5, 0, 30))).toBe('2026-11-05')
+    expect(localIsoDate(new Date(2026, 0, 9, 23, 59))).toBe('2026-01-09')
   })
 })

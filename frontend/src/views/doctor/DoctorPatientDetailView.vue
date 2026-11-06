@@ -28,8 +28,8 @@
       <BaseButton class="mt-4" variant="secondary" icon="fa-solid fa-rotate-right" @click="load">Thử lại</BaseButton>
     </div>
 
-    <div v-else class="mt-4 grid gap-4 xl:grid-cols-2">
-      <section class="rounded-md border border-slate-200 bg-white p-5" aria-labelledby="patient-profile-title">
+    <div v-else class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <section class="min-w-0 rounded-md border border-slate-200 bg-white p-5" aria-labelledby="patient-profile-title">
         <h2 id="patient-profile-title" class="font-semibold text-slate-950">Hồ sơ</h2>
         <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-2">
           <div v-for="item in profileRows" :key="item.label">
@@ -39,7 +39,18 @@
         </dl>
       </section>
 
-      <section class="rounded-md border border-slate-200 bg-white p-5" aria-labelledby="patient-record-title">
+      <section class="min-w-0 rounded-md border border-slate-200 bg-white p-5 xl:col-span-2" aria-labelledby="patient-self-reported-title">
+        <h2 id="patient-self-reported-title" class="font-semibold text-slate-950">Thông tin sức khỏe bệnh nhân tự khai</h2>
+        <p class="mt-1 text-xs text-slate-600">Do bệnh nhân tự nhập ở trang hồ sơ, chưa được bác sĩ xác nhận; khác với phần Bệnh án do bác sĩ ghi.</p>
+        <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+          <div v-for="item in selfReportedRows" :key="item.label">
+            <dt class="text-slate-600">{{ item.label }}</dt>
+            <dd class="whitespace-pre-line font-medium text-slate-900">{{ item.value || '-' }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="min-w-0 rounded-md border border-slate-200 bg-white p-5" aria-labelledby="patient-record-title">
         <h2 id="patient-record-title" class="font-semibold text-slate-950">Bệnh án</h2>
         <p v-if="!record" class="mt-3 text-sm text-slate-500">Bệnh nhân chưa có bệnh án.</p>
         <dl v-else class="mt-3 grid gap-3 text-sm">
@@ -50,7 +61,7 @@
         </dl>
       </section>
 
-      <section class="xl:col-span-2" aria-labelledby="patient-encounters-title">
+      <section class="min-w-0 xl:col-span-2" aria-labelledby="patient-encounters-title">
         <h2 id="patient-encounters-title" class="mb-2 font-semibold text-slate-950">Lịch sử các lần khám với tôi</h2>
         <DataTable :columns="encounterColumns" :rows="encounters" :error="encountersError" empty-text="Chưa có lần khám nào">
           <template #cell-status="{ value }">
@@ -107,6 +118,20 @@ const profileRows = computed(() => [
   { label: 'Dị ứng', value: patient.value?.allergies },
   { label: 'Liên hệ khẩn cấp', value: [patient.value?.emergencyContactName, patient.value?.emergencyContactPhone].filter(Boolean).join(' · ') }
 ])
+
+const selfReportedRows = computed(() => {
+  const height = patient.value?.heightCm
+  const weight = patient.value?.weightKg
+  const bmi = height && weight ? (weight / ((height / 100) ** 2)).toFixed(1) : ''
+  return [
+    { label: 'Chiều cao', value: height ? `${height} cm` : '' },
+    { label: 'Cân nặng', value: weight ? `${weight} kg` : '' },
+    { label: 'BMI', value: bmi },
+    { label: 'Bệnh nền', value: patient.value?.chronicConditions },
+    { label: 'Tiền sử gia đình', value: patient.value?.familyHistory },
+    { label: 'Số thẻ BHYT', value: patient.value?.healthInsuranceNumber }
+  ]
+})
 
 const recordRows = computed(() => [
   { label: 'Mã bệnh án', value: record.value?.recordCode },

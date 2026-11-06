@@ -4,6 +4,8 @@ import Home from '../Home.vue'
 import DoctorsView from './DoctorsView.vue'
 import { catalogApi } from '@/api/catalog'
 import { doctorsApi } from '@/api/doctors'
+import { clinicApi } from '@/api/clinic'
+import { reviewsApi } from '@/api/reviews'
 import { useAuthStore } from '@/stores/auth'
 
 const push = vi.fn()
@@ -19,11 +21,20 @@ vi.mock('vue-router', async (importOriginal) => {
 })
 
 vi.mock('@/api/doctors', () => ({
-  doctorsApi: { list: vi.fn() }
+  // slots: thẻ bác sĩ ở trang danh sách tự tải lịch khám
+  doctorsApi: { list: vi.fn(), slots: vi.fn(() => Promise.resolve([])) }
+}))
+
+vi.mock('@/api/clinic', () => ({
+  clinicApi: { get: vi.fn(() => Promise.resolve(null)) }
+}))
+
+vi.mock('@/api/reviews', () => ({
+  reviewsApi: { listPublic: vi.fn(() => Promise.resolve({ content: [] })) }
 }))
 
 vi.mock('@/api/catalog', () => ({
-  catalogApi: { specialties: { list: vi.fn() } }
+  catalogApi: { specialties: { list: vi.fn() }, services: { list: vi.fn(() => Promise.resolve({ content: [] })) } }
 }))
 
 const doctorPage = {
@@ -51,10 +62,25 @@ describe('Trang chủ', () => {
 
     expect(doctorsApi.list).toHaveBeenCalledWith({ size: 8 })
     expect(catalogApi.specialties.list).toHaveBeenCalledWith({ size: 8 })
-    const card = wrapper.find('a[href="/patient/booking?doctorId=7"]')
+    // Thẻ bác sĩ và chuyên khoa dẫn tới trang chi tiết công khai (xem được khi chưa đăng nhập)
+    const card = wrapper.find('a[href="/doctors/7"]')
     expect(card.text()).toContain('Trần Thị Lan')
     expect(card.text()).toContain('Tim mạch')
-    expect(wrapper.find('a[href="/doctors?specialtyId=3"]').text()).toContain('Tim mạch')
+    expect(card.text()).toContain('0 đánh giá')
+    expect(wrapper.find('a[href="/specialties/3"]').text()).toContain('Tim mạch')
+  })
+
+  it('có khối đặt lịch nhanh, dải số liệu từ /clinic và băng chuyền đánh giá', async () => {
+    clinicApi.get.mockResolvedValueOnce({ doctorCount: 2, specialtyCount: 5, serviceCount: 4, averageRating: 4.7, reviewCount: 3 })
+    reviewsApi.listPublic.mockResolvedValueOnce({ content: [{ id: 1, rating: 5, comment: 'Rất tốt', reviewerName: 'Nguyễn V. A.', doctorId: 7, doctorName: 'Trần Thị Lan' }] })
+    const wrapper = mount(Home)
+    await flushPromises()
+
+    expect(reviewsApi.listPublic).toHaveBeenCalledWith({ size: 20, sort: 'rating,desc' })
+    expect(wrapper.find('[data-test="quick-booking"]').exists()).toBe(true)
+    expect(wrapper.find('#quick-specialty').text()).toContain('Tim mạch')
+    expect(wrapper.find('[data-test="stat-specialties"]').text()).toBe('5')
+    expect(wrapper.find('[data-test="review-carousel"]').text()).toContain('Rất tốt')
   })
 
   it('ô tìm kiếm có nhãn và chuyển sang danh sách bác sĩ kèm từ khóa', async () => {
@@ -85,6 +111,7 @@ describe('Trang chủ', () => {
     await flushPromises()
 
     expect(wrapper.find('a[href="/patient/booking?doctorId=7"]').exists()).toBe(false)
+    expect(wrapper.find('a[href="/doctors/7"]').exists()).toBe(true)
     const bookButton = wrapper.findAll('button').find((button) => button.text().includes('Đặt khám'))
     await bookButton.trigger('click')
     expect(push).toHaveBeenLastCalledWith('/doctors')
@@ -98,6 +125,12 @@ describe('Trang chủ', () => {
     expect(info).toContain('Nhóm 03')
     expect(info).toContain('Lớp học phần Thiết kế web nâng cao (CSE702051)')
     expect(wrapper.find('footer [data-test="data-notice"]').text()).toBe('Dữ liệu mô phỏng phục vụ mục đích học tập.')
+    const dnsExit = wrapper.find('footer [data-test="dnsexit-link"]')
+    expect(dnsExit.attributes()).toMatchObject({
+      href: 'https://dnsexit.com/',
+      target: '_blank',
+      rel: 'noopener noreferrer'
+    })
   })
 
   it('chân trang của khách: nút đặt lịch, liên kết khám phá, liên kết tài khoản và dòng bản quyền', async () => {
@@ -106,8 +139,9 @@ describe('Trang chủ', () => {
     const footer = wrapper.find('footer')
     expect(footer.findAll('a').map((link) => link.attributes('href'))).toEqual([
       '/', '/patient/booking',
-      '/', '/specialties', '/doctors', '/services',
-      '/login', '/register', '/forgot-password'
+      '/', '/specialties', '/doctors', '/services', '/reviews', '/about',
+      '/login', '/register', '/forgot-password',
+      'https://dnsexit.com/'
     ])
     expect(footer.find('[data-test="copyright"]').text()).toBe(`© ${new Date().getFullYear()} MedBook`)
   })

@@ -1,0 +1,10 @@
+# Profile `demo`: chỉ dùng khi chạy tay trên máy cục bộ để xem giao diện với nhiều dữ liệu.
+#   java -jar target/medbook-0.0.1-SNAPSHOT.jar --spring.profiles.active=demo
+# Vẫn là H2 trong bộ nhớ như cấu hình mặc định; nạp thêm data-h2-demo.sql (dữ liệu hư cấu) sau data-h2.sql.
+# Test, online, docker, prod không bật profile này nên không bị ảnh hưởng.
+spring:
+  sql:
+    init:
+      data-locations: classpath:data-h2.sql,classpath:data-h2-demo.sql
+  jpa:
+    show-sql: false

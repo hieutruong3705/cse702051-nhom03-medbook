@@ -14,4 +14,6 @@ public interface MedicalServiceRepository
 
     /** Mã duy nhất không phân biệt hoa thường (mã luôn được lưu ở dạng viết hoa). */
     boolean existsByCodeIgnoreCase(String code);
+
+    long countByStatus(String status);
 }

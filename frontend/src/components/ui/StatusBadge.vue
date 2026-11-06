@@ -22,7 +22,9 @@ const tones = {
   PAID: { class: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-600' },
   UNPAID: { class: 'bg-amber-50 text-amber-700', dot: 'bg-amber-600' },
   VOID: { class: 'bg-slate-100 text-slate-700', dot: 'bg-slate-500' },
-  INACTIVE: { class: 'bg-slate-100 text-slate-700', dot: 'bg-slate-500' }
+  INACTIVE: { class: 'bg-slate-100 text-slate-700', dot: 'bg-slate-500' },
+  VISIBLE: { class: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-600' },
+  HIDDEN: { class: 'bg-red-50 text-red-700', dot: 'bg-red-600' }
 }
 
 const tone = computed(() => tones[props.value] || { class: 'bg-slate-100 text-slate-700', dot: 'bg-slate-500' })

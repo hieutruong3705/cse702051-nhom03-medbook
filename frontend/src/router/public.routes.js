@@ -1,6 +1,6 @@
 // Route con của khu công khai (Dev 5). Đường dẫn tương đối so với `/`.
 // Các view dưới đây TỰ bọc `PublicLayout`/`DashboardLayout` trong template nên khai báo trực tiếp.
-// Còn thiếu: chi tiết bác sĩ `doctors/:id`.
+// Trang chi tiết (`doctors/:id`, `specialties/:id`) tự cập nhật tiêu đề và mô tả theo dữ liệu sau khi tải.
 export default [
   {
     path: '',
@@ -58,6 +58,15 @@ export default [
     }
   },
   {
+    path: 'doctors/:id(\\d+)',
+    name: 'doctor-detail',
+    component: () => import('@/views/public/DoctorDetailView.vue'),
+    meta: {
+      title: 'Chi tiết bác sĩ',
+      description: 'Thông tin bác sĩ của phòng khám MedBook: giới thiệu, kinh nghiệm, đánh giá của bệnh nhân và giờ khám còn trống.'
+    }
+  },
+  {
     path: 'specialties',
     name: 'specialties',
     component: () => import('@/views/public/SpecialtiesView.vue'),
@@ -67,12 +76,40 @@ export default [
     }
   },
   {
+    path: 'specialties/:id(\\d+)',
+    name: 'specialty-detail',
+    component: () => import('@/views/public/SpecialtyDetailView.vue'),
+    meta: {
+      title: 'Chi tiết chuyên khoa',
+      description: 'Thông tin chuyên khoa tại phòng khám MedBook: bác sĩ đang nhận khám và đánh giá của bệnh nhân.'
+    }
+  },
+  {
     path: 'services',
     name: 'services',
     component: () => import('@/views/public/ServicesView.vue'),
     meta: {
       title: 'Dịch vụ',
       description: 'Bảng dịch vụ khám của MedBook: thời lượng và giá của từng dịch vụ.'
+    }
+  },
+
+  {
+    path: 'about',
+    name: 'about',
+    component: () => import('@/views/public/ClinicAboutView.vue'),
+    meta: {
+      title: 'Giới thiệu phòng khám',
+      description: 'Giới thiệu phòng khám đa khoa MedBook: địa chỉ, giờ làm việc, số bác sĩ, chuyên khoa và đánh giá của người bệnh.'
+    }
+  },
+  {
+    path: 'reviews',
+    name: 'reviews',
+    component: () => import('@/views/public/ReviewsView.vue'),
+    meta: {
+      title: 'Đánh giá khám chữa bệnh',
+      description: 'Đánh giá của người bệnh sau khi khám tại MedBook, lọc theo chuyên khoa, bác sĩ và số sao.'
     }
   },
 

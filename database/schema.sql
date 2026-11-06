@@ -139,6 +139,33 @@ CREATE TABLE `doctor_day_offs` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `doctor_reviews` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `appointment_id` bigint NOT NULL,
+  `patient_id` bigint NOT NULL,
+  `doctor_id` bigint NOT NULL,
+  `rating` tinyint NOT NULL,
+  `comment` varchar(1000) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `hidden_reason` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `hidden_by` bigint DEFAULT NULL,
+  `hidden_at` datetime(6) DEFAULT NULL,
+  `version` bigint NOT NULL DEFAULT '0',
+  `created_at` datetime(6) NOT NULL,
+  `updated_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_doctor_reviews_appointment` (`appointment_id`),
+  KEY `idx_doctor_reviews_doctor_status` (`doctor_id`,`status`,`created_at`),
+  KEY `idx_doctor_reviews_patient` (`patient_id`),
+  CONSTRAINT `fk_doctor_reviews_appointment` FOREIGN KEY (`appointment_id`) REFERENCES `appointments` (`id`),
+  CONSTRAINT `fk_doctor_reviews_doctor` FOREIGN KEY (`doctor_id`) REFERENCES `doctors` (`id`),
+  CONSTRAINT `fk_doctor_reviews_patient` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`id`),
+  CONSTRAINT `chk_doctor_reviews_rating` CHECK ((`rating` between 1 and 5)),
+  CONSTRAINT `chk_doctor_reviews_status` CHECK ((`status` in (_utf8mb4'VISIBLE',_utf8mb4'HIDDEN')))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `doctor_schedules` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `doctor_id` bigint NOT NULL,
@@ -169,6 +196,12 @@ CREATE TABLE `doctors` (
   `is_active` bit(1) NOT NULL,
   `created_at` datetime(6) NOT NULL,
   `updated_at` datetime(6) NOT NULL,
+  `academic_title` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `years_of_experience` smallint DEFAULT NULL,
+  `education` text COLLATE utf8mb4_unicode_ci,
+  `expertise` text COLLATE utf8mb4_unicode_ci,
+  `work_history` text COLLATE utf8mb4_unicode_ci,
+  `avatar_image_id` bigint DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_doctors_user` (`user_id`),
   UNIQUE KEY `uk_doctors_license` (`license_number`),
@@ -280,6 +313,17 @@ CREATE TABLE `medical_records` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `media_images` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `content_type` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `size_bytes` int NOT NULL,
+  `data` mediumblob NOT NULL,
+  `created_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `chk_media_images_type` CHECK ((`content_type` in (_utf8mb4'image/jpeg',_utf8mb4'image/png',_utf8mb4'image/webp'))),
+  CONSTRAINT `chk_media_images_size` CHECK (((`size_bytes` > 0) and (`size_bytes` <= 1048576)))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `medicines` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -342,6 +386,11 @@ CREATE TABLE `patients` (
   `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` datetime(6) NOT NULL,
   `updated_at` datetime(6) NOT NULL,
+  `height_cm` smallint DEFAULT NULL,
+  `weight_kg` decimal(5,1) DEFAULT NULL,
+  `health_insurance_number` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `chronic_conditions` text COLLATE utf8mb4_unicode_ci,
+  `family_history` text COLLATE utf8mb4_unicode_ci,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_patients_code` (`patient_code`),
   UNIQUE KEY `uk_patients_user` (`user_id`),
@@ -473,6 +522,7 @@ CREATE TABLE `specialties` (
   `name` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
   `description` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `image_id` bigint DEFAULT NULL,
   `created_at` datetime(6) NOT NULL,
   `updated_at` datetime(6) NOT NULL,
   PRIMARY KEY (`id`),
@@ -538,6 +588,7 @@ INSERT INTO `flyway_schema_history` (`installed_rank`, `version`, `description`,
 INSERT INTO `flyway_schema_history` (`installed_rank`, `version`, `description`, `type`, `script`, `checksum`, `installed_by`, `installed_on`, `execution_time`, `success`) VALUES (2,'2','CxAdditiveSchema','JDBC','com.phenikaa.cse702051.medbook.config.migration.V2__CxAdditiveSchema',NULL,'root','2026-10-10 16:09:56',463,1);
 INSERT INTO `flyway_schema_history` (`installed_rank`, `version`, `description`, `type`, `script`, `checksum`, `installed_by`, `installed_on`, `execution_time`, `success`) VALUES (3,'3','ReceptionistRole','JDBC','com.phenikaa.cse702051.medbook.config.migration.V3__ReceptionistRole',NULL,'root','2026-10-10 16:09:56',9,1);
 INSERT INTO `flyway_schema_history` (`installed_rank`, `version`, `description`, `type`, `script`, `checksum`, `installed_by`, `installed_on`, `execution_time`, `success`) VALUES (4,'4','SlotHolds','JDBC','com.phenikaa.cse702051.medbook.config.migration.V4__SlotHolds',NULL,'root','2026-10-10 16:09:56',23,1);
+INSERT INTO `flyway_schema_history` (`installed_rank`, `version`, `description`, `type`, `script`, `checksum`, `installed_by`, `installed_on`, `execution_time`, `success`) VALUES (5,'5','ReviewsAndProfiles','JDBC','com.phenikaa.cse702051.medbook.config.migration.V5__ReviewsAndProfiles',NULL,'root','2026-11-04 21:00:00',30,1);
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

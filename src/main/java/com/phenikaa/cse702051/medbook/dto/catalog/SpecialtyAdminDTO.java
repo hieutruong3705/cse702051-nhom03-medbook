@@ -1,5 +1,6 @@
 package com.phenikaa.cse702051.medbook.dto.catalog;
 
+import com.phenikaa.cse702051.medbook.service.MediaImageService;
 import java.time.LocalDateTime;
 
 import com.phenikaa.cse702051.medbook.model.Specialty;
@@ -12,11 +13,12 @@ public record SpecialtyAdminDTO(
         String description,
         String status,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        String imageUrl
 ) {
     public static SpecialtyAdminDTO from(Specialty specialty) {
         return new SpecialtyAdminDTO(specialty.getId(), specialty.getCode(), specialty.getName(),
                 specialty.getDescription(), specialty.getStatus(), specialty.getCreatedAt(),
-                specialty.getUpdatedAt());
+                specialty.getUpdatedAt(), MediaImageService.urlOf(specialty.getImageId()));
     }
 }

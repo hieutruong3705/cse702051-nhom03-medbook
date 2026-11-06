@@ -1,5 +1,6 @@
 package com.phenikaa.cse702051.medbook.model;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -68,6 +69,22 @@ public class Patient {
 
     @Lob
     private String allergies;
+
+    // Thông tin sức khỏe do bệnh nhân tự khai (V5); bệnh nền do bác sĩ ghi nằm ở MedicalRecord
+    @Column(name = "height_cm")
+    private Short heightCm;
+
+    @Column(name = "weight_kg", precision = 5, scale = 1)
+    private BigDecimal weightKg;
+
+    @Column(name = "health_insurance_number", length = 20)
+    private String healthInsuranceNumber;
+
+    @Column(name = "chronic_conditions", columnDefinition = "TEXT")
+    private String chronicConditions;
+
+    @Column(name = "family_history", columnDefinition = "TEXT")
+    private String familyHistory;
 
     @Column(nullable = false, length = 20)
     private String status;

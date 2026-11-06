@@ -53,5 +53,11 @@ export default [
     name: 'patient-profile',
     component: () => import('@/views/patient/PatientProfileView.vue'),
     meta: { title: 'Hồ sơ bệnh nhân' }
+  },
+  {
+    path: 'reviews',
+    name: 'patient-reviews',
+    component: () => import('@/views/patient/PatientReviewsView.vue'),
+    meta: { title: 'Đánh giá của tôi' }
   }
 ]

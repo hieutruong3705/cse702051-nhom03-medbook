@@ -67,6 +67,27 @@ class AttachmentRealUploadTest {
     }
 
     @Test
+    @DisplayName("Tomcat thật: multipart không có phần file → 400 BAD_REQUEST thay vì 500")
+    void missingFileIsBadRequest() throws Exception {
+        IsolatedDoctor doc = data.isolatedDoctor("missing_file");
+        IsolatedPatient pat = data.isolatedPatient("missing_file");
+        Encounter encounter = data.openEncounter(doc.doctorId(), pat.patientId());
+        String boundary = "----medbook" + UUID.randomUUID();
+        String body = "--" + boundary + "\r\nContent-Disposition: form-data; name=\"notes\""
+                + "\r\n\r\nNo file selected\r\n--" + boundary + "--\r\n";
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port
+                + "/api/v1/encounters/" + encounter.getId() + "/attachments"))
+                .timeout(Duration.ofSeconds(30))
+                .header("Authorization", doc.token())
+                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .POST(HttpRequest.BodyPublishers.ofString(body)).build();
+        HttpResponse<String> response = HttpClient.newHttpClient().send(request,
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(400, response.statusCode(), response.body());
+        assertEquals("BAD_REQUEST", JSON.readTree(response.body()).get("code").asText());
+    }
+
+    @Test
     @DisplayName("Tomcat thật: tệp 5 MB hợp lệ được nhận (201) và tải lại đúng nội dung; tệp > 10 MB → 413")
     void largeFilesAreHandledByTheRealContainer() throws Exception {
         IsolatedDoctor doc = data.isolatedDoctor("real_upload");

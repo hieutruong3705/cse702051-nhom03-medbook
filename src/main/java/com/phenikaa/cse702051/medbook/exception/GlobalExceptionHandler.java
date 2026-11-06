@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -175,6 +176,13 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
         return buildResponse(ErrorCode.UNAUTHORIZED, "Bạn chưa đăng nhập hoặc phiên đã hết hạn!",
                 request.getRequestURI());
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiError> handleMissingRequestPart(
+            MissingServletRequestPartException exception, HttpServletRequest request) {
+        return buildResponse(ErrorCode.BAD_REQUEST,
+                "Thiếu tệp tải lên trong trường file!", request.getRequestURI());
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)

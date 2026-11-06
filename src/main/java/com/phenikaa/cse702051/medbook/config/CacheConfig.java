@@ -27,6 +27,8 @@ public class CacheConfig {
 
     public static final String PUBLIC_SPECIALTIES = "publicSpecialties";
     public static final String PUBLIC_MEDICAL_SERVICES = "publicMedicalServices";
+    /** Trang giới thiệu phòng khám: một mục duy nhất, xóa khi danh mục, bác sĩ hoặc đánh giá thay đổi. */
+    public static final String PUBLIC_CLINIC = "publicClinic";
 
     /** Điều kiện SpEL cho các phương thức {@code listActive(keyword, page, size)}. */
     public static final String FIRST_PAGE_WITHOUT_KEYWORD =
@@ -35,7 +37,7 @@ public class CacheConfig {
     @Bean
     public CacheManager cacheManager(@Value("${medbook.cache.enabled:true}") boolean enabled) {
         return enabled
-                ? new ConcurrentMapCacheManager(PUBLIC_SPECIALTIES, PUBLIC_MEDICAL_SERVICES)
+                ? new ConcurrentMapCacheManager(PUBLIC_SPECIALTIES, PUBLIC_MEDICAL_SERVICES, PUBLIC_CLINIC)
                 : new NoOpCacheManager();
     }
 }

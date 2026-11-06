@@ -1,1 +1,0 @@
-var e={BOOKED:`Đã đặt`,IN_PROGRESS:`Đang khám`,COMPLETED:`Hoàn thành`,CANCELLED:`Đã hủy`,PENDING:`Chờ xác nhận`,CONFIRMED:`Đã xác nhận`},t={UNPAID:`Chưa thu`,PAID:`Đã thu`,VOID:`Đã hủy`},n={OPEN:`Đang mở`,COMPLETED:`Hoàn thành`,CANCELLED:`Đã hủy`},r={ACTIVE:`Hoạt động`,INACTIVE:`Ngừng dùng`};export{t as i,r as n,n as r,e as t};

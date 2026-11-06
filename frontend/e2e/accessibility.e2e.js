@@ -7,7 +7,10 @@ import { login } from './support'
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']
 
 const PAGES = {
-  'khách': ['/', '/login', '/register', '/forgot-password', '/doctors', '/specialties', '/services'],
+  'khách': [
+    '/', '/login', '/register', '/forgot-password', '/doctors', '/specialties', '/services',
+    '/doctors/1', '/specialties/1', '/about', '/reviews'
+  ],
   patient1: [
     '/patient/dashboard',
     '/patient/booking',
@@ -16,6 +19,7 @@ const PAGES = {
     '/patient/invoices',
     '/patient/notifications',
     '/patient/profile',
+    '/patient/reviews',
     '/account/change-password'
   ],
   doctor1: [
@@ -24,7 +28,8 @@ const PAGES = {
     '/doctor/appointments',
     '/doctor/patients',
     '/doctor/notifications',
-    '/doctor/profile'
+    '/doctor/profile',
+    '/doctor/reviews'
   ],
   receptionist1: [
     '/receptionist/dashboard',
@@ -42,7 +47,8 @@ const PAGES = {
     '/admin/appointments',
     '/admin/invoices',
     '/admin/reports',
-    '/admin/audit-logs'
+    '/admin/audit-logs',
+    '/admin/reviews'
   ]
 }
 

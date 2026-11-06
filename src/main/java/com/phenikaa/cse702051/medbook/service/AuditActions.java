@@ -68,6 +68,18 @@ public final class AuditActions {
     public static final String INVOICE_VOID = "INVOICE_VOID";
     public static final String REPORT_EXPORT = "REPORT_EXPORT";
 
+    // --- Đánh giá lần khám và hồ sơ giới thiệu (V5) ---
+    public static final String REVIEW_CREATE = "REVIEW_CREATE";
+    public static final String REVIEW_UPDATE = "REVIEW_UPDATE";
+    public static final String REVIEW_DELETE = "REVIEW_DELETE";
+    public static final String REVIEW_HIDE = "REVIEW_HIDE";
+    public static final String REVIEW_SHOW = "REVIEW_SHOW";
+    public static final String DOCTOR_PROFILE_UPDATE = "DOCTOR_PROFILE_UPDATE";
+    /** Đổi hoặc gỡ ảnh đại diện bác sĩ (bác sĩ tự làm hoặc quản trị viên). */
+    public static final String DOCTOR_AVATAR_UPDATE = "DOCTOR_AVATAR_UPDATE";
+    /** Đổi hoặc gỡ ảnh chuyên khoa (quản trị viên). */
+    public static final String SPECIALTY_IMAGE_UPDATE = "SPECIALTY_IMAGE_UPDATE";
+
     // --- Truy cập bị từ chối ---
     public static final String ACCESS_DENIED = "ACCESS_DENIED";
 
@@ -87,4 +99,5 @@ public final class AuditActions {
     public static final String ENTITY_DOCTORS = "doctors";
     public static final String ENTITY_DOCTOR_SCHEDULES = "doctor_schedules";
     public static final String ENTITY_DOCTOR_DAY_OFFS = "doctor_day_offs";
+    public static final String ENTITY_DOCTOR_REVIEWS = "doctor_reviews";
 }

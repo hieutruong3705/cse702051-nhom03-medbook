@@ -1,6 +1,12 @@
 package com.phenikaa.cse702051.medbook.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Past;
@@ -10,7 +16,8 @@ import jakarta.validation.constraints.Size;
 /**
  * Cập nhật hồ sơ của chính bệnh nhân. Trường để trống (null) nghĩa là giữ nguyên; trường có
  * giá trị phải hợp lệ. Không có {@code patientCode}, {@code status}, {@code userId}: bệnh nhân
- * không được tự đổi các trường này.
+ * không được tự đổi các trường này. Chiều cao, cân nặng, số thẻ BHYT, bệnh nền và tiền sử gia đình là thông tin
+ * bệnh nhân tự khai; bác sĩ phụ trách đọc được, lễ tân và quản trị viên không.
  */
 public record PatientUpdateRequest(
         @Size(max = 150, message = "Họ tên tối đa 150 ký tự")
@@ -43,6 +50,24 @@ public record PatientUpdateRequest(
         String bloodType,
 
         @Size(max = 2000, message = "Thông tin dị ứng tối đa 2000 ký tự")
-        String allergies
+        String allergies,
+
+        @Min(value = 30, message = "Chiều cao từ 30 đến 250 cm")
+        @Max(value = 250, message = "Chiều cao từ 30 đến 250 cm")
+        Short heightCm,
+
+        @DecimalMin(value = "1.0", message = "Cân nặng từ 1 đến 400 kg")
+        @DecimalMax(value = "400.0", message = "Cân nặng từ 1 đến 400 kg")
+        BigDecimal weightKg,
+
+        @Pattern(regexp = "^$|^[A-Za-z]{2}[0-9]{8,13}$",
+                message = "Số thẻ BHYT gồm 2 chữ cái và 8 đến 13 chữ số, ví dụ DN4010123456789")
+        String healthInsuranceNumber,
+
+        @Size(max = 2000, message = "Bệnh nền tối đa 2000 ký tự")
+        String chronicConditions,
+
+        @Size(max = 2000, message = "Tiền sử gia đình tối đa 2000 ký tự")
+        String familyHistory
 ) {
 }

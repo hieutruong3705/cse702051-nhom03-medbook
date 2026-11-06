@@ -36,6 +36,9 @@
         <template #cell-status="{ value }">
           <StatusBadge :value="value || 'ACTIVE'" :label="catalogStatus[value] || value" />
         </template>
+        <template #cell-image="{ row }">
+          <SpecialtyBadge :specialty="row" variant="icon" size="sm" />
+        </template>
         <template #cell-price="{ value }">{{ value == null ? '' : formatCurrency(value) }}</template>
         <template #cell-durationMinutes="{ value }">{{ value ? `${value} phút` : '' }}</template>
         <template #cell-actions="{ row }">
@@ -68,6 +71,19 @@
         </template>
         <BaseInput v-if="activeTab === 'medicines'" id="catalog-unit" v-model="form.unit" label="Đơn vị" placeholder="Viên, gói, chai" :error="formErrors.unit" />
         <BaseSelect id="catalog-form-status" v-model="form.status" label="Trạng thái" :options="statusOptions" :error="formErrors.status" />
+        <div v-if="activeTab === 'specialties'" class="sm:col-span-2">
+          <ImagePicker
+            id="catalog-image"
+            v-model="imageFile"
+            v-model:removed="imageRemoved"
+            label="Ảnh chuyên khoa"
+            shape="rounded"
+            hint="JPEG, PNG hoặc WebP, tối đa 1 MB. Hiện trên thẻ chuyên khoa ở trang chủ và trang Chuyên khoa; không chọn ảnh thì dùng biểu tượng."
+            :current-url="editing?.imageUrl || null"
+          >
+            <template #placeholder><SpecialtyBadge :specialty="{ code: form.code, name: form.name }" variant="icon" size="sm" /></template>
+          </ImagePicker>
+        </div>
         <div class="sm:col-span-2">
           <BaseTextarea id="catalog-description" v-model="form.description" label="Mô tả" :rows="3" :error="formErrors.description" />
         </div>
@@ -102,7 +118,9 @@ import {
   ConfirmDialog,
   DataTable,
   FormModal,
+  ImagePicker,
   PageHeader,
+  SpecialtyBadge,
   Pagination,
   StatusBadge
 } from '@/components/ui'
@@ -139,6 +157,8 @@ const saving = ref(false)
 const formError = ref('')
 const formErrors = ref({})
 const form = reactive({ code: '', name: '', description: '', status: 'ACTIVE', durationMinutes: 30, price: '', unit: '' })
+const imageFile = ref(null)
+const imageRemoved = ref(false)
 
 const removeOpen = ref(false)
 const removing = ref(false)
@@ -146,7 +166,7 @@ const selected = ref(null)
 
 const columns = computed(() => {
   const specific = {
-    specialties: [],
+    specialties: [{ key: 'image', label: 'Ảnh' }],
     services: [
       { key: 'durationMinutes', label: 'Thời lượng' },
       { key: 'price', label: 'Giá' }
@@ -197,6 +217,8 @@ function selectTab(tab) {
 function openCreate() {
   editing.value = null
   Object.assign(form, { code: '', name: '', description: '', status: 'ACTIVE', durationMinutes: 30, price: '', unit: '' })
+  imageFile.value = null
+  imageRemoved.value = false
   formError.value = ''
   formErrors.value = {}
   formOpen.value = true
@@ -213,6 +235,8 @@ function openEdit(row) {
     price: row.price ?? '',
     unit: row.unit || ''
   })
+  imageFile.value = null
+  imageRemoved.value = false
   formError.value = ''
   formErrors.value = {}
   formOpen.value = true
@@ -233,16 +257,30 @@ async function save() {
   saving.value = true
   formError.value = ''
   formErrors.value = {}
+  const api = catalogApi[activeTab.value]
+  let saved = null
   try {
-    const api = catalogApi[activeTab.value]
-    if (editing.value) await api.update(editing.value.id, payload())
-    else await api.create(payload())
+    saved = editing.value ? await api.update(editing.value.id, payload()) : await api.create(payload())
+  } catch (err) {
+    formErrors.value = fieldErrors(err)
+    formError.value = apiErrorMessage(err)
+    saving.value = false
+    return
+  }
+  // Ảnh chuyên khoa gửi sau khi đã có bản ghi (lúc thêm mới mới có id); lỗi ảnh không làm mất phần đã lưu.
+  try {
+    const id = saved?.id ?? editing.value?.id
+    if (activeTab.value === 'specialties' && id) {
+      if (imageFile.value) await api.uploadImage(id, imageFile.value)
+      else if (imageRemoved.value) await api.removeImage(id)
+    }
     success(editing.value ? `Đã cập nhật ${current.value.noun}` : `Đã thêm ${current.value.noun}`)
     formOpen.value = false
     await load()
   } catch (err) {
-    formErrors.value = fieldErrors(err)
-    formError.value = apiErrorMessage(err)
+    editing.value = saved
+    await load()
+    formError.value = `Đã lưu ${current.value.noun}, nhưng chưa lưu được ảnh: ${apiErrorMessage(err)}`
   } finally {
     saving.value = false
   }

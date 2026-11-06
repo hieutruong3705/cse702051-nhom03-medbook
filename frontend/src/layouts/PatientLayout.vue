@@ -13,6 +13,7 @@ const items = [
   { to: '/patient/appointments', label: 'Lịch hẹn', icon: 'fa-regular fa-calendar-check' },
   { to: '/patient/records', label: 'Bệnh án', icon: 'fa-regular fa-folder-open' },
   { to: '/patient/invoices', label: 'Hóa đơn', icon: 'fa-solid fa-file-invoice-dollar' },
+  { to: '/patient/reviews', label: 'Đánh giá của tôi', icon: 'fa-regular fa-star' },
   { to: '/patient/notifications', label: 'Thông báo', icon: 'fa-regular fa-bell' },
   { to: '/patient/profile', label: 'Hồ sơ', icon: 'fa-regular fa-user' }
 ]

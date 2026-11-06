@@ -37,8 +37,13 @@ vi.mock('@/api/doctors', () => ({
     list: vi.fn().mockResolvedValue({
       content: [{ id: 1, fullName: 'Bác sĩ Lan', specialtyId: 1, specialtyName: 'Nội tổng quát', bio: 'Mười năm kinh nghiệm' }],
       page: 0, size: 20, totalElements: 1, totalPages: 1
-    })
+    }),
+    slots: vi.fn().mockResolvedValue([{ id: 9, startTime: '08:00:00', endTime: '08:30:00' }])
   }
+}))
+
+vi.mock('@/api/clinic', () => ({
+  clinicApi: { get: vi.fn().mockResolvedValue({ name: 'Phòng khám đa khoa MedBook', address: 'Số 1 Đường Mô Phỏng' }) }
 }))
 
 vi.mock('@/api/catalog', () => ({
@@ -76,9 +81,14 @@ describe('feature page smoke tests', () => {
     await flushPromises()
     expect(wrapper.text()).toContain('Bác sĩ Lan')
     expect(wrapper.text()).toContain('Nội tổng quát')
-    // hồ sơ công khai không có số giấy phép; nút đặt lịch mang sẵn mã bác sĩ
+    // hồ sơ công khai không có số giấy phép; thẻ bác sĩ có lịch khám chọn được ngay, kèm địa chỉ và giá
     expect(wrapper.text()).not.toContain('Mã hành nghề')
-    expect(wrapper.find('a[href="/patient/booking?doctorId=1"]').text()).toContain('Đặt lịch')
+    expect(wrapper.find('a[href="/doctors/1"]').exists()).toBe(true)
+    const slot = wrapper.find('[data-test="slot-link"]')
+    expect(slot.text()).toContain('08:00 - 08:30')
+    expect(slot.attributes('href')).toMatch(/^\/patient\/booking\?doctorId=1&slotId=9&date=\d{4}-\d{2}-\d{2}&start=08:00&end=08:30$/)
+    expect(wrapper.text()).toContain('Số 1 Đường Mô Phỏng')
+    expect(wrapper.text()).toContain('từ 150.000')
     expect(wrapper.find('#doctor-specialty').text()).toContain('Noi tong quat')
   })
 

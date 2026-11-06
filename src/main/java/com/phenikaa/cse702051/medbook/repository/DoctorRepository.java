@@ -58,4 +58,10 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long>, JpaSpecif
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select d from Doctor d where d.id = :id")
     Optional<Doctor> findByIdForUpdate(@Param("id") Long id);
+
+    long countByIsActiveTrue();
+
+    /** Mã các bác sĩ đang hoạt động, cho bản đồ trang. */
+    @Query("SELECT d.id FROM Doctor d WHERE d.isActive = true ORDER BY d.id")
+    List<Long> findActiveIds();
 }

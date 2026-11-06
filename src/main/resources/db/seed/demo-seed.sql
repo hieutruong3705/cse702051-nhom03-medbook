@@ -43,6 +43,24 @@ INSERT INTO patients (id, user_id, patient_code, full_name, date_of_birth, gende
 (1, 4, 'BN000001', 'Nguyễn Minh An', '1990-01-01', 'MALE', '0934567890', 'patient1@medbook.local', 'Hà Nội', 'Người thân 1', '0956789012', 'O', 'Không', 'ACTIVE', NOW(), NOW()),
 (2, 5, 'BN000002', 'Trần Gia Bình', '1985-05-15', 'MALE', '0945678901', 'patient2@medbook.local', 'Hà Nội', 'Người thân 2', '0967890123', 'A', 'Phấn hoa', 'ACTIVE', NOW(), NOW());
 
+-- Phần giới thiệu bác sĩ hiện trên trang công khai (V5); dữ liệu hư cấu
+UPDATE doctors SET academic_title = 'Thạc sĩ, Bác sĩ chuyên khoa I', years_of_experience = 12,
+  education = 'Bác sĩ đa khoa (dữ liệu mẫu); Thạc sĩ Nội khoa (dữ liệu mẫu)',
+  expertise = 'Khám và theo dõi tăng huyết áp, đái tháo đường, rối loạn mỡ máu; tư vấn khám sức khỏe định kỳ',
+  work_history = 'Bác sĩ khoa Nội (dữ liệu mẫu); bác sĩ Phòng khám MedBook từ năm 2020'
+WHERE id = 1;
+UPDATE doctors SET academic_title = 'Bác sĩ chuyên khoa I', years_of_experience = 8,
+  education = 'Bác sĩ đa khoa (dữ liệu mẫu); Chuyên khoa I Nhi (dữ liệu mẫu)',
+  expertise = 'Khám bệnh hô hấp, tiêu hóa thường gặp ở trẻ em; tư vấn dinh dưỡng và lịch tiêm chủng',
+  work_history = 'Bác sĩ khoa Nhi (dữ liệu mẫu); bác sĩ Phòng khám MedBook từ năm 2022'
+WHERE id = 2;
+
+-- Thông tin sức khỏe bệnh nhân tự khai (V5); dữ liệu hư cấu
+UPDATE patients SET height_cm = 170, weight_kg = 65.0, health_insurance_number = 'DN4010000000001',
+  chronic_conditions = 'Không', family_history = 'Không ghi nhận' WHERE id = 1;
+UPDATE patients SET height_cm = 165, weight_kg = 58.5, health_insurance_number = 'DN4010000000002',
+  chronic_conditions = 'Viêm mũi dị ứng (dữ liệu mẫu)', family_history = 'Bố tăng huyết áp (dữ liệu mẫu)' WHERE id = 2;
+
 INSERT INTO services (id, code, name, description, duration_minutes, price, status, created_at, updated_at) VALUES
 (1, 'DV01', 'Khám tổng quát', 'Khám sức khỏe tổng quát', 30, 200000.00, 'ACTIVE', NOW(), NOW()),
 (2, 'DV02', 'Khám chuyên khoa', 'Khám chuyên khoa sâu', 45, 300000.00, 'ACTIVE', NOW(), NOW()),

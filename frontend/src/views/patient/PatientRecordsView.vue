@@ -2,8 +2,8 @@
   <PatientLayout>
     <PageHeader title="Bệnh án và lịch sử khám" eyebrow="Bệnh nhân" description="Tóm tắt hồ sơ y tế và các lần khám đã ghi nhận." />
 
-    <section class="grid gap-4 lg:grid-cols-[320px_1fr]">
-      <aside class="rounded-md border border-slate-200 bg-white p-4">
+    <section class="grid grid-cols-1 gap-4 lg:grid-cols-[320px_1fr]">
+      <aside class="min-w-0 rounded-md border border-slate-200 bg-white p-4">
         <h2 class="font-semibold text-slate-950">Tóm tắt bệnh án</h2>
         <div v-if="recordLoading" class="mt-4"><LoadingSpinner label="Đang tải bệnh án" /></div>
         <p v-else-if="recordError" class="mt-3 text-sm text-red-700">{{ recordError }}</p>
@@ -15,7 +15,7 @@
         </dl>
       </aside>
 
-      <div>
+      <div class="min-w-0">
         <DataTable :columns="columns" :rows="encounters" :loading="encounterLoading" :error="encounterError" empty-text="Chưa có lịch sử khám">
           <template #cell-date="{ row }">
             {{ formatDate(row.encounterAt || row.encounterDate || row.createdAt || row.updatedAt) }}

@@ -26,6 +26,8 @@ spring:
       platform: h2
       # Chỉ H2 nạp tệp này (có lệnh RESTART WITH của H2). MySQL dùng Flyway và db/seed/demo-seed.sql.
       data-locations: classpath:data-h2.sql
+      # Luôn đọc tệp dữ liệu mẫu bằng UTF-8, không phụ thuộc bảng mã mặc định của máy (tránh lỗi font tiếng Việt).
+      encoding: UTF-8
 
   flyway:
     enabled: false
@@ -66,6 +68,15 @@ spring.servlet.multipart:
 medbook:
   openapi:
     enabled: ${MEDBOOK_OPENAPI_ENABLED:false}
+  clinic:
+    # Thông tin giới thiệu phòng khám trên trang /about. Đây là dữ liệu MÔ PHỎNG phục vụ học tập, không phải phòng
+    # khám thật; đổi qua biến môi trường nếu cần. Giờ làm việc: nhiều dòng phân tách bằng dấu chấm phẩy.
+    name: "${MEDBOOK_CLINIC_NAME:Phòng khám đa khoa MedBook}"
+    introduction: "${MEDBOOK_CLINIC_INTRODUCTION:MedBook là phòng khám đa khoa ngoại trú mô phỏng của Nhóm 03, học phần Thiết kế web nâng cao. Người bệnh xem thông tin bác sĩ, chọn dịch vụ và đặt lịch khám trực tuyến, xem kết quả khám, đơn thuốc và hóa đơn của chính mình.}"
+    address: "${MEDBOOK_CLINIC_ADDRESS:Số 1 Đường Mô Phỏng, Phường Học Tập, Hà Nội}"
+    phone: "${MEDBOOK_CLINIC_PHONE:0240 000 0000}"
+    email: "${MEDBOOK_CLINIC_EMAIL:lienhe@medbook.example}"
+    working-hours: "${MEDBOOK_CLINIC_WORKING_HOURS:Thứ Hai đến Thứ Sáu: 07:30 - 17:00;Thứ Bảy: 07:30 - 11:30;Chủ nhật và ngày lễ: nghỉ}"
   admin:
     # Mật khẩu ban đầu của admin1, admin2, admin3. Chỉ được dùng khi CSDL chưa có tài khoản nào (InitialAdminRunner);
     # để trống thì không tạo tài khoản. Áp dụng cho mọi hồ sơ.

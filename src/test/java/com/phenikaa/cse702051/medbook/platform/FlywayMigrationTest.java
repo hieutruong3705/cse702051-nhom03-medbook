@@ -30,6 +30,8 @@ import com.phenikaa.cse702051.medbook.config.DemoSeedRunner;
 import com.phenikaa.cse702051.medbook.config.migration.V2__CxAdditiveSchema;
 import com.phenikaa.cse702051.medbook.config.migration.V3__ReceptionistRole;
 import com.phenikaa.cse702051.medbook.config.migration.V4__SlotHolds;
+import com.phenikaa.cse702051.medbook.config.migration.V5__ReviewsAndProfiles;
+import com.phenikaa.cse702051.medbook.config.migration.V6__MediaImages;
 
 import jakarta.persistence.Table;
 
@@ -68,7 +70,8 @@ class FlywayMigrationTest {
         return Flyway.configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
-                .javaMigrations(new V2__CxAdditiveSchema(), new V3__ReceptionistRole(), new V4__SlotHolds())
+                .javaMigrations(new V2__CxAdditiveSchema(), new V3__ReceptionistRole(), new V4__SlotHolds(),
+                        new V5__ReviewsAndProfiles(), new V6__MediaImages())
                 .baselineOnMigrate(true)
                 .baselineVersion("1")
                 .load();
@@ -101,8 +104,8 @@ class FlywayMigrationTest {
 
         MigrateResult result = flyway(dataSource).migrate();
 
-        assertEquals(4, result.migrationsExecuted);
-        assertEquals("4", result.targetSchemaVersion);
+        assertEquals(6, result.migrationsExecuted);
+        assertEquals("6", result.targetSchemaVersion);
         assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM roles", Long.class),
                 "V3 không chèn vào bảng roles rỗng: vai trò đến từ dữ liệu khởi tạo, có id tường minh");
         assertEquals(entityTables(), tables(jdbc), "mỗi entity phải có bảng do migration tạo, và ngược lại");
@@ -118,6 +121,11 @@ class FlywayMigrationTest {
         assertEquals(Set.of("id", "slot_id", "user_id", "expires_at", "created_at"), columns(jdbc, "slot_holds"));
         // UNIQUE(slot_id) được kiểm bằng hành vi ở test riêng: H2 tự đặt tên chỉ mục của ràng buộc khai trong CREATE TABLE
         assertTrue(indexes(jdbc, "slot_holds").containsAll(List.of("idx_slot_holds_expires", "idx_slot_holds_user")));
+        assertTrue(columns(jdbc, "doctors").containsAll(List.of("academic_title", "years_of_experience", "education",
+                "expertise", "work_history")));
+        assertTrue(columns(jdbc, "patients").containsAll(List.of("height_cm", "weight_kg", "health_insurance_number",
+                "chronic_conditions", "family_history")));
+        assertTrue(indexes(jdbc, "doctor_reviews").contains("idx_doctor_reviews_doctor_status"));
 
         assertEquals(0, flyway(dataSource).migrate().migrationsExecuted, "chạy lại không còn gì để làm");
     }
@@ -151,6 +159,13 @@ class FlywayMigrationTest {
                 // trùng mã, trùng tên đăng nhập, trùng số giấy phép
                 "UPDATE users SET username = 'admin1' WHERE id = 2",
                 "UPDATE doctors SET license_number = 'CCHN-0001' WHERE id = 2",
+                // đánh giá ngoài 1-5 sao, trạng thái ngoài tập cho phép, đánh giá cho lịch hẹn không tồn tại
+                "INSERT INTO doctor_reviews (appointment_id, patient_id, doctor_id, rating, status, version, "
+                        + "created_at, updated_at) VALUES (999999, 1, 1, 6, 'VISIBLE', 0, NOW(), NOW())",
+                "INSERT INTO doctor_reviews (appointment_id, patient_id, doctor_id, rating, status, version, "
+                        + "created_at, updated_at) VALUES (999999, 1, 1, 5, 'SPAM', 0, NOW(), NOW())",
+                "INSERT INTO doctor_reviews (appointment_id, patient_id, doctor_id, rating, status, version, "
+                        + "created_at, updated_at) VALUES (999999, 1, 1, 5, 'VISIBLE', 0, NOW(), NOW())",
                 // khóa ngoại: slot của bác sĩ không tồn tại
                 "INSERT INTO appointment_slots (doctor_id, slot_date, start_time, end_time, is_available, status, "
                         + "version, created_at, updated_at) VALUES (999999, CURDATE(), '08:00:00', '09:00:00', TRUE, "
@@ -181,7 +196,7 @@ class FlywayMigrationTest {
 
         MigrateResult result = flyway(dataSource).migrate();
 
-        assertEquals(3, result.migrationsExecuted, "chỉ V2, V3 và V4 được chạy, V1 được coi là đã có");
+        assertEquals(5, result.migrationsExecuted, "chỉ V2 đến V6 được chạy, V1 được coi là đã có");
         assertEquals(entityTables(), tables(jdbc));
         assertTrue(columns(jdbc, "invoices").containsAll(List.of("voided_at", "void_reason")));
         assertFalse(indexes(jdbc, "appointments").contains("idx_appointments_patient"),
@@ -316,5 +331,42 @@ class FlywayMigrationTest {
 
         assertEquals(4, jdbc.queryForObject("SELECT COUNT(*) FROM roles", Long.class));
         assertEquals(seededId, jdbc.queryForObject("SELECT id FROM roles WHERE code = 'RECEPTIONIST'", Long.class));
+    }
+    @Test
+    @DisplayName("V5 chạy lại nhiều lần không lỗi, giữ nguyên dữ liệu; một lịch hẹn chỉ có một đánh giá")
+    void reviewsMigrationIsRepeatableAndEnforcesOneReviewPerAppointment() throws Exception {
+        DataSource dataSource = newDatabase();
+        JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+        flyway(dataSource).migrate();
+        new DemoSeedRunner(dataSource, new ClassPathResource("db/seed/demo-seed.sql"), false).seedIfEmpty();
+        Long slotId = jdbc.queryForObject("SELECT MIN(id) FROM appointment_slots WHERE doctor_id = 1", Long.class);
+        jdbc.update("INSERT INTO appointments (patient_id, doctor_id, slot_id, status, created_at, updated_at) "
+                + "VALUES (1, 1, ?, 'COMPLETED', NOW(), NOW())", slotId);
+        Long appointmentId = jdbc.queryForObject("SELECT MAX(id) FROM appointments", Long.class);
+        String insertReview = "INSERT INTO doctor_reviews (appointment_id, patient_id, doctor_id, rating, status, "
+                + "version, created_at, updated_at) VALUES (?, 1, 1, 5, 'VISIBLE', 0, NOW(), NOW())";
+        jdbc.update(insertReview, appointmentId);
+
+        for (int i = 0; i < 2; i++) {
+            try (java.sql.Connection connection = dataSource.getConnection()) {
+                new V5__ReviewsAndProfiles().migrate(new org.flywaydb.core.api.migration.Context() {
+                    @Override
+                    public org.flywaydb.core.api.configuration.Configuration getConfiguration() {
+                        return null;
+                    }
+
+                    @Override
+                    public java.sql.Connection getConnection() {
+                        return connection;
+                    }
+                });
+            }
+        }
+
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM doctor_reviews", Long.class), "dữ liệu còn nguyên");
+        assertEquals(12, jdbc.queryForObject("SELECT years_of_experience FROM doctors WHERE id = 1", Integer.class),
+                "cột đã có thì không thêm lại, giá trị của dữ liệu mẫu còn nguyên");
+        assertThrows(DataAccessException.class, () -> jdbc.update(insertReview, appointmentId),
+                "UNIQUE(appointment_id): một lịch hẹn, một đánh giá");
     }
 }

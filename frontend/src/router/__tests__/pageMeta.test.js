@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { applyPageMeta, DEFAULT_DESCRIPTION } from '@/router/guards'
 import { createAppRouter, legacyHashTarget } from '@/router'
 
-const PUBLIC_PAGES = ['/', '/doctors', '/specialties', '/services', '/login', '/register']
+const PUBLIC_PAGES = ['/', '/doctors', '/specialties', '/services', '/about', '/reviews', '/login', '/register']
 
 const metaContent = (selector) => document.head.querySelector(selector)?.getAttribute('content') ?? null
 const description = () => metaContent('meta[name="description"]')

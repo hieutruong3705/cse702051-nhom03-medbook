@@ -123,7 +123,7 @@ class SpaRoutingTest extends AbstractApiTest {
     }
 
     @Test
-    @DisplayName("/sitemap.xml: mọi <loc> là địa chỉ tuyệt đối, đủ sáu trang công khai, không có trang sau đăng nhập")
+    @DisplayName("/sitemap.xml: mọi <loc> là địa chỉ tuyệt đối, đủ tám trang công khai rồi tới trang chi tiết bác sĩ, chuyên khoa, không có trang sau đăng nhập")
     void sitemapListsPublicPagesWithAbsoluteAddresses() throws Exception {
         String xml = mvc.perform(get("/sitemap.xml"))
                 .andExpect(status().isOk())
@@ -135,7 +135,12 @@ class SpaRoutingTest extends AbstractApiTest {
 
         List<String> locations = LOC.matcher(xml).results().map(match -> match.group(1)).toList();
         assertEquals(List.of("http://localhost/", "http://localhost/doctors", "http://localhost/specialties",
-                "http://localhost/services", "http://localhost/login", "http://localhost/register"), locations);
+                "http://localhost/services", "http://localhost/about", "http://localhost/reviews",
+                "http://localhost/login", "http://localhost/register"), locations.subList(0, 8));
+        assertTrue(locations.size() > 8, "có trang chi tiết của bác sĩ và chuyên khoa mẫu");
+        for (String detail : locations.subList(8, locations.size())) {
+            assertTrue(detail.matches("http://localhost/(doctors|specialties)/\\d+"), detail);
+        }
         for (String page : List.of("/patient", "/doctor/", "/admin", "/receptionist", "/api", "#")) {
             assertFalse(xml.contains("localhost" + page), "bản đồ trang không được chứa " + page);
         }
@@ -166,7 +171,7 @@ class SpaRoutingTest extends AbstractApiTest {
             assertTrue(locations.group(1).startsWith("https://medbook.example/"), locations.group(1));
             count++;
         }
-        assertEquals(6, count);
+        assertEquals(8, count);
         assertTrue(xml.contains("<loc>https://medbook.example/doctors</loc>"));
         assertFalse(xml.contains("noi-bo.local"));
 

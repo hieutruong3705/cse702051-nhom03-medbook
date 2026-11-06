@@ -3,11 +3,11 @@
     <PageHeader title="Chuyên khoa" description="Danh sách chuyên khoa đang hoạt động." />
     <section class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <article v-for="item in specialties" :key="item.id" class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
-          <div class="flex h-12 w-12 items-center justify-center rounded bg-primary-50 text-xl text-primary-700">
-            <i class="fa-solid fa-staff-snake" aria-hidden="true"></i>
-          </div>
-          <h2 class="mt-4 text-lg font-semibold text-slate-950">{{ item.name }}</h2>
+        <article v-for="item in specialties" :key="item.id" class="rounded-md border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+          <SpecialtyBadge :specialty="item" variant="icon" size="sm" />
+          <h2 class="mt-4 text-lg font-semibold text-slate-950">
+            <RouterLink class="hover:text-primary-700 hover:underline" :to="`/specialties/${item.id}`">{{ item.name }}</RouterLink>
+          </h2>
           <p class="mt-2 text-sm text-slate-600">{{ item.description || 'Chuyên khoa trong hệ thống MedBook.' }}</p>
         </article>
       </div>
@@ -21,6 +21,7 @@
 import { onMounted, ref } from 'vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
+import SpecialtyBadge from '@/components/ui/SpecialtyBadge.vue'
 import PublicLayout from '@/layouts/PublicLayout.vue'
 import { catalogApi } from '@/api/catalog'
 import { apiErrorMessage } from '@/utils/apiErrorMessage'

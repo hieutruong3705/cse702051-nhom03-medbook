@@ -23,3 +23,8 @@ export const catalogStatus = {
   ACTIVE: 'Hoạt động',
   INACTIVE: 'Ngừng dùng'
 }
+
+export const reviewStatus = {
+  VISIBLE: 'Đang hiện',
+  HIDDEN: 'Đã ẩn'
+}

@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.ObjectPostProcessor;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -16,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
+import org.springframework.security.web.header.HeaderWriterFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -89,14 +91,24 @@ public class SecurityConfig {
 
                 // Header bảo mật cho cả API lẫn giao diện tĩnh. HSTS chỉ được gửi trên kết nối HTTPS
                 // (sau reverse proxy cần server.forward-headers-strategy để nhận biết HTTPS).
-                .headers(headers -> headers
-                        .contentSecurityPolicy(csp -> csp.policyDirectives(contentSecurityPolicy))
+                .headers(headers -> {
+                    // HEAD / đi qua xử lý welcome page của servlet: ghi header trước handler để
+                    // phản hồi HEAD cũng giữ các header bảo mật (đã kiểm qua HTTP thật).
+                    headers.addObjectPostProcessor(new ObjectPostProcessor<HeaderWriterFilter>() {
+                        @Override
+                        public <O extends HeaderWriterFilter> O postProcess(O filter) {
+                            filter.setShouldWriteHeadersEagerly(true);
+                            return filter;
+                        }
+                    });
+                    headers.contentSecurityPolicy(csp -> csp.policyDirectives(contentSecurityPolicy))
                         .frameOptions(frame -> frame.deny())
                         .referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
                         .permissionsPolicyHeader(permissions -> permissions.policy(PERMISSIONS_POLICY))
                         .httpStrictTransportSecurity(hsts -> hsts
                                 .includeSubDomains(true)
-                                .maxAgeInSeconds(31_536_000)))
+                                .maxAgeInSeconds(31_536_000));
+                })
 
                 .authorizeHttpRequests(auth -> {
                     // === PUBLIC: giao diện tĩnh ===
@@ -116,11 +128,22 @@ public class SecurityConfig {
                             API + "/auth/forgot-password",
                             API + "/auth/reset-password").permitAll();
 
-                    // === PUBLIC: danh mục và hồ sơ bác sĩ (chỉ đọc) ===
+                    // === DOCTOR: hồ sơ và đánh giá của chính bác sĩ. Phải đứng TRƯỚC luật công khai /doctors/**
+                    // và luật chặn ghi trên /doctors/** bên dưới, nếu không /doctors/me/... bị coi là công khai ===
+                    auth.requestMatchers(API + "/doctors/me", API + "/doctors/me/**").hasRole("DOCTOR");
+
+                    // === PATIENT: đánh giá của chính mình. Đứng trước luật công khai GET /reviews ===
+                    auth.requestMatchers(HttpMethod.GET, API + "/reviews/me").hasRole("PATIENT");
+                    auth.requestMatchers(HttpMethod.POST, API + "/appointments/*/review").hasRole("PATIENT");
+                    auth.requestMatchers(HttpMethod.PUT, API + "/reviews/*").hasRole("PATIENT");
+                    auth.requestMatchers(HttpMethod.DELETE, API + "/reviews/*").hasRole("PATIENT");
+
+                    // === PUBLIC: danh mục, hồ sơ bác sĩ, đánh giá đang hiện, giới thiệu phòng khám (chỉ đọc) ===
                     auth.requestMatchers(HttpMethod.GET,
                             API + "/doctors", API + "/doctors/**",
                             API + "/specialties", API + "/specialties/**",
                             API + "/medical-services", API + "/medical-services/**",
+                            API + "/reviews", API + "/clinic", API + "/images/*",
                             API + "/system/status", API + "/health").permitAll();
 
                     // === ADMIN ===

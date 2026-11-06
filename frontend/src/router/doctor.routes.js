@@ -47,5 +47,11 @@ export default [
     name: 'doctor-profile',
     component: () => import('@/views/doctor/DoctorProfileView.vue'),
     meta: { title: 'Hồ sơ bác sĩ' }
+  },
+  {
+    path: 'reviews',
+    name: 'doctor-reviews',
+    component: () => import('@/views/doctor/DoctorReviewsView.vue'),
+    meta: { title: 'Đánh giá về tôi' }
   }
 ]

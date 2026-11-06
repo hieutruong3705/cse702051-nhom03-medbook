@@ -75,4 +75,8 @@ public interface AppointmentRepository
     List<Object[]> findActiveBySlotIds(
             @Param("slotIds") Collection<Long> slotIds,
             @Param("cancelled") AppointmentStatus cancelled);
+
+    /** [mã lịch hẹn, ngày khám] của nhiều lịch hẹn trong một truy vấn (ghi "Đã khám ngày" trên đánh giá). */
+    @Query("SELECT a.id, s.slotDate FROM Appointment a JOIN a.slot s WHERE a.id IN :ids")
+    List<Object[]> findVisitDates(@Param("ids") Collection<Long> ids);
 }

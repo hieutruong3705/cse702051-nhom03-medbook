@@ -107,6 +107,7 @@ public class MedicalServiceService {
     public MedicalServiceAdminDTO create(MedicalServiceRequest request) {
         currentUserService.requireRole("ADMIN");
         publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_MEDICAL_SERVICES);
+        publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_CLINIC);
         String code = CatalogRules.requireCode(request.code());
         if (serviceRepository.existsByCodeIgnoreCase(code)) {
             throw new FieldConflictException("code", DUPLICATE_CODE);
@@ -134,6 +135,7 @@ public class MedicalServiceService {
     public MedicalServiceAdminDTO update(Long id, MedicalServiceRequest request) {
         currentUserService.requireRole("ADMIN");
         publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_MEDICAL_SERVICES);
+        publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_CLINIC);
         MedicalService service = find(id);
         CatalogRules.assertCodeUnchanged(request.code(), service.getCode());
         service.setName(request.name().trim());
@@ -156,6 +158,7 @@ public class MedicalServiceService {
     public Optional<MedicalServiceAdminDTO> delete(Long id) {
         currentUserService.requireRole("ADMIN");
         publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_MEDICAL_SERVICES);
+        publicCatalogCache.evictAfterCommit(CacheConfig.PUBLIC_CLINIC);
         MedicalService service = find(id);
         boolean referenced = appointmentRepository.existsForService(id) || invoiceItemRepository.existsByServiceId(id);
         if (referenced) {

@@ -14,8 +14,11 @@ import org.springframework.web.bind.annotation.RestController;
 import com.phenikaa.cse702051.medbook.dto.AppointmentSlotDTO;
 import com.phenikaa.cse702051.medbook.dto.PageResponse;
 import com.phenikaa.cse702051.medbook.dto.doctor.DoctorPublicDTO;
+import com.phenikaa.cse702051.medbook.dto.review.RatingSummaryDTO;
+import com.phenikaa.cse702051.medbook.dto.review.ReviewPublicDTO;
 import com.phenikaa.cse702051.medbook.service.AppointmentSlotService;
 import com.phenikaa.cse702051.medbook.service.DoctorService;
+import com.phenikaa.cse702051.medbook.service.ReviewService;
 
 /**
  * Bác sĩ trên trang công khai (YCCN-08, 09, 25): không cần đăng nhập, chỉ bác sĩ đang hoạt động, không lộ trường
@@ -27,10 +30,13 @@ public class DoctorController {
 
     private final DoctorService doctorService;
     private final AppointmentSlotService slotService;
+    private final ReviewService reviewService;
 
-    public DoctorController(DoctorService doctorService, AppointmentSlotService slotService) {
+    public DoctorController(DoctorService doctorService, AppointmentSlotService slotService,
+            ReviewService reviewService) {
         this.doctorService = doctorService;
         this.slotService = slotService;
+        this.reviewService = reviewService;
     }
 
     /** Tìm bác sĩ theo tên hoặc tên chuyên khoa. {@code sort}: {@code fullName} (mặc định) hoặc {@code id}. */
@@ -55,5 +61,21 @@ public class DoctorController {
             @PathVariable Long id,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return ResponseEntity.ok(slotService.getAvailableSlots(id, date));
+    }
+
+    /** Đánh giá đang hiện của một bác sĩ, mới nhất trước; {@code sort}: {@code createdAt} hoặc {@code rating}. */
+    @GetMapping("/{id}/reviews")
+    public PageResponse<ReviewPublicDTO> reviews(
+            @PathVariable Long id,
+            @RequestParam(required = false) Integer rating,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(required = false) String sort) {
+        return reviewService.listPublicForDoctor(id, rating, page, size, sort);
+    }
+
+    @GetMapping("/{id}/rating-summary")
+    public RatingSummaryDTO ratingSummary(@PathVariable Long id) {
+        return reviewService.summaryForDoctor(id);
     }
 }

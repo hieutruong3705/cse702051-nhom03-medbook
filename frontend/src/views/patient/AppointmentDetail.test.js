@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiRequestError } from '@/api/http'
 import { appointmentsApi } from '@/api/appointments'
 import { doctorsApi } from '@/api/doctors'
+import { reviewsApi } from '@/api/reviews'
 import { slotsApi } from '@/api/slots'
 import AppointmentDetail from './AppointmentDetail.vue'
 import { todayIso } from './booking/bookingUtils'
@@ -21,6 +22,9 @@ vi.mock('vue-router', async (importOriginal) => {
 vi.mock('@/api/appointments', () => ({ appointmentsApi: { get: vi.fn(), cancel: vi.fn(), reschedule: vi.fn() } }))
 vi.mock('@/api/doctors', () => ({ doctorsApi: { list: vi.fn() } }))
 vi.mock('@/api/slots', () => ({ slotsApi: { availableByDoctor: vi.fn() } }))
+vi.mock('@/api/reviews', () => ({
+  reviewsApi: { forAppointment: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() }
+}))
 
 const addDays = (days) => {
   const date = new Date()
@@ -62,6 +66,7 @@ beforeEach(() => {
   appointmentsApi.get.mockResolvedValue(booked())
   doctorsApi.list.mockResolvedValue({ content: [{ id: 1, fullName: 'BS. Nguyễn Văn A' }, { id: 2, fullName: 'BS. Trần Thị B' }] })
   slotsApi.availableByDoctor.mockResolvedValue(SLOTS)
+  reviewsApi.forAppointment.mockRejectedValue(new ApiRequestError({ status: 404, code: 'NOT_FOUND', message: 'Chưa có đánh giá' }))
 })
 
 describe('AppointmentDetail', () => {
@@ -224,6 +229,53 @@ describe('AppointmentDetail', () => {
     // lịch hiện tại vẫn hiển thị nguyên vẹn
     expect(wrapper.text()).toContain('Đã đặt')
     expect(wrapper.text()).not.toContain('Đã đổi lịch hẹn')
+    wrapper.unmount()
+  })
+  it('lịch chưa hoàn thành không có phần đánh giá', async () => {
+    const wrapper = await mountView()
+    expect(wrapper.find('[data-test="review-form"]').exists()).toBe(false)
+    expect(reviewsApi.forAppointment).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  it('lần khám đã hoàn thành: chọn sao bằng nhóm radio, gửi đánh giá, sau đó hiện nội dung đã gửi', async () => {
+    appointmentsApi.get.mockResolvedValue(booked({ status: 'COMPLETED' }))
+    reviewsApi.create.mockResolvedValue({
+      id: 9, appointmentId: 55, rating: 4, comment: 'Bác sĩ tận tình', status: 'VISIBLE', createdAt: '2026-11-04T09:00:00'
+    })
+    const wrapper = await mountView()
+    expect(reviewsApi.forAppointment).toHaveBeenCalledWith(55)
+
+    // Gửi khi chưa chọn sao: báo lỗi ngay, không gọi máy chủ
+    await wrapper.find('[data-test="review-form"]').trigger('submit')
+    expect(wrapper.text()).toContain('Vui lòng chọn số sao')
+    expect(reviewsApi.create).not.toHaveBeenCalled()
+
+    const radios = wrapper.findAll('input[type="radio"][name="visit-rating"]')
+    expect(radios).toHaveLength(5)
+    // Mỗi ô sao có nhãn đọc được cho trình đọc màn hình
+    expect(radios[3].element.closest('label').textContent).toContain('4 sao trên 5')
+    await radios[3].setValue(true)
+    await wrapper.find('#visit-comment').setValue('  Bác sĩ tận tình  ')
+    await wrapper.find('[data-test="review-form"]').trigger('submit')
+    await flushPromises()
+
+    expect(reviewsApi.create).toHaveBeenCalledWith(55, { rating: 4, comment: 'Bác sĩ tận tình' })
+    expect(wrapper.find('[data-test="review-view"]').text()).toContain('Bác sĩ tận tình')
+    expect(byText(wrapper.element, 'Sửa đánh giá')).toBeTruthy()
+    wrapper.unmount()
+  })
+
+  it('đánh giá đã bị quản trị viên ẩn: hiện lý do, không có nút sửa hoặc xóa', async () => {
+    appointmentsApi.get.mockResolvedValue(booked({ status: 'COMPLETED' }))
+    reviewsApi.forAppointment.mockResolvedValue({
+      id: 9, appointmentId: 55, rating: 1, comment: 'Nội dung vi phạm', status: 'HIDDEN',
+      hiddenReason: 'Ngôn từ không phù hợp', createdAt: '2026-11-04T09:00:00'
+    })
+    const wrapper = await mountView()
+    expect(wrapper.text()).toContain('Quản trị viên đã ẩn đánh giá này: Ngôn từ không phù hợp')
+    expect(byText(wrapper.element, 'Sửa đánh giá')).toBeFalsy()
+    expect(byText(wrapper.element, 'Xóa đánh giá')).toBeFalsy()
     wrapper.unmount()
   })
 })
